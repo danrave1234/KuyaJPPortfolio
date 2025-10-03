@@ -162,7 +162,7 @@ export default function Gallery() {
     return Object.values(groups);
   }
   
-  // Load initial 20 images from Firebase Storage with pagination
+  // Load initial 20 images from Firebase Storage with enhanced caching
   useEffect(() => {
     let isMounted = true // Prevent state updates if component unmounts
     
@@ -174,12 +174,98 @@ export default function Gallery() {
           return
         }
 
-        // Always fetch fresh data from Firebase Functions API (paginated!)
-        console.log('Loading initial 20 images from Firebase Functions...')
+        // 1. Check sessionStorage first (fastest)
+        const sessionCache = sessionStorage.getItem('gallery-artwork-session')
+        const sessionPage = sessionStorage.getItem('gallery-artwork-page')
+        if (sessionCache) {
+          try {
+            const parsedArtworks = JSON.parse(sessionCache)
+            if (parsedArtworks && Array.isArray(parsedArtworks) && parsedArtworks.length > 0) {
+              if (isMounted) {
+                setArtworks(parsedArtworks)
+                setCurrentPage(parseInt(sessionPage) || 1)
+                setHasMore(true) // Assume more available for pagination
+                setTotalCount(parsedArtworks.length)
+                setGalleryLoading(false)
+                console.log(`Restored ${parsedArtworks.length} images from session cache (page ${parseInt(sessionPage) || 1})`)
+              }
+              return
+            }
+          } catch (e) {
+            console.warn('Invalid session cache, clearing...')
+            sessionStorage.removeItem('gallery-artwork-session')
+            sessionStorage.removeItem('gallery-artwork-page')
+          }
+        }
+
+        // 2. Check localStorage cache (persistent)
+        const cachedArtworks = localStorage.getItem('gallery-artwork-cache')
+        const cacheTimestamp = localStorage.getItem('gallery-artwork-cache-timestamp')
+        const cachedPage = localStorage.getItem('gallery-artwork-page')
+        const now = Date.now()
+        const cacheExpiry = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+        if (cachedArtworks && cacheTimestamp && (now - parseInt(cacheTimestamp)) < cacheExpiry) {
+          try {
+            const parsedArtworks = JSON.parse(cachedArtworks)
+            if (parsedArtworks && Array.isArray(parsedArtworks) && parsedArtworks.length > 0) {
+              if (isMounted) {
+                setArtworks(parsedArtworks)
+                setCurrentPage(parseInt(cachedPage) || 1)
+                setHasMore(true) // Assume more available for pagination
+                setTotalCount(parsedArtworks.length)
+                // Also store in sessionStorage for faster subsequent loads
+                sessionStorage.setItem('gallery-artwork-session', cachedArtworks)
+                sessionStorage.setItem('gallery-artwork-page', cachedPage || '1')
+                setGalleryLoading(false)
+                console.log(`Restored ${parsedArtworks.length} images from localStorage cache (page ${parseInt(cachedPage) || 1})`)
+              }
+              return
+            }
+          } catch (e) {
+            console.warn('Invalid localStorage cache, clearing...')
+            localStorage.removeItem('gallery-artwork-cache')
+            localStorage.removeItem('gallery-artwork-cache-timestamp')
+            localStorage.removeItem('gallery-artwork-page')
+          }
+        }
+
+        // 3. Check for existing shuffled order
+        const existingOrder = localStorage.getItem('gallery-artwork-order')
+        if (existingOrder) {
+          try {
+            const parsedOrder = JSON.parse(existingOrder)
+            if (parsedOrder && Array.isArray(parsedOrder) && parsedOrder.length > 0) {
+              if (isMounted) {
+                setArtworks(parsedOrder)
+                setCurrentPage(1)
+                setHasMore(true) // Assume more available for pagination
+                setTotalCount(parsedOrder.length)
+                setGalleryLoading(false)
+              }
+              return
+            }
+          } catch (e) {
+            console.warn('Invalid order cache, clearing...')
+            localStorage.removeItem('gallery-artwork-order')
+          }
+        }
+
+        // 4. Fetch fresh data from Firebase Functions API (paginated!)
+        console.log('No valid cache found, fetching from Firebase Functions...')
         const result = await getGalleryImages('gallery', 1, 20);
         if (result.success) {
           // Images are already processed and grouped by the backend
           const shuffled = shuffleArray(result.images)
+          
+          // Store in all caches
+          const artworksJson = JSON.stringify(shuffled)
+          localStorage.setItem('gallery-artwork-order', artworksJson)
+          localStorage.setItem('gallery-artwork-cache', artworksJson)
+          localStorage.setItem('gallery-artwork-cache-timestamp', now.toString())
+          localStorage.setItem('gallery-artwork-page', '1')
+          sessionStorage.setItem('gallery-artwork-session', artworksJson)
+          sessionStorage.setItem('gallery-artwork-page', '1')
           
           if (isMounted) {
             setArtworks(shuffled)
@@ -209,7 +295,7 @@ export default function Gallery() {
     }
   }, []); // Empty dependency array to prevent re-runs
   
-  // Load more images function for infinite scroll
+  // Load more images function for infinite scroll with caching
   const loadMoreImages = async () => {
     if (loadingMore || !hasMore) return;
     
@@ -221,7 +307,27 @@ export default function Gallery() {
       
       if (result.success && result.images.length > 0) {
         const newShuffled = shuffleArray(result.images);
-        setArtworks(prev => [...prev, ...newShuffled]);
+        
+        // Update state with new images
+        setArtworks(prev => {
+          const updatedArtworks = [...prev, ...newShuffled];
+          
+          // Update all caches with the complete gallery state
+          const artworksJson = JSON.stringify(updatedArtworks);
+          const now = Date.now();
+          
+          // Update all cache layers
+          sessionStorage.setItem('gallery-artwork-session', artworksJson);
+          sessionStorage.setItem('gallery-artwork-page', nextPage.toString());
+          localStorage.setItem('gallery-artwork-cache', artworksJson);
+          localStorage.setItem('gallery-artwork-cache-timestamp', now.toString());
+          localStorage.setItem('gallery-artwork-page', nextPage.toString());
+          localStorage.setItem('gallery-artwork-order', artworksJson);
+          
+          console.log(`Updated cache with ${updatedArtworks.length} total images`);
+          return updatedArtworks;
+        });
+        
         setCurrentPage(nextPage);
         setHasMore(result.pagination?.hasMore || false);
         console.log(`Loaded ${result.images.length} more images. Total: ${artworks.length + result.images.length}`);
