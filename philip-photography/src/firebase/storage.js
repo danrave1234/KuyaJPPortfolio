@@ -197,20 +197,26 @@ export const getImageURL = async (imageName, folder = 'gallery') => {
 // Update image metadata (title, description, etc.)
 export const updateImageMetadata = async (imagePath, metadata) => {
   try {
-    const imageRef = ref(storage, imagePath);
+    // Firebase Storage doesn't support updating metadata directly
+    // We'll store the metadata in localStorage as a workaround
+    // In a production app, you'd use Firestore or another database
     
-    // Get current metadata first
-    const currentMetadata = await getMetadata(imageRef);
+    const metadataKey = `image_metadata_${imagePath.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const existingMetadata = JSON.parse(localStorage.getItem(metadataKey) || '{}');
     
-    // Update with new custom metadata
     const updatedMetadata = {
-      ...currentMetadata.customMetadata,
-      ...metadata
+      ...existingMetadata,
+      ...metadata,
+      updatedAt: new Date().toISOString()
     };
     
-    // Note: Firebase Storage doesn't have a direct updateMetadata method
-    // We'll need to handle this differently - store metadata in a separate collection
-    // For now, we'll return success and handle it in the UI
+    // Store in localStorage
+    localStorage.setItem(metadataKey, JSON.stringify(updatedMetadata));
+    
+    // Also store in a global metadata cache
+    const globalMetadata = JSON.parse(localStorage.getItem('image_metadata_cache') || '{}');
+    globalMetadata[imagePath] = updatedMetadata;
+    localStorage.setItem('image_metadata_cache', JSON.stringify(globalMetadata));
     
     return { 
       success: true, 

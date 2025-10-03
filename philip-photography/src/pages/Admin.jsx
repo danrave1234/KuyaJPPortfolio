@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { uploadMultipleImages, deleteImage, getImagesFromFolder } from '../firebase/storage'
-import { getAdminGalleryImages, searchAdminGalleryImages, clearAdminCache, cleanupAdminCache, uploadWithProgress, deleteImageWithCache } from '../firebase/admin-api'
+import { getAdminGalleryImages, searchAdminGalleryImages, clearAdminCache, cleanupAdminCache, uploadWithProgress, deleteImageWithCache, updateImageMetadataWithCache } from '../firebase/admin-api'
 import { signInUser, signOutUser } from '../firebase/auth'
 import { 
   Upload, 
@@ -43,6 +43,11 @@ export default function Admin() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  
+  // Pagination cache state
+  const [pageCache, setPageCache] = useState({}) // Cache for different pages
+  const [searchCache, setSearchCache] = useState({}) // Cache for search results
+  const [cacheTimestamps, setCacheTimestamps] = useState({}) // Cache timestamps
 
   // Handle login
   const handleLogin = async (e) => {
@@ -68,9 +73,57 @@ export default function Admin() {
     }
   }
 
-  // Load gallery images with caching
+  // Cache management functions
+  const getCacheKey = (page, searchQuery) => {
+    return searchQuery.trim() ? `search_${searchQuery}_page_${page}` : `page_${page}`;
+  };
+
+  const isCacheValid = (cacheKey) => {
+    const timestamp = cacheTimestamps[cacheKey];
+    if (!timestamp) return false;
+    const now = Date.now();
+    const cacheExpiry = 5 * 60 * 1000; // 5 minutes
+    return (now - timestamp) < cacheExpiry;
+  };
+
+  const getCachedData = (cacheKey) => {
+    if (searchQuery.trim()) {
+      return searchCache[cacheKey];
+    } else {
+      return pageCache[cacheKey];
+    }
+  };
+
+  const setCachedData = (cacheKey, data) => {
+    const timestamp = Date.now();
+    setCacheTimestamps(prev => ({ ...prev, [cacheKey]: timestamp }));
+    
+    if (searchQuery.trim()) {
+      setSearchCache(prev => ({ ...prev, [cacheKey]: data }));
+    } else {
+      setPageCache(prev => ({ ...prev, [cacheKey]: data }));
+    }
+  };
+
+  // Load gallery images with comprehensive caching
   const loadGalleryImages = async (page = 1, searchQuery = '') => {
-    setUploading(true)
+    const cacheKey = getCacheKey(page, searchQuery);
+    
+    // Check cache first
+    if (isCacheValid(cacheKey)) {
+      const cachedData = getCachedData(cacheKey);
+      if (cachedData) {
+        setGalleryImages(cachedData.images);
+        setCurrentPage(page);
+        setHasMore(cachedData.hasMore);
+        setMessage(`Loaded ${cachedData.images.length} images from cache (page ${page})`);
+        return;
+      }
+    }
+
+    setUploading(true);
+    setLoadingMore(page > 1);
+    
     try {
       let result;
       if (searchQuery.trim()) {
@@ -80,14 +133,25 @@ export default function Admin() {
       }
       
       if (result.success) {
-        if (page === 1) {
-          setGalleryImages(result.images);
-        } else {
-          setGalleryImages(prev => [...prev, ...result.images]);
-        }
+        // Cache the result
+        const cacheData = {
+          images: result.images,
+          hasMore: result.pagination?.hasMore || false,
+          page: page,
+          searchQuery: searchQuery
+        };
+        setCachedData(cacheKey, cacheData);
+        
+        // Update state
+        setGalleryImages(result.images);
         setCurrentPage(page);
         setHasMore(result.pagination?.hasMore || false);
-        setMessage(`Loaded ${result.images.length} images`);
+        
+        if (searchQuery.trim()) {
+          setMessage(`Found ${result.images.length} images for "${searchQuery}"`);
+        } else {
+          setMessage(`Loaded ${result.images.length} images from page ${page}`);
+        }
       } else {
         setMessage(`Failed to load images: ${result.error}`);
       }
@@ -95,6 +159,7 @@ export default function Admin() {
       setMessage(`Error loading images: ${error.message}`);
     } finally {
       setUploading(false);
+      setLoadingMore(false);
     }
   }
 
@@ -199,6 +264,40 @@ export default function Admin() {
     }
   }
 
+  // Clear all pagination caches
+  const clearPaginationCache = () => {
+    setPageCache({});
+    setSearchCache({});
+    setCacheTimestamps({});
+  };
+
+  // Auto-close toast messages
+  useEffect(() => {
+    if (message) {
+      // Different auto-close times based on message type
+      let timeout;
+      
+      if (message.includes('Success') || message.includes('successfully')) {
+        // Success messages: 4 seconds
+        timeout = setTimeout(() => setMessage(''), 4000);
+      } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
+        // Error messages: 6 seconds (longer for user to read)
+        timeout = setTimeout(() => setMessage(''), 6000);
+      } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
+        // Loading/Info messages: 3 seconds
+        timeout = setTimeout(() => setMessage(''), 3000);
+      } else if (message.includes('Skipped') || message.includes('Please select')) {
+        // Warning messages: 5 seconds
+        timeout = setTimeout(() => setMessage(''), 5000);
+      } else {
+        // Default messages: 4 seconds
+        timeout = setTimeout(() => setMessage(''), 4000);
+      }
+
+      return () => clearTimeout(timeout);
+    }
+  }, [message]);
+
   // Handle file upload with cache invalidation
   const handleUpload = async () => {
     if (files.length === 0 || !uploadTitle.trim()) return
@@ -207,7 +306,7 @@ export default function Admin() {
     try {
       const result = await uploadWithProgress(files, (progress) => {
         setMessage(`Uploading... ${Math.round(progress)}%`)
-      })
+      }, uploadTitle.trim(), uploadDescription.trim())
       
       if (result.success) {
         setMessage(`Successfully uploaded ${result.successful.length} images as "${uploadTitle}"!`)
@@ -216,8 +315,9 @@ export default function Admin() {
         setUploadDescription('')
         const fileInput = document.getElementById('file-input')
         if (fileInput) fileInput.value = ''
-        // Clear caches and refresh the gallery
+        // Clear all caches and refresh the gallery
         clearAdminCache()
+        clearPaginationCache()
         await loadGalleryImages(1, searchQuery)
       } else {
         setMessage(`Upload failed: ${result.error}`)
@@ -252,8 +352,9 @@ export default function Admin() {
     setMessage(`Deleted ${successCount} images${failCount > 0 ? `, ${failCount} failed` : ''}`)
     setSelectedImages(new Set())
     setShowDeleteConfirm(false)
-    // Clear caches and refresh the gallery
+    // Clear all caches and refresh the gallery
     clearAdminCache()
+    clearPaginationCache()
     loadGalleryImages(1, searchQuery)
     setUploading(false)
   }
@@ -284,20 +385,31 @@ export default function Admin() {
 
     setUploading(true)
     try {
-      // Update the image in the gallery images array
-      const updatedImages = galleryImages.map(img => 
-        img.path === editingImage.path 
-          ? { ...img, title: editForm.title, description: editForm.description }
-          : img
+      // Update the image metadata in Firebase Storage
+      const result = await updateImageMetadataWithCache(
+        editingImage.path, 
+        editForm.title.trim(), 
+        editForm.description.trim()
       )
-      setGalleryImages(updatedImages)
       
-      // Here you would typically save to Firebase or a database
-      // For now, we'll just update the local state
-      
-      setMessage(`Updated "${editForm.title}" successfully!`)
-      setEditingImage(null)
-      setEditForm({ title: '', description: '' })
+      if (result.success) {
+        // Update the local gallery images array
+        const updatedImages = galleryImages.map(img => 
+          img.path === editingImage.path 
+            ? { ...img, title: editForm.title.trim(), description: editForm.description.trim() }
+            : img
+        )
+        setGalleryImages(updatedImages)
+        
+        // Clear pagination cache since metadata changed
+        clearPaginationCache()
+        
+        setMessage(`Updated "${editForm.title}" successfully!`)
+        setEditingImage(null)
+        setEditForm({ title: '', description: '' })
+      } else {
+        setMessage(`Update failed: ${result.error}`)
+      }
     } catch (error) {
       setMessage(`Update failed: ${error.message}`)
     } finally {
@@ -436,33 +548,6 @@ export default function Admin() {
 
       {/* Main Content */}
       <main className="container mx-auto px-6 pt-24 pb-12 space-y-8">
-        {/* Welcome Section */}
-        <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl rounded-3xl p-8 border border-[rgb(var(--muted))]/20 shadow-xl">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div className="w-16 h-16 bg-[rgb(var(--primary))] rounded-2xl flex items-center justify-center shadow-lg">
-                <Camera className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h2 className="text-3xl font-bold text-[rgb(var(--fg))] mb-2">
-                  Welcome back, Admin! 👋
-                </h2>
-                <p className="text-[rgb(var(--muted))] text-lg">
-                  Manage your photography portfolio with ease
-                </p>
-              </div>
-            </div>
-            <a
-              href="/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
-            >
-              <Eye size={20} />
-              Preview Portfolio
-            </a>
-          </div>
-        </div>
 
           {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -776,26 +861,183 @@ export default function Admin() {
           </div>
           
           <div className="p-8">
-            {galleryImages.length === 0 ? (
+            {/* Search and Pagination Controls */}
+            <div className="mb-8 space-y-6">
+              {/* Search Bar */}
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                <div className="flex-1 max-w-md">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search images by title or filename..."
+                      className="w-full px-4 py-3 pl-12 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
+                    />
+                    <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                      <svg className="w-5 h-5 text-[rgb(var(--muted))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] transition-colors duration-200"
+                      >
+                        <X size={18} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      if (searchQuery.trim()) {
+                        setIsSearching(true);
+                        loadGalleryImages(1, searchQuery.trim());
+                      } else {
+                        setIsSearching(false);
+                        loadGalleryImages(1, '');
+                      }
+                    }}
+                    disabled={uploading}
+                    className="flex items-center gap-2 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 disabled:bg-[rgb(var(--muted))]/50 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-md"
+                  >
+                    {uploading ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    )}
+                    {searchQuery.trim() ? 'Search' : 'Load All'}
+                  </button>
+                  
+                  {isSearching && (
+                    <button
+                      onClick={() => {
+                        setIsSearching(false);
+                        setSearchQuery('');
+                        loadGalleryImages(1, '');
+                      }}
+                      className="flex items-center gap-2 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 text-[rgb(var(--fg))] px-4 py-3 rounded-xl font-medium transition-all duration-200"
+                    >
+                      <X size={16} />
+                      Clear Search
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-[rgb(var(--muted))]">
+                    {isSearching ? (
+                      <span>Search results: {galleryImages.length} images</span>
+                    ) : (
+                      <span>Page {currentPage} • {galleryImages.length} images on this page</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => clearPaginationCache()}
+                    className="text-xs text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] px-2 py-1 rounded hover:bg-[rgb(var(--muted))]/10 transition-colors duration-200"
+                    title="Clear pagination cache"
+                  >
+                    Clear Cache
+                  </button>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => loadGalleryImages(currentPage - 1, searchQuery.trim())}
+                    disabled={currentPage <= 1 || uploading}
+                    className="flex items-center gap-2 bg-[rgb(var(--bg))] hover:bg-[rgb(var(--muted))]/10 disabled:bg-[rgb(var(--muted))]/5 text-[rgb(var(--fg))] disabled:text-[rgb(var(--muted))] px-4 py-2 rounded-lg font-medium transition-all duration-200 border border-[rgb(var(--muted))]/20 disabled:border-transparent"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Previous
+                  </button>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-[rgb(var(--muted))]">Page</span>
+                    <span className="bg-[rgb(var(--primary))] text-white px-3 py-1 rounded-lg font-semibold text-sm">
+                      {currentPage}
+                    </span>
+                    {hasMore && (
+                      <span className="text-xs text-[rgb(var(--muted))]">of many</span>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={() => loadGalleryImages(currentPage + 1, searchQuery.trim())}
+                    disabled={!hasMore || uploading}
+                    className="flex items-center gap-2 bg-[rgb(var(--bg))] hover:bg-[rgb(var(--muted))]/10 disabled:bg-[rgb(var(--muted))]/5 text-[rgb(var(--fg))] disabled:text-[rgb(var(--muted))] px-4 py-2 rounded-lg font-medium transition-all duration-200 border border-[rgb(var(--muted))]/20 disabled:border-transparent"
+                  >
+                    Next
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {uploading && galleryImages.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-gradient-to-br from-[rgb(var(--primary))]/20 to-[rgb(var(--primary))]/10 rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-lg">
+                  <div className="w-8 h-8 border-2 border-[rgb(var(--primary))]/30 border-t-[rgb(var(--primary))] rounded-full animate-spin"></div>
+                </div>
+                <h4 className="text-2xl font-bold text-[rgb(var(--fg))] mb-3">
+                  {isSearching ? 'Searching...' : 'Loading Images...'}
+                </h4>
+                <p className="text-[rgb(var(--muted))]">
+                  {isSearching ? 'Finding images matching your search...' : 'Fetching your gallery images...'}
+                </p>
+              </div>
+            ) : galleryImages.length === 0 ? (
               <div className="text-center py-16">
                 <div className="w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-lg">
                   <ImageIcon className="w-12 h-12 text-slate-400 dark:text-slate-500" />
                 </div>
-                <h4 className="text-2xl font-bold text-[rgb(var(--fg))] mb-3">No Images Yet</h4>
+                <h4 className="text-2xl font-bold text-[rgb(var(--fg))] mb-3">
+                  {isSearching ? 'No Search Results' : 'No Images Yet'}
+                </h4>
                 <p className="text-[rgb(var(--muted))] mb-8 max-w-md mx-auto">
-                  Upload your first photos to get started with your portfolio. Create beautiful series or upload individual artworks.
+                  {isSearching ? (
+                    `No images found matching "${searchQuery}". Try a different search term.`
+                  ) : (
+                    'Upload your first photos to get started with your portfolio. Create beautiful series or upload individual artworks.'
+                  )}
                 </p>
-                <button
-                  onClick={() => document.getElementById('file-input').click()}
-                  className="inline-flex items-center gap-3 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  <Plus size={18} />
-                  Upload Your First Photos
-                </button>
+                {isSearching ? (
+                  <button
+                    onClick={() => {
+                      setIsSearching(false);
+                      setSearchQuery('');
+                      loadGalleryImages(1, '');
+                    }}
+                    className="inline-flex items-center gap-3 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    <X size={18} />
+                    Clear Search
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => document.getElementById('file-input').click()}
+                    className="inline-flex items-center gap-3 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    <Plus size={18} />
+                    Upload Your First Photos
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                {galleryImages.map((image, index) => (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                  {galleryImages.map((image, index) => (
                   <div
                     key={index}
                     className={`relative group rounded-2xl overflow-hidden border-2 transition-all duration-300 ${
@@ -858,7 +1100,34 @@ export default function Admin() {
                       })()}
                     </div>
                   </div>
-                ))}
+                  ))}
+                </div>
+                
+                {/* Loading More Indicator */}
+                {loadingMore && (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="flex items-center gap-3 bg-[rgb(var(--bg))]/50 backdrop-blur-sm px-6 py-4 rounded-xl border border-[rgb(var(--muted))]/20">
+                      <div className="w-5 h-5 border-2 border-[rgb(var(--primary))]/30 border-t-[rgb(var(--primary))] rounded-full animate-spin"></div>
+                      <span className="text-[rgb(var(--fg))] font-medium">Loading more images...</span>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Pagination Info */}
+                {!isSearching && (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="bg-[rgb(var(--bg))]/50 backdrop-blur-sm px-6 py-4 rounded-xl border border-[rgb(var(--muted))]/20">
+                      <div className="text-center">
+                        <p className="text-[rgb(var(--fg))] font-medium">
+                          Page {currentPage} of {hasMore ? 'many' : currentPage}
+                        </p>
+                        <p className="text-[rgb(var(--muted))] text-sm mt-1">
+                          {galleryImages.length} images on this page
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -866,24 +1135,59 @@ export default function Admin() {
 
         {/* Status Message */}
         {message && (
-          <div className={`fixed bottom-6 right-6 p-4 rounded-xl shadow-lg border backdrop-blur-sm z-50 max-w-sm ${
-            message.includes('Success') 
-              ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700' 
-              : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700'
+          <div className={`fixed bottom-6 right-6 p-4 rounded-xl shadow-lg border backdrop-blur-sm z-50 max-w-sm transition-all duration-300 ${
+            (() => {
+              if (message.includes('Success') || message.includes('successfully')) {
+                return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700';
+              } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
+                return 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700';
+              } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
+                return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-700';
+              } else if (message.includes('Skipped') || message.includes('Please select')) {
+                return 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-700';
+              } else {
+                return 'bg-slate-50 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400 border-slate-200 dark:border-slate-700';
+              }
+            })()
           }`}>
             <div className="flex items-center gap-3">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                message.includes('Success') 
-                  ? 'bg-emerald-500' 
-                  : 'bg-red-500'
+                (() => {
+                  if (message.includes('Success') || message.includes('successfully')) {
+                    return 'bg-emerald-500';
+                  } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
+                    return 'bg-red-500';
+                  } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
+                    return 'bg-blue-500';
+                  } else if (message.includes('Skipped') || message.includes('Please select')) {
+                    return 'bg-yellow-500';
+                  } else {
+                    return 'bg-slate-500';
+                  }
+                })()
               }`}>
-                {message.includes('Success') ? (
-                  <Check size={16} className="text-white" />
-                ) : (
-                  <AlertCircle size={16} className="text-white" />
-                )}
+                {(() => {
+                  if (message.includes('Success') || message.includes('successfully')) {
+                    return <Check size={16} className="text-white" />;
+                  } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
+                    return <AlertCircle size={16} className="text-white" />;
+                  } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
+                    return <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>;
+                  } else if (message.includes('Skipped') || message.includes('Please select')) {
+                    return <AlertCircle size={16} className="text-white" />;
+                  } else {
+                    return <AlertCircle size={16} className="text-white" />;
+                  }
+                })()}
               </div>
-              <p className="font-medium">{message}</p>
+              <p className="font-medium flex-1">{message}</p>
+              <button
+                onClick={() => setMessage('')}
+                className="ml-2 p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors duration-200"
+                title="Close message"
+              >
+                <X size={16} className="text-current" />
+              </button>
             </div>
           </div>
         )}
