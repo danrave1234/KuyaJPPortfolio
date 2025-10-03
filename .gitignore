@@ -1,0 +1,54 @@
+# Node dependencies
+**/node_modules/
+
+# Build outputs
+**/dist/
+**/build/
+
+# Vite
+**/.vite/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+firebase-debug.log*
+
+# Env files
+.env
+.env.*
+.env.local
+.env.*.local
+*.env
+*.env.local
+
+# Editor/OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Testing/coverage
+coverage/
+*.lcov
+
+# TypeScript
+*.tsbuildinfo
+
+# Firebase local state
+.firebase/
+
+# Misc caches
+**/.cache/
+**/tmp/
+**/temp/
+
+# Lockfiles (keep if you prefer to pin deps; currently tracked in repo)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
