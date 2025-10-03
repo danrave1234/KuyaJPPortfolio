@@ -7,13 +7,72 @@ export default function Gallery() {
   const [imageDimensions, setImageDimensions] = useState({})
   const [loadedImages, setLoadedImages] = useState(new Set())
   const [firebaseImages, setFirebaseImages] = useState([])
+  const [artworks, setArtworks] = useState([])
+  const [galleryLoading, setGalleryLoading] = useState(true)
   
-  // Load images from Firebase Storage
+  // Function to group images by series (using metadata)
+  const groupImagesBySeries = (images) => {
+    const groups = {};
+    
+    images.forEach(img => {
+      if (img.isSeries && img.title) {
+        // Group by title for series
+        if (!groups[img.title]) {
+          groups[img.title] = {
+            images: [],
+            title: img.title,
+            alt: `${img.title} images`,
+            isSeries: true,
+            description: img.description || ''
+          };
+        }
+        groups[img.title].images.push(img.src);
+      } else {
+        // Individual image (not part of a series)
+        const individualName = `individual_${img.title || img.name}`;
+        groups[individualName] = {
+          images: [img.src],
+          title: img.title || img.name.replace(/\.[^/.]+$/, ""),
+          alt: img.alt || img.name,
+          isSeries: false,
+          description: img.description || ''
+        };
+      }
+    });
+    
+    return Object.values(groups);
+  }
+  
+  // Load all images from Firebase Storage and group by series
   useEffect(() => {
     const loadFirebaseImages = async () => {
-      const result = await getImagesFromFolder('gallery');
-      if (result.success) {
-        setFirebaseImages(result.images);
+      try {
+        const result = await getImagesFromFolder('gallery');
+        if (result.success) {
+          // Group images by series (e.g., 2.1, 2.2, 2.3 -> Series 2)
+          const groupedImages = groupImagesBySeries(result.images);
+          
+          // Convert grouped images to artwork format
+          const artworkArray = groupedImages.map((group, index) => ({
+            id: index + 1,
+            images: group.images, // Multiple images per artwork for series
+            title: group.title,
+            alt: group.alt,
+            isSeries: group.isSeries,
+            description: group.description || ''
+          }))
+
+          // Shuffle and save order
+          const shuffled = shuffleArray(artworkArray)
+          localStorage.setItem('gallery-artwork-order', JSON.stringify(shuffled))
+          setArtworks(shuffled)
+        } else {
+          console.error('Failed to load Firebase images:', result.error)
+        }
+      } catch (error) {
+        console.error('Error loading Firebase images:', error)
+      } finally {
+        setGalleryLoading(false)
       }
     };
     loadFirebaseImages();
@@ -29,130 +88,10 @@ export default function Gallery() {
     return shuffled
   }
   
-  // Create shuffled artworks only once on component mount and persist the order
-  const [shuffledArtworks] = useState(() => {
-    // Check if we have a saved order in localStorage
-    const savedOrder = localStorage.getItem('gallery-artwork-order')
-    if (savedOrder) {
-      try {
-        return JSON.parse(savedOrder)
-      } catch (e) {
-        // If parsing fails, continue with shuffle
-      }
-    }
+  // Use artworks from Firebase instead of hardcoded array
+  const shuffledArtworks = artworks
     
-    // Firebase Storage base URL - your actual Firebase Storage bucket URL
-    const FIREBASE_STORAGE_URL = 'https://firebasestorage.googleapis.com/v0/b/kuyajp-portfolio.firebasestorage.app/o'
-    
-  const artworks = [
-      { id: 1, images: [`${FIREBASE_STORAGE_URL}/gallery%2F1.jpg?alt=media`], title: 'WILDLIFE-PORTRAIT-001' },
-      { id: 2, images: [
-        `${FIREBASE_STORAGE_URL}/gallery%2F2.1.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F2.2.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F2.3.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F2.4.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F2.5.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F2.6.jpg?alt=media`
-      ], title: 'WILDLIFE-SERIES-002' },
-      { id: 3, images: [
-        `${FIREBASE_STORAGE_URL}/gallery%2F3.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F3.2.jpg?alt=media`
-      ], title: 'NATURE-LANDSCAPE-003' },
-      { id: 4, images: [
-        `${FIREBASE_STORAGE_URL}/gallery%2F4.1.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F4.2.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F4.3.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F4.4.jpg?alt=media`
-      ], title: 'BIRD-PHOTOGRAPHY-004' },
-      { id: 5, images: [`${FIREBASE_STORAGE_URL}/gallery%2F5.jpg?alt=media`], title: 'WILDLIFE-CAPTURE-005' },
-      { id: 6, images: [`${FIREBASE_STORAGE_URL}/gallery%2F6.jpg?alt=media`], title: 'NATURE-MOMENT-006' },
-      { id: 7, images: [`${FIREBASE_STORAGE_URL}/gallery%2F7.jpg?alt=media`], title: 'WILDLIFE-ACTION-007' },
-      { id: 8, images: [`${FIREBASE_STORAGE_URL}/gallery%2F8.jpg?alt=media`], title: 'BIRD-IN-FLIGHT-008' },
-      { id: 9, images: [`${FIREBASE_STORAGE_URL}/gallery%2F9.jpg?alt=media`], title: 'NATURE-DETAIL-009' },
-      { id: 10, images: [`${FIREBASE_STORAGE_URL}/gallery%2F11.jpg?alt=media`], title: 'LANDSCAPE-SHOT-011' },
-      { id: 11, images: [`${FIREBASE_STORAGE_URL}/gallery%2F12.jpg?alt=media`], title: 'WILDLIFE-SCENE-012' },
-      { id: 12, images: [`${FIREBASE_STORAGE_URL}/gallery%2F13.jpg?alt=media`], title: 'NATURE-COMPOSITION-013' },
-      { id: 13, images: [`${FIREBASE_STORAGE_URL}/gallery%2F14.jpg?alt=media`], title: 'BIRD-PORTRAIT-014' },
-      { id: 14, images: [`${FIREBASE_STORAGE_URL}/gallery%2F15.jpg?alt=media`], title: 'WILDLIFE-MOMENT-015' },
-      { id: 15, images: [`${FIREBASE_STORAGE_URL}/gallery%2F16.jpg?alt=media`], title: 'NATURE-LANDSCAPE-016' },
-      { id: 16, images: [`${FIREBASE_STORAGE_URL}/gallery%2F17.jpg?alt=media`], title: 'WILDLIFE-CLOSE-UP-017' },
-      { id: 17, images: [`${FIREBASE_STORAGE_URL}/gallery%2F19.jpg?alt=media`], title: 'NATURE-SCENE-019' },
-      { id: 18, images: [`${FIREBASE_STORAGE_URL}/gallery%2F20.jpg?alt=media`], title: 'WILDLIFE-ACTION-020' },
-      { id: 19, images: [`${FIREBASE_STORAGE_URL}/gallery%2F21.jpg?alt=media`], title: 'BIRD-PHOTOGRAPHY-021' },
-      { id: 20, images: [`${FIREBASE_STORAGE_URL}/gallery%2F22.jpg?alt=media`], title: 'NATURE-MOMENT-022' },
-      { id: 21, images: [`${FIREBASE_STORAGE_URL}/gallery%2F23.jpg?alt=media`], title: 'WILDLIFE-PORTRAIT-023' },
-      { id: 22, images: [`${FIREBASE_STORAGE_URL}/gallery%2F24.jpg?alt=media`], title: 'LANDSCAPE-VIEW-024' },
-      { id: 23, images: [`${FIREBASE_STORAGE_URL}/gallery%2F25.jpg?alt=media`], title: 'WILDLIFE-SERIES-025' },
-      { id: 24, images: [`${FIREBASE_STORAGE_URL}/gallery%2F26.jpg?alt=media`], title: 'NATURE-DETAIL-026' },
-      { id: 25, images: [`${FIREBASE_STORAGE_URL}/gallery%2F27.jpg?alt=media`], title: 'BIRD-CAPTURE-027' },
-      { id: 26, images: [`${FIREBASE_STORAGE_URL}/gallery%2F28.jpg?alt=media`], title: 'WILDLIFE-LANDSCAPE-028' },
-      { id: 27, images: [`${FIREBASE_STORAGE_URL}/gallery%2F29.jpg?alt=media`], title: 'NATURE-PORTRAIT-029' },
-      { id: 28, images: [`${FIREBASE_STORAGE_URL}/gallery%2F30.jpg?alt=media`], title: 'WILDLIFE-SCENE-030' },
-      { id: 29, images: [`${FIREBASE_STORAGE_URL}/gallery%2F31.jpg?alt=media`], title: 'BIRD-PHOTOGRAPHY-031' },
-      { id: 30, images: [`${FIREBASE_STORAGE_URL}/gallery%2F32.jpg?alt=media`], title: 'NATURE-MOMENT-032' },
-      { id: 31, images: [`${FIREBASE_STORAGE_URL}/gallery%2F33.jpg?alt=media`], title: 'WILDLIFE-ACTION-033' },
-      { id: 32, images: [`${FIREBASE_STORAGE_URL}/gallery%2F34.jpg?alt=media`], title: 'LANDSCAPE-SHOT-034' },
-      { id: 33, images: [`${FIREBASE_STORAGE_URL}/gallery%2F35.jpg?alt=media`], title: 'NATURE-COMPOSITION-035' },
-      { id: 34, images: [
-        `${FIREBASE_STORAGE_URL}/gallery%2F36.1.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F36.2.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F36.3.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F36.4.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F36.5.jpg?alt=media`
-      ], title: 'WILDLIFE-SERIES-036' },
-      { id: 35, images: [
-        `${FIREBASE_STORAGE_URL}/gallery%2F37.1.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F37.2.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F37.3.jpg?alt=media`
-      ], title: 'BIRD-SERIES-037' },
-      { id: 36, images: [`${FIREBASE_STORAGE_URL}/gallery%2F38.jpg?alt=media`], title: 'WILDLIFE-PORTRAIT-038' },
-      { id: 37, images: [`${FIREBASE_STORAGE_URL}/gallery%2F39.jpg?alt=media`], title: 'NATURE-LANDSCAPE-039' },
-      { id: 38, images: [
-        `${FIREBASE_STORAGE_URL}/gallery%2F40.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F40.2.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F40.3.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F40.4.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F40.5.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F40.6.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F40.7.jpg?alt=media`
-      ], title: 'WILDLIFE-SERIES-040' },
-      { id: 39, images: [
-        `${FIREBASE_STORAGE_URL}/gallery%2F41.1.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F41.2.jpg?alt=media`
-      ], title: 'FINAL-SERIES-041' },
-      // Composite items - 2 landscape images combined into squares
-      { id: 40, images: [
-        `${FIREBASE_STORAGE_URL}/gallery%2F5.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F6.jpg?alt=media`
-      ], title: 'DUAL-LANDSCAPE-COMPOSITE-001', composite: true },
-      { id: 41, images: [
-        `${FIREBASE_STORAGE_URL}/gallery%2F7.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F8.jpg?alt=media`
-      ], title: 'DUAL-LANDSCAPE-COMPOSITE-002', composite: true },
-      { id: 42, images: [
-        `${FIREBASE_STORAGE_URL}/gallery%2F9.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F11.jpg?alt=media`
-      ], title: 'DUAL-LANDSCAPE-COMPOSITE-003', composite: true },
-      { id: 43, images: [
-        `${FIREBASE_STORAGE_URL}/gallery%2F12.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F13.jpg?alt=media`
-      ], title: 'DUAL-LANDSCAPE-COMPOSITE-004', composite: true },
-      { id: 44, images: [
-        `${FIREBASE_STORAGE_URL}/gallery%2F14.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F15.jpg?alt=media`
-      ], title: 'DUAL-LANDSCAPE-COMPOSITE-005', composite: true },
-      { id: 45, images: [
-        `${FIREBASE_STORAGE_URL}/gallery%2F16.jpg?alt=media`,
-        `${FIREBASE_STORAGE_URL}/gallery%2F17.jpg?alt=media`
-      ], title: 'DUAL-LANDSCAPE-COMPOSITE-006', composite: true }
-    ]
-    const shuffled = shuffleArray(artworks)
-    
-    // Save the shuffled order to localStorage
-    localStorage.setItem('gallery-artwork-order', JSON.stringify(shuffled))
-    
-    return shuffled
-  })
+  // Hardcoded artworks removed - now using Firebase Storage images
 
   const getBentoSize = (artwork, index) => {
     // Composite items are always small squares
@@ -237,8 +176,22 @@ export default function Gallery() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-[260px] mb-6 grid-flow-dense">
-          {shuffledArtworks.map((art, i) => {
+        {galleryLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[rgb(var(--primary))] mx-auto mb-4"></div>
+              <p className="text-[rgb(var(--muted-fg))]">Loading gallery...</p>
+            </div>
+          </div>
+        ) : shuffledArtworks.length === 0 ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <p className="text-[rgb(var(--muted-fg))]">No images found in Firebase Storage</p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-[260px] mb-6 grid-flow-dense">
+            {shuffledArtworks.map((art, i) => {
             const size = getBentoSize(art, i)
             const gridClasses = size === 'large' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-2 lg:row-span-2' : 
                                size === 'wide' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-1 lg:row-span-1' :
@@ -327,7 +280,8 @@ export default function Gallery() {
               </figure>
             )
           })}
-        </div>
+          </div>
+        )}
 
         {/* Gallery Statistics */}
         <div className="text-center mb-12">

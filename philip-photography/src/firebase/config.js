@@ -4,16 +4,15 @@ import { getAnalytics } from 'firebase/analytics';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
-// Firebase configuration via Vite environment variables
-// Define the following in your .env file (prefixed with VITE_)
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  apiKey: "AIzaSyDgjs70B_RlYrwV1PSq0nwEJJ2RippzP9A",
+  authDomain: "kuyajp-portfolio.firebaseapp.com",
+  projectId: "kuyajp-portfolio",
+  storageBucket: "kuyajp-portfolio.firebasestorage.app",
+  messagingSenderId: "599415192027",
+  appId: "1:599415192027:web:1f752817376ace2dee8ffe",
+  measurementId: "G-19Z0VSQCHY"
 };
 
 // Initialize Firebase

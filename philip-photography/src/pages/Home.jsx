@@ -1,82 +1,43 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { ChevronRight, User } from 'lucide-react'
-
-// Firebase Storage configuration
-const FIREBASE_STORAGE_URL = 'https://firebasestorage.googleapis.com/v0/b/kuyajp-portfolio.firebasestorage.app/o'
-
-// Helper function to generate Firebase Storage URLs
-const getFirebaseUrl = (filename) => `${FIREBASE_STORAGE_URL}/gallery%2F${filename}?alt=media`
+import { getImagesFromFolder } from '../firebase/storage'
 
 export default function Home() {
   const [active, setActive] = useState(null)
   const [imageDimensions, setImageDimensions] = useState({})
   const [landscapeImages, setLandscapeImages] = useState([])
+  const [firebaseImages, setFirebaseImages] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  // Uploaded photographs organized into groups (fixed missing images)
-  const allPhotographs = [
-    { id: 1, src: getFirebaseUrl('1.jpg'), title: 'WILDLIFE-PORTRAIT-001', alt: 'Wildlife portrait 1' },
-    { id: 2, src: getFirebaseUrl('2.1.jpg'), title: 'WILDLIFE-SERIES-2A', alt: 'Wildlife series 2a' },
-    { id: 3, src: getFirebaseUrl('2.2.jpg'), title: 'WILDLIFE-SERIES-2B', alt: 'Wildlife series 2b' },
-    { id: 4, src: getFirebaseUrl('2.3.jpg'), title: 'WILDLIFE-SERIES-2C', alt: 'Wildlife series 2c' },
-    { id: 5, src: getFirebaseUrl('2.4.jpg'), title: 'WILDLIFE-SERIES-2D', alt: 'Wildlife series 2d' },
-    { id: 6, src: getFirebaseUrl('2.5.jpg'), title: 'WILDLIFE-SERIES-2E', alt: 'Wildlife series 2e' },
-    { id: 7, src: getFirebaseUrl('2.6.jpg'), title: 'WILDLIFE-SERIES-2F', alt: 'Wildlife series 2f' },
-    { id: 8, src: '/3.jpg', title: 'NATURE-LANDSCAPE-003', alt: 'Nature landscape 3' },
-    { id: 9, src: '/3.2.jpg', title: 'NATURE-LANDSCAPE-003B', alt: 'Nature landscape 3b' },
-    { id: 10, src: '/4.1.jpg', title: 'BIRD-PHOTOGRAPHY-4A', alt: 'Bird photography 4a' },
-    { id: 11, src: '/4.2.jpg', title: 'BIRD-PHOTOGRAPHY-4B', alt: 'Bird photography 4b' },
-    { id: 12, src: '/4.3.jpg', title: 'BIRD-PHOTOGRAPHY-4C', alt: 'Bird photography 4c' },
-    { id: 13, src: '/4.4.jpg', title: 'BIRD-PHOTOGRAPHY-4D', alt: 'Bird photography 4d' },
-    { id: 14, src: '/5.jpg', title: 'WILDLIFE-CAPTURE-005', alt: 'Wildlife capture 5' },
-    { id: 15, src: '/6.jpg', title: 'NATURE-MOMENT-006', alt: 'Nature moment 6' },
-    { id: 16, src: '/7.jpg', title: 'WILDLIFE-ACTION-007', alt: 'Wildlife action 7' },
-    { id: 17, src: '/8.jpg', title: 'BIRD-IN-FLIGHT-008', alt: 'Bird in flight 8' },
-    { id: 18, src: '/9.jpg', title: 'NATURE-DETAIL-009', alt: 'Nature detail 9' },
-    { id: 19, src: '/11.jpg', title: 'LANDSCAPE-SHOT-011', alt: 'Landscape shot 11' },
-    { id: 20, src: '/12.jpg', title: 'WILDLIFE-SCENE-012', alt: 'Wildlife scene 12' },
-    { id: 21, src: '/13.jpg', title: 'NATURE-COMPOSITION-013', alt: 'Nature composition 13' },
-    { id: 22, src: '/14.jpg', title: 'BIRD-PORTRAIT-014', alt: 'Bird portrait 14' },
-    { id: 23, src: '/15.jpg', title: 'WILDLIFE-MOMENT-015', alt: 'Wildlife moment 15' },
-    { id: 24, src: '/16.jpg', title: 'NATURE-LANDSCAPE-016', alt: 'Nature landscape 16' },
-    { id: 25, src: '/17.jpg', title: 'WILDLIFE-CLOSE-UP-017', alt: 'Wildlife close-up 17' },
-    { id: 26, src: '/19.jpg', title: 'NATURE-SCENE-019', alt: 'Nature scene 19' },
-    { id: 27, src: '/20.jpg', title: 'WILDLIFE-ACTION-020', alt: 'Wildlife action 20' },
-    { id: 28, src: '/21.jpg', title: 'BIRD-PHOTOGRAPHY-021', alt: 'Bird photography 21' },
-    { id: 29, src: '/22.jpg', title: 'NATURE-MOMENT-022', alt: 'Nature moment 22' },
-    { id: 30, src: '/23.jpg', title: 'WILDLIFE-PORTRAIT-023', alt: 'Wildlife portrait 23' },
-    { id: 31, src: '/24.jpg', title: 'LANDSCAPE-VIEW-024', alt: 'Landscape view 24' },
-    { id: 32, src: '/25.jpg', title: 'WILDLIFE-SERIES-025', alt: 'Wildlife series 25' },
-    { id: 33, src: '/26.jpg', title: 'NATURE-DETAIL-026', alt: 'Nature detail 26' },
-    { id: 34, src: '/27.jpg', title: 'BIRD-CAPTURE-027', alt: 'Bird capture 27' },
-    { id: 35, src: '/28.jpg', title: 'WILDLIFE-LANDSCAPE-028', alt: 'Wildlife landscape 28' },
-    { id: 36, src: '/29.jpg', title: 'NATURE-PORTRAIT-029', alt: 'Nature portrait 29' },
-    { id: 37, src: '/30.jpg', title: 'WILDLIFE-SCENE-030', alt: 'Wildlife scene 30' },
-    { id: 38, src: '/31.jpg', title: 'BIRD-PHOTOGRAPHY-031', alt: 'Bird photography 31' },
-    { id: 39, src: '/32.jpg', title: 'NATURE-MOMENT-032', alt: 'Nature moment 32' },
-    { id: 40, src: '/33.jpg', title: 'WILDLIFE-ACTION-033', alt: 'Wildlife action 33' },
-    { id: 41, src: '/34.jpg', title: 'LANDSCAPE-SHOT-034', alt: 'Landscape shot 34' },
-    { id: 42, src: '/35.jpg', title: 'NATURE-COMPOSITION-035', alt: 'Nature composition 35' },
-    { id: 43, src: '/36.1.jpg', title: 'WILDLIFE-SERIES-36A', alt: 'Wildlife series 36a' },
-    { id: 44, src: '/36.2.jpg', title: 'WILDLIFE-SERIES-36B', alt: 'Wildlife series 36b' },
-    { id: 45, src: '/36.3.jpg', title: 'WILDLIFE-SERIES-36C', alt: 'Wildlife series 36c' },
-    { id: 46, src: '/36.4.jpg', title: 'WILDLIFE-SERIES-36D', alt: 'Wildlife series 36d' },
-    { id: 47, src: '/36.5.jpg', title: 'WILDLIFE-SERIES-36E', alt: 'Wildlife series 36e' },
-    { id: 48, src: '/37.1.jpg', title: 'BIRD-SERIES-37A', alt: 'Bird series 37a' },
-    { id: 49, src: '/37.2.jpg', title: 'BIRD-SERIES-37B', alt: 'Bird series 37b' },
-    { id: 50, src: '/37.3.jpg', title: 'BIRD-SERIES-37C', alt: 'Bird series 37c' },
-    { id: 51, src: '/38.jpg', title: 'WILDLIFE-PORTRAIT-038', alt: 'Wildlife portrait 38' },
-    { id: 52, src: '/39.jpg', title: 'NATURE-LANDSCAPE-039', alt: 'Nature landscape 39' },
-    { id: 53, src: '/40.jpg', title: 'WILDLIFE-CAPTURE-040', alt: 'Wildlife capture 40' },
-    { id: 54, src: '/40.2.jpg', title: 'WILDLIFE-SERIES-40B', alt: 'Wildlife series 40b' },
-    { id: 55, src: '/40..3.jpg', title: 'WILDLIFE-SERIES-40C', alt: 'Wildlife series 40c' },
-    { id: 56, src: '/40.4.jpg', title: 'WILDLIFE-SERIES-40D', alt: 'Wildlife series 40d' },
-    { id: 57, src: '/40.5.jpg', title: 'WILDLIFE-SERIES-40E', alt: 'Wildlife series 40e' },
-    { id: 58, src: '/40.6.jpg', title: 'WILDLIFE-SERIES-40F', alt: 'Wildlife series 40f' },
-    { id: 59, src: '/40.7.jpg', title: 'WILDLIFE-SERIES-40G', alt: 'Wildlife series 40g' },
-    { id: 60, src: '/41.1.jpg', title: 'FINAL-SERIES-41A', alt: 'Final series 41a' },
-    { id: 61, src: '/41.2.jpg', title: 'FINAL-SERIES-41B', alt: 'Final series 41b' }
-  ]
+  // Load images from Firebase Storage
+  useEffect(() => {
+    const loadFirebaseImages = async () => {
+      try {
+        const result = await getImagesFromFolder('gallery')
+        if (result.success) {
+          const imagesWithIds = result.images.map((img, index) => ({
+            id: index + 1,
+            src: img.src,
+            title: img.title || img.name,
+            alt: img.alt || img.name
+          }))
+          setFirebaseImages(imagesWithIds)
+        } else {
+          console.error('Failed to load Firebase images:', result.error)
+        }
+      } catch (error) {
+        console.error('Error loading Firebase images:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadFirebaseImages()
+  }, [])
+
+  // Use Firebase images instead of hardcoded array
+  const allPhotographs = firebaseImages
 
   // Handle image load and filter for landscape images
   const handleImageLoad = (photo, naturalWidth, naturalHeight) => {
@@ -270,12 +231,22 @@ export default function Home() {
 
             {/* Full-width photo chain that breaks out of container */}
             <div className="absolute left-0 w-screen overflow-hidden" style={{ left: '50%', transform: 'translateX(-50%)' }}>
-              <div 
-                className="flex gap-4 infinite-scroll"
-                style={{ 
-                  width: `calc(${displayImages.length * 3} * (200px + 16px))`
-                }}
-              >
+              {loading ? (
+                <div className="flex gap-4 items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                  <span className="text-white/70 text-sm ml-3">Loading images...</span>
+                </div>
+              ) : displayImages.length === 0 ? (
+                <div className="flex items-center justify-center py-8">
+                  <span className="text-white/70 text-sm">No images found in Firebase Storage</span>
+                </div>
+              ) : (
+                <div 
+                  className="flex gap-4 infinite-scroll"
+                  style={{ 
+                    width: `calc(${displayImages.length * 3} * (200px + 16px))`
+                  }}
+                >
                 {/* First set of images */}
                 {displayImages.map((photo, index) => (
                   <div 
@@ -355,7 +326,8 @@ export default function Home() {
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+              )}
             </div>
            </div>
 
