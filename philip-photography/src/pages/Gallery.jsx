@@ -485,28 +485,28 @@ export default function Gallery() {
 
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
-      <div className="container-responsive pt-24 pb-8">
-        <div className="mb-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="container-responsive pt-20 sm:pt-24 md:pt-20 lg:pt-24 pb-6 sm:pb-8">
+        <div className="mb-6 sm:mb-8 md:mb-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
             <div className="lg:col-span-7">
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 transition-colors duration-300">Feature Portfolio</div>
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-2 sm:mb-3 transition-colors duration-300">Feature Portfolio</div>
               <h1 className="font-extrabold text-[rgb(var(--fg))] uppercase leading-[0.9] transition-colors duration-300">
-                <span className="block text-5xl sm:text-6xl md:text-7xl">Wildlife</span>
-                <span className="block text-4xl sm:text-5xl md:text-6xl opacity-90">Through My Lens</span>
+                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">Wildlife</span>
+                <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl opacity-90">Through My Lens</span>
               </h1>
-              <div className="mt-3 pt-3 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">
+              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
+                <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">
                   Field Notes & Wild Encounters
                 </div>
               </div>
             </div>
             <div className="lg:col-span-5 lg:self-end">
-              <p className="text-[rgb(var(--muted))] text-base sm:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-5 transition-colors duration-300">
+              <p className="text-[rgb(var(--muted))] text-sm sm:text-base md:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-5 transition-colors duration-300">
                 A curated collection of wildlife and nature photography capturing the beauty and essence of the natural world through patient observation and artistic vision.
               </p>
             </div>
           </div>
-          <div className="mt-6 h-px w-full bg-[rgb(var(--muted))]/20 transition-colors duration-300" />
+          <div className="mt-4 sm:mt-6 h-px w-full bg-[rgb(var(--muted))]/20 transition-colors duration-300" />
         </div>
 
         {/* Search and description row */}
@@ -514,8 +514,8 @@ export default function Gallery() {
           <div className="w-full max-w-3xl">
             <label htmlFor="gallery-search" className="sr-only">Search artworks</label>
             <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                <Search size={18} className="text-[rgb(var(--muted))] transition-colors duration-300" />
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 sm:pl-4">
+                <Search size={16} className="sm:w-[18px] sm:h-[18px] text-[rgb(var(--muted))] transition-colors duration-300" />
               </div>
               <input
                 id="gallery-search"
@@ -523,7 +523,7 @@ export default function Gallery() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search by title or description..."
-                className="w-full rounded-full bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 pl-12 pr-5 py-3 text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] shadow-sm focus:outline-none focus:ring-4 focus:ring-[rgb(var(--primary))]/25 hover:border-[rgb(var(--muted))]/40 transition-colors duration-300"
+                className="w-full rounded-full bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 pl-10 sm:pl-12 pr-4 sm:pr-5 py-2 sm:py-3 text-sm sm:text-base text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] shadow-sm focus:outline-none focus:ring-4 focus:ring-[rgb(var(--primary))]/25 hover:border-[rgb(var(--muted))]/40 transition-colors duration-300"
               />
             </div>
             {debouncedQuery && (
@@ -535,16 +535,16 @@ export default function Gallery() {
         </div>
 
         {galleryLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-[320px] mb-6 grid-flow-dense">
+          <div className="grid grid-cols-3 gap-3 auto-rows-[80px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense">
             {[
               'large','small','medium','wide','small','large','small','medium','small','wide','small','medium'
             ].map((size, i) => {
-              const gridClasses = size === 'large' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-2 lg:row-span-2' :
-                                   size === 'wide' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-1 lg:row-span-1' :
-                                   size === 'medium' ? 'sm:col-span-1 lg:col-span-1 sm:row-span-2 lg:row-span-2' :
-                                   'sm:col-span-1 lg:col-span-1 sm:row-span-1 lg:row-span-1'
+              const gridClasses = size === 'large' ? 'col-span-2 row-span-2' :
+                                   size === 'wide' ? 'col-span-2 row-span-1' :
+                                   size === 'medium' ? 'col-span-1 row-span-2' : 
+                                   'col-span-1 row-span-1'
               return (
-                <div key={i} className={`${gridClasses} rounded-xl overflow-hidden relative border border-[rgb(var(--muted))]/10`}>
+                <div key={i} className={`${gridClasses} rounded-lg overflow-hidden relative border border-[rgb(var(--muted))]/10`}>
                   <div className="absolute inset-0 animate-pulse bg-[rgb(var(--muted))]/20" />
                 </div>
               )
@@ -563,29 +563,29 @@ export default function Gallery() {
             </div>
           </div>
         ) : (isSearching || isDebouncing) ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-[320px] mb-6 grid-flow-dense">
+          <div className="grid grid-cols-3 gap-3 auto-rows-[80px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense">
             {[
               'large','small','medium','wide','small','large','small','medium','small','wide','small','medium'
             ].map((size, i) => {
-              const gridClasses = size === 'large' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-2 lg:row-span-2' :
-                                   size === 'wide' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-1 lg:row-span-1' :
-                                   size === 'medium' ? 'sm:col-span-1 lg:col-span-1 sm:row-span-2 lg:row-span-2' :
-                                   'sm:col-span-1 lg:col-span-1 sm:row-span-1 lg:row-span-1'
+              const gridClasses = size === 'large' ? 'col-span-2 row-span-2' :
+                                   size === 'wide' ? 'col-span-2 row-span-1' :
+                                   size === 'medium' ? 'col-span-1 row-span-2' : 
+                                   'col-span-1 row-span-1'
               return (
-                <div key={i} className={`${gridClasses} rounded-xl overflow-hidden relative border border-[rgb(var(--muted))]/10`}>
+                <div key={i} className={`${gridClasses} rounded-lg overflow-hidden relative border border-[rgb(var(--muted))]/10`}>
                   <div className="absolute inset-0 animate-pulse bg-[rgb(var(--muted))]/20" />
                 </div>
               )
             })}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-[320px] mb-6 grid-flow-dense">
+          <div className="grid grid-cols-3 gap-3 auto-rows-[80px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense">
             {deduplicatedArtworks.map((art, i) => {
             const size = getBentoSize(art, i)
-            const gridClasses = size === 'large' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-2 lg:row-span-2' : 
-                               size === 'wide' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-1 lg:row-span-1' :
-                               size === 'medium' ? 'sm:col-span-1 lg:col-span-1 sm:row-span-2 lg:row-span-2' : 
-                               'sm:col-span-1 lg:col-span-1 sm:row-span-1 lg:row-span-1'
+            const gridClasses = size === 'large' ? 'col-span-2 row-span-2' : 
+                               size === 'wide' ? 'col-span-2 row-span-1' :
+                               size === 'medium' ? 'col-span-1 row-span-2' : 
+                               'col-span-1 row-span-1'
           
             // Defensive: skip items without an image
             const firstImage = Array.isArray(art.images) && art.images.length > 0
@@ -602,7 +602,7 @@ export default function Gallery() {
             return (
               <figure 
                 key={uniqueKey} 
-                className={`group cursor-pointer ${gridClasses} rounded-xl overflow-hidden relative transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] border border-[rgb(var(--muted))]/10 hover:border-[rgb(var(--primary))]/30`}
+                className={`group cursor-pointer ${gridClasses} rounded-lg overflow-hidden relative transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] border border-[rgb(var(--muted))]/10 hover:border-[rgb(var(--primary))]/30`}
                 onClick={() => setActive({ art, idx: 0 })}
               >
                 <div className="w-full h-full relative overflow-hidden">
@@ -611,7 +611,7 @@ export default function Gallery() {
                     <img
                       src={firstImage}
                       alt={art.title || ''}
-                      className="w-full h-full object-contain bg-black transition-transform duration-700 group-hover:scale-110"
+                      className="w-full h-full object-contain bg-black transition-transform duration-700 group-hover:scale-110 rounded-lg"
                       onLoad={(e) => {
                         const { naturalWidth, naturalHeight } = e.target
                         handleImageLoad(art.id, naturalWidth, naturalHeight)
@@ -622,7 +622,7 @@ export default function Gallery() {
                 <img
                   src={firstImage}
                   alt={art.title || ''}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 rounded-lg"
                       style={{
                         transform: (() => {
                           const dimensions = imageDimensions[art.id]
@@ -684,39 +684,50 @@ export default function Gallery() {
           </div>
         )}
 
+        {/* Loading more indicator */}
+        {loadingMore && (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary))]"></div>
+            <span className="ml-3 text-[rgb(var(--muted-fg))] transition-colors duration-300">Loading more images...</span>
+          </div>
+        )}
+        
+        {/* End of gallery indicator */}
+        {!hasMore && artworks.length > 0 && !loadingMore && (
+          <div className="flex justify-center items-center py-8">
+            <span className="text-[rgb(var(--muted-fg))] text-sm transition-colors duration-300">You've reached the end of the gallery</span>
+          </div>
+        )}
+
         {/* Gallery Statistics */}
-        <div className="text-center mb-12" data-gallery-stats>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
-            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-xl p-6 transition-colors duration-300">
-              <div className="text-3xl font-bold text-[rgb(var(--fg))] mb-2 transition-colors duration-300">
+        <div className="text-center mb-8 sm:mb-12" data-gallery-stats>
+          <div className="grid grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8 mb-6 sm:mb-8">
+            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-md sm:rounded-lg p-3 sm:p-4 md:p-6 transition-colors duration-300">
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[rgb(var(--fg))] mb-1 sm:mb-2 transition-colors duration-300">
                 {shuffledArtworks.length}
               </div>
-              <div className="text-[rgb(var(--muted))] text-sm uppercase tracking-wide transition-colors duration-300">
+              <div className="text-[rgb(var(--muted))] text-xs sm:text-sm uppercase tracking-wide transition-colors duration-300">
                 Total Photographs
               </div>
             </div>
-            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-xl p-6 transition-colors duration-300">
-              <div className="text-3xl font-bold text-[rgb(var(--fg))] mb-2 transition-colors duration-300">
+            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-md sm:rounded-lg p-3 sm:p-4 md:p-6 transition-colors duration-300">
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[rgb(var(--fg))] mb-1 sm:mb-2 transition-colors duration-300">
                 2024
               </div>
-              <div className="text-[rgb(var(--muted))] text-sm uppercase tracking-wide transition-colors duration-300">
+              <div className="text-[rgb(var(--muted))] text-xs sm:text-sm uppercase tracking-wide transition-colors duration-300">
                 Latest Collection
               </div>
             </div>
-            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-xl p-6 transition-colors duration-300">
-              <div className="text-3xl font-bold text-[rgb(var(--fg))] mb-2 transition-colors duration-300">
+            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-md sm:rounded-lg p-3 sm:p-4 md:p-6 transition-colors duration-300">
+              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[rgb(var(--fg))] mb-1 sm:mb-2 transition-colors duration-300">
                 Wildlife
               </div>
-              <div className="text-[rgb(var(--muted))] text-sm uppercase tracking-wide transition-colors duration-300">
+              <div className="text-[rgb(var(--muted))] text-xs sm:text-sm uppercase tracking-wide transition-colors duration-300">
                 Primary Focus
               </div>
             </div>
           </div>
           
-          <button className="inline-flex items-center gap-3 bg-[rgb(var(--primary))] text-white px-8 py-4 rounded-full font-semibold text-sm uppercase tracking-wider hover:bg-[rgb(var(--primary))]/80 transition-colors duration-300">
-            VIEW FULL COLLECTION
-            <ArrowRight size={16} className="rotate-45" />
-          </button>
       </div>
 
       {active && (
@@ -738,15 +749,58 @@ function ModalViewer({ active, setActive }) {
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    
+    // Keyboard navigation
     const onKey = (e) => {
       const a = activeRef.current
       if (e.key === 'Escape') setActive(null)
       if (!a?.art?.images || !Array.isArray(a.art.images) || a.art.images.length === 0) return
-      if (e.key === 'ArrowLeft') setActive({ art: a.art, idx: (a.idx - 1 + a.art.images.length) % a.art.images.length })
-      if (e.key === 'ArrowRight') setActive({ art: a.art, idx: (a.idx + 1) % a.art.images.length })
+      if (e.key === 'ArrowLeft') setActive({ art: a.art, idx: (a.idx - 1 + (a.art.images?.length || 1)) % (a.art.images?.length || 1) })
+      if (e.key === 'ArrowRight') setActive({ art: a.art, idx: (a.idx + 1) % (a.art.images?.length || 1) })
     }
+    
+    // Touch gesture handling for mobile
+    let touchStartX = 0
+    let touchStartY = 0
+    
+    const handleTouchStart = (e) => {
+      touchStartX = e.touches[0].clientX
+      touchStartY = e.touches[0].clientY
+    }
+    
+    const handleTouchEnd = (e) => {
+      const a = activeRef.current
+      if (!a?.art?.images || !Array.isArray(a.art.images) || a.art.images.length === 0) return
+      
+      const touchEndX = e.changedTouches[0].clientX
+      const touchEndY = e.changedTouches[0].clientY
+      const deltaX = touchStartX - touchEndX
+      const deltaY = touchStartY - touchEndY
+      
+      // Only handle horizontal swipes (ignore vertical scrolling)
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+        if (deltaX > 0) {
+          // Swipe left - next image
+          setActive({ art: a.art, idx: (a.idx + 1) % (a.art.images?.length || 1) })
+        } else {
+          // Swipe right - previous image
+          setActive({ art: a.art, idx: (a.idx - 1 + (a.art.images?.length || 1)) % (a.art.images?.length || 1) })
+        }
+      }
+    }
+    
     window.addEventListener('keydown', onKey)
-    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey) }
+    window.addEventListener('touchstart', handleTouchStart, { passive: true })
+    window.addEventListener('touchend', handleTouchEnd, { passive: true })
+    
+    return () => { 
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('touchstart', handleTouchStart)
+      window.removeEventListener('touchend', handleTouchEnd)
+      // Clean up fullscreen container if modal is closed
+      exitFullscreen()
+    }
   }, [setActive])
 
   const [visible, setVisible] = useState(true)
@@ -758,16 +812,99 @@ function ModalViewer({ active, setActive }) {
 
   const containerRef = useRef(null)
   const viewerRef = useRef(null)
+  const imageRef = useRef(null)
   const [isFs, setIsFs] = useState(false)
+  
   useEffect(() => {
     const onFsChange = () => setIsFs(!!document.fullscreenElement)
     document.addEventListener('fullscreenchange', onFsChange)
     return () => document.removeEventListener('fullscreenchange', onFsChange)
   }, [])
+  
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      viewerRef.current?.requestFullscreen?.()
+      // Create a dedicated fullscreen container for just the image
+      const fullscreenContainer = document.createElement('div')
+      fullscreenContainer.className = 'fixed inset-0 bg-black z-50 flex items-center justify-center'
+      fullscreenContainer.style.backgroundColor = 'rgb(var(--bg))'
+      
+      // Clone the current image
+      const currentImage = imageRef.current
+      if (currentImage && currentImageSrc) {
+        const fullscreenImage = document.createElement('img')
+        fullscreenImage.src = currentImageSrc
+        fullscreenImage.alt = active.art.title || ''
+        fullscreenImage.className = 'max-w-full max-h-full object-contain rounded-lg'
+        fullscreenImage.style.transition = 'opacity 0.3s ease'
+        fullscreenImage.style.objectFit = 'contain'
+        fullscreenImage.style.maxWidth = '90vw'
+        fullscreenImage.style.maxHeight = '90vh'
+        
+        // Add close button
+        const closeButton = document.createElement('button')
+        closeButton.innerHTML = `
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m18 6-12 12"/>
+            <path d="m6 6 12 12"/>
+          </svg>
+        `
+        closeButton.className = 'absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all duration-200 backdrop-blur-sm'
+        closeButton.onclick = exitFullscreen
+        
+        // Add image info overlay
+        const infoOverlay = document.createElement('div')
+        infoOverlay.className = 'absolute bottom-4 left-4 right-4 text-center'
+        infoOverlay.innerHTML = `
+          <div class="inline-block bg-black/50 backdrop-blur-sm rounded-lg px-4 py-2 text-white">
+            <div class="text-sm font-medium">${active.art.title || 'Untitled'}</div>
+            ${hasMultipleImages ? `<div class="text-xs opacity-80 mt-1">Image ${active.idx + 1} of ${active.art.images?.length || 0}</div>` : ''}
+          </div>
+        `
+        
+        fullscreenContainer.appendChild(fullscreenImage)
+        fullscreenContainer.appendChild(closeButton)
+        fullscreenContainer.appendChild(infoOverlay)
+        
+        // Add keyboard navigation for fullscreen
+        const handleKeyDown = (e) => {
+          if (e.key === 'Escape') exitFullscreen()
+          if (hasMultipleImages) {
+            if (e.key === 'ArrowLeft') {
+              setActive({ art: active.art, idx: (active.idx - 1 + (active.art.images?.length || 1)) % (active.art.images?.length || 1) })
+            }
+            if (e.key === 'ArrowRight') {
+              setActive({ art: active.art, idx: (active.idx + 1) % (active.art.images?.length || 1) })
+            }
+          }
+        }
+        
+        fullscreenContainer.addEventListener('keydown', handleKeyDown)
+        fullscreenContainer.setAttribute('tabindex', '0')
+        fullscreenContainer.focus()
+        
+        // Store references for cleanup
+        fullscreenContainer._handleKeyDown = handleKeyDown
+        fullscreenContainer._closeButton = closeButton
+        
+        document.body.appendChild(fullscreenContainer)
+        
+        // Make it fullscreen
+        fullscreenContainer.requestFullscreen?.() || fullscreenContainer.webkitRequestFullscreen?.()
+        
+        // Store reference for exit
+        window._fullscreenContainer = fullscreenContainer
+      }
     } else {
+      exitFullscreen()
+    }
+  }
+  
+  const exitFullscreen = () => {
+    if (window._fullscreenContainer) {
+      window._fullscreenContainer.remove()
+      window._fullscreenContainer = null
+    }
+    if (document.fullscreenElement) {
       document.exitFullscreen?.()
     }
   }
@@ -786,79 +923,398 @@ function ModalViewer({ active, setActive }) {
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-md" onClick={() => setActive(null)} />
-      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50" role="dialog" aria-modal="true">
-        <div ref={containerRef} className="w-[88vw] sm:w-[80vw] max-w-5xl max-h-[85dvh] relative flex flex-col gap-3 sm:gap-4">
-          <div ref={viewerRef} className="relative flex min-h-0 flex-col rounded-2xl overflow-hidden bg-black shadow-2xl ring-1 ring-white/10">
-            {/* Controls inside image area */}
-            <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
-              <button className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 transition-colors shadow ring-1 ring-white/20" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
-                {isFs ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-              </button>
-              <button className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 transition-colors shadow ring-1 ring-white/20" onClick={() => setActive(null)} aria-label="Close">
-                <X size={18} />
-              </button>
+      {/* Enhanced backdrop with theme-aware blur */}
+      <div 
+        className="fixed inset-0 z-40 backdrop-blur-md transition-colors duration-300" 
+        style={{
+          background: 'linear-gradient(135deg, rgba(var(--bg), 0.95) 0%, rgba(var(--bg), 0.85) 50%, rgba(var(--bg), 0.95) 100%)'
+        }}
+        onClick={() => setActive(null)} 
+      />
+      
+      {/* Main modal container */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-8 overflow-y-auto" role="dialog" aria-modal="true">
+        <div ref={containerRef} className="w-full max-w-7xl max-h-[98vh] sm:max-h-[95vh] relative my-auto">
+          <div 
+            ref={viewerRef} 
+            className="relative rounded-2xl shadow-2xl ring-1 ring-[rgb(var(--muted))]/20 overflow-hidden transition-colors duration-300"
+            style={{ 
+              backgroundColor: 'rgb(var(--bg))',
+              maxWidth: '100vw',
+              maxHeight: '95vh'
+            }}
+          >
+            
+            {/* Header with controls */}
+            <div 
+              className="absolute top-0 left-0 right-0 z-20 p-3 sm:p-4 lg:p-6 transition-colors duration-300"
+              style={{ 
+                background: 'linear-gradient(to bottom, rgba(var(--bg), 0.9) 0%, rgba(var(--bg), 0.7) 50%, transparent 100%)'
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span 
+                    className="ml-3 text-xs font-mono uppercase tracking-wider transition-colors duration-300"
+                    style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
+                  >
+                    {hasMultipleImages ? `Image ${active.idx + 1} of ${active.art.images?.length || 0}` : 'Single Image'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    className="p-2.5 rounded-full backdrop-blur-sm transition-all duration-200 shadow-lg hover:scale-105" 
+                    style={{ 
+                      backgroundColor: 'rgba(var(--muted), 0.2)',
+                      color: 'rgb(var(--fg))'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = 'rgba(var(--muted), 0.3)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = 'rgba(var(--muted), 0.2)'
+                    }}
+                    onClick={toggleFullscreen} 
+                    aria-label="View image in fullscreen"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                    </svg>
+                  </button>
+                  <button 
+                    className="p-2.5 rounded-full backdrop-blur-sm transition-all duration-200 shadow-lg hover:scale-105" 
+                    style={{ 
+                      backgroundColor: 'rgba(var(--muted), 0.2)',
+                      color: 'rgb(var(--fg))'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = 'rgba(var(--muted), 0.3)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = 'rgba(var(--muted), 0.2)'
+                    }}
+                    onClick={() => setActive(null)} 
+                    aria-label="Close"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="relative flex-1 min-h-0">
-              {currentImageSrc ? (
-                <img src={currentImageSrc} alt={active.art.title || ''} className={`w-full h-full max-h-[72dvh] object-contain transition-opacity duration-500 ${visible ? 'opacity-100' : 'opacity-0'}`}/>
-              ) : (
-                <div className="w-full h-full max-h-[72dvh] flex items-center justify-center bg-gray-800 text-white">
-                  <div className="text-center">
-                    <div className="text-lg font-semibold mb-2">Image not available</div>
-                    <div className="text-sm opacity-70">Unable to load image</div>
+
+            {/* Main content area */}
+            <div className="flex flex-col lg:flex-row min-h-[75vh] sm:min-h-[75vh] lg:min-h-[80vh] overflow-y-auto" style={{ maxHeight: 'calc(98vh - 80px)' }}>
+              
+              {/* Image section */}
+              <div 
+                className="relative flex-1 overflow-hidden transition-colors duration-300"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(var(--muted), 0.1) 0%, rgba(var(--muted), 0.05) 100%)'
+                }}
+              >
+                <div className="relative h-full min-h-[60vh] sm:min-h-[55vh] lg:min-h-[70vh] flex items-center justify-center p-4 sm:p-6 lg:p-8 pt-14 sm:pt-16 lg:pt-16 pb-12 sm:pb-10 lg:pb-8 overflow-hidden">
+                  {currentImageSrc ? (
+                    <img 
+                      ref={imageRef}
+                      src={currentImageSrc} 
+                      alt={active.art.title || ''} 
+                      className={`max-w-full max-h-full object-contain transition-all duration-700 rounded-lg ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+                      style={{ 
+                        maxWidth: '100%', 
+                        maxHeight: 'calc(100% - 4rem)', 
+                        width: 'auto', 
+                        height: 'auto',
+                        objectFit: 'contain'
+                      }}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <div 
+                          className="w-16 h-16 rounded-full flex items-center justify-center mb-4 mx-auto transition-colors duration-300"
+                          style={{ backgroundColor: 'rgba(var(--muted), 0.2)' }}
+                        >
+                          <X size={24} style={{ color: 'rgba(var(--muted-fg), 0.6)' }} />
+                        </div>
+                        <div 
+                          className="text-lg font-semibold mb-2 transition-colors duration-300"
+                          style={{ color: 'rgb(var(--muted-fg))' }}
+                        >
+                          Image not available
+                        </div>
+                        <div 
+                          className="text-sm transition-colors duration-300"
+                          style={{ color: 'rgba(var(--muted-fg), 0.7)' }}
+                        >
+                          Unable to load image
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Navigation arrows */}
+                {hasMultipleImages && (
+                  <>
+                    <button 
+                      aria-label="Previous image" 
+                      className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full backdrop-blur-sm hover:scale-110 transition-all duration-200 shadow-lg touch-manipulation" 
+                      style={{ 
+                        backgroundColor: 'rgba(var(--bg), 0.8)',
+                        color: 'rgb(var(--fg))',
+                        border: '1px solid rgba(var(--muted), 0.2)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = 'rgba(var(--bg), 0.9)'
+                        e.target.style.borderColor = 'rgba(var(--muted), 0.3)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = 'rgba(var(--bg), 0.8)'
+                        e.target.style.borderColor = 'rgba(var(--muted), 0.2)'
+                      }}
+                      onClick={() => setActive({ art: active.art, idx: (active.idx - 1 + (active.art.images?.length || 1)) % (active.art.images?.length || 1) })}
+                    >
+                      <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
+                    </button>
+                    <button 
+                      aria-label="Next image" 
+                      className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full backdrop-blur-sm hover:scale-110 transition-all duration-200 shadow-lg touch-manipulation" 
+                      style={{ 
+                        backgroundColor: 'rgba(var(--bg), 0.8)',
+                        color: 'rgb(var(--fg))',
+                        border: '1px solid rgba(var(--muted), 0.2)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = 'rgba(var(--bg), 0.9)'
+                        e.target.style.borderColor = 'rgba(var(--muted), 0.3)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = 'rgba(var(--bg), 0.8)'
+                        e.target.style.borderColor = 'rgba(var(--muted), 0.2)'
+                      }}
+                      onClick={() => setActive({ art: active.art, idx: (active.idx + 1) % (active.art.images?.length || 1) })}
+                    >
+                      <ChevronRight size={18} className="sm:w-5 sm:h-5" />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Vertical divider between image and sidebar */}
+              <div 
+                className="hidden lg:block w-[2px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
+              ></div>
+
+              {/* Sidebar with info and thumbnails */}
+              <div 
+                className="w-full lg:w-80 flex flex-col transition-colors duration-300 overflow-y-auto mt-4 sm:mt-0"
+                style={{ 
+                  backgroundColor: 'rgb(var(--bg))',
+                  maxHeight: 'calc(95vh - 80px)'
+                }}
+              >
+                
+                {/* Content section */}
+                <div className="flex-1 p-4 sm:p-6 lg:p-8">
+                  
+                  {/* Title and metadata */}
+                  <div className="mb-6 sm:mb-8">
+                    {/* Category Badge */}
+                    <div className="mb-3">
+                      <span 
+                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors duration-300"
+                        style={{ 
+                          backgroundColor: 'rgba(var(--primary), 0.1)',
+                          color: 'rgb(var(--primary))',
+                          border: '1px solid rgba(var(--primary), 0.2)'
+                        }}
+                      >
+                        {active.art.isSeries ? 'Photo Series' : 'Photograph'}
+                      </span>
+                    </div>
+                    
+                    {/* Main Title */}
+                    <h1 
+                      className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight mb-4 sm:mb-6 transition-colors duration-300"
+                      style={{ color: 'rgb(var(--fg))' }}
+                    >
+                      {active.art.title || 'Untitled'}
+                    </h1>
+                    
+                    {/* Description */}
+                    {active.art.description && (
+                      <div className="mb-4 sm:mb-6">
+                        <p 
+                          className="leading-relaxed text-base sm:text-lg transition-colors duration-300"
+                          style={{ color: 'rgba(var(--muted-fg), 0.9)' }}
+                        >
+                          {active.art.description}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Series info */}
+                    {active.art.isSeries && (
+                      <div 
+                        className="mt-6 p-4 rounded-xl border transition-colors duration-300"
+                        style={{
+                          backgroundColor: 'rgba(var(--primary), 0.08)',
+                          borderColor: 'rgba(var(--primary), 0.15)'
+                        }}
+                      >
+                        <div className="flex items-center gap-3 mb-2">
+                          <div 
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: 'rgb(var(--primary))' }}
+                          ></div>
+                          <span 
+                            className="text-sm font-semibold transition-colors duration-300"
+                            style={{ color: 'rgb(var(--primary))' }}
+                          >
+                            Series Collection
+                          </span>
+                        </div>
+                        <p 
+                          className="text-sm transition-colors duration-300 ml-6"
+                          style={{ color: 'rgba(var(--primary), 0.9)' }}
+                        >
+                          Part {active.idx + 1} of {active.art.images?.length || 0} images
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Divider between title/description and details */}
+                  <div 
+                    className="w-full h-[2px] mb-4 sm:mb-6 bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
+                  ></div>
+
+                  {/* Technical details */}
+                  <div className="transition-colors duration-300">
+                    <h3 
+                      className="text-sm sm:text-base font-bold mb-4 sm:mb-5 uppercase tracking-wider transition-colors duration-300"
+                      style={{ color: 'rgb(var(--fg))' }}
+                    >
+                      Technical Details
+                    </h3>
+                    <div className="space-y-0 text-sm sm:text-base">
+                      <div className="flex justify-between items-center py-3 sm:py-3.5 px-0">
+                        <span 
+                          className="font-medium transition-colors duration-300"
+                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
+                        >
+                          Format
+                        </span>
+                        <span 
+                          className="font-semibold transition-colors duration-300"
+                          style={{ color: 'rgb(var(--fg))' }}
+                        >
+                          Digital
+                        </span>
+                      </div>
+                      <div 
+                        className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
+                      ></div>
+                      <div className="flex justify-between items-center py-3 sm:py-3.5 px-0">
+                        <span 
+                          className="font-medium transition-colors duration-300"
+                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
+                        >
+                          Category
+                        </span>
+                        <span 
+                          className="font-semibold transition-colors duration-300"
+                          style={{ color: 'rgb(var(--fg))' }}
+                        >
+                          Wildlife Photography
+                        </span>
+                      </div>
+                      <div 
+                        className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
+                      ></div>
+                      <div className="flex justify-between items-center py-3 sm:py-3.5 px-0">
+                        <span 
+                          className="font-medium transition-colors duration-300"
+                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
+                        >
+                          Collection
+                        </span>
+                        <span 
+                          className="font-semibold transition-colors duration-300"
+                          style={{ color: 'rgb(var(--fg))' }}
+                        >
+                          2024 Portfolio
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
+
+                {/* Thumbnail navigation */}
+                {hasMultipleImages && (
+                  <>
+                    {/* Divider before thumbnails */}
+                    <div 
+                      className="w-full h-[2px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
+                    ></div>
+                    <div 
+                      className="p-4 sm:p-6 transition-colors duration-300"
+                      style={{ 
+                        backgroundColor: 'rgba(var(--muted), 0.05)'
+                      }}
+                    >
+                    <h3 
+                      className="text-sm sm:text-base font-bold mb-3 sm:mb-4 uppercase tracking-wider transition-colors duration-300"
+                      style={{ color: 'rgb(var(--fg))' }}
+                    >
+                      Gallery Navigation
+                    </h3>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-1.5 sm:gap-2">
+                      {active.art.images.map((src, i) => (
+                        <button 
+                          key={i} 
+                          className={`relative group rounded-lg overflow-hidden transition-all duration-200 touch-manipulation ${
+                            i === active.idx 
+                              ? 'scale-105 shadow-lg' 
+                              : 'hover:scale-105 shadow-md hover:shadow-lg active:scale-95'
+                          }`} 
+                          style={{ 
+                            border: i === active.idx ? '2px solid rgb(var(--primary))' : '2px solid transparent'
+                          }}
+                          onClick={() => setActive({ art: active.art, idx: i })}
+                        >
+                          <img 
+                            src={src} 
+                            alt={`${active.art.title} - Part ${i + 1}`} 
+                            className={`w-full h-16 sm:h-20 object-cover transition-opacity duration-200 ${
+                              i === active.idx ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'
+                            }`} 
+                          />
+                          {i === active.idx && (
+                            <div 
+                              className="absolute inset-0 pointer-events-none transition-colors duration-300"
+                              style={{ backgroundColor: 'rgba(var(--primary), 0.2)' }}
+                            />
+                          )}
+                          <div 
+                            className="absolute bottom-1 right-1 text-white text-xs px-1 sm:px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-mono transition-colors duration-300"
+                            style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+                          >
+                            {i + 1}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
-            {(active.art.title || active.art.desc) && (
-              <div className="px-4 sm:px-6 mt-3">
-                <div className="inline-block backdrop-blur-md bg-white/90 text-slate-900 rounded-lg shadow ring-1 ring-black/10 px-4 py-2 max-w-md">
-                  <div className="text-[10px] uppercase tracking-[0.2em] opacity-70">Photograph</div>
-                  <div className="mt-1 text-base sm:text-lg font-semibold leading-snug">{active.art.title || 'Untitled'}</div>
-                  {active.art.desc && <div className="mt-1 text-sm opacity-80">{active.art.desc}</div>}
-                </div>
-              </div>
-            )}
-            {hasMultipleImages && (
-              <div className="p-2 flex items-center justify-center">
-                <div className="flex gap-2 overflow-x-auto px-3 py-2 bg-black/40 rounded-full backdrop-blur-md ring-1 ring-white/10 max-w-[95%]">
-                  {active.art.images.map((src, i) => (
-                    <button key={i} className={`relative group rounded-md overflow-hidden ring-1 ${i === active.idx ? 'ring-white' : 'ring-white/30'} transition-transform`} onClick={() => setActive({ art: active.art, idx: i })}>
-                      <img src={src} alt="thumbnail" className={`h-10 w-14 object-cover ${i === active.idx ? '' : 'opacity-80 group-hover:opacity-100'}`} />
-                      {i === active.idx && <span className="absolute inset-0 ring-2 ring-white rounded-md pointer-events-none" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {hasMultipleImages && (
-              <>
-                <button aria-label="Previous" className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/70 text-white hover:bg-black/80 transition-colors shadow ring-1 ring-white/20" onClick={() => setActive({ art: active.art, idx: (active.idx - 1 + active.art.images.length) % active.art.images.length })}>
-                  <ChevronLeft size={18} />
-                </button>
-                <button aria-label="Next" className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/70 text-white hover:bg-black/80 transition-colors shadow ring-1 ring-white/20" onClick={() => setActive({ art: active.art, idx: (active.idx + 1) % active.art.images.length })}>
-                  <ChevronRight size={18} />
-                </button>
-              </>
-            )}
           </div>
         </div>
-        
-        {/* Loading more indicator */}
-        {loadingMore && (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary))]"></div>
-            <span className="ml-3 text-[rgb(var(--muted-fg))] transition-colors duration-300">Loading more images...</span>
-          </div>
-        )}
-        
-        {/* End of gallery indicator */}
-        {!hasMore && artworks.length > 0 && !loadingMore && (
-          <div className="flex justify-center items-center py-8">
-            <span className="text-[rgb(var(--muted-fg))] text-sm transition-colors duration-300">You've reached the end of the gallery</span>
-          </div>
-        )}
       </div>
     </>
   )

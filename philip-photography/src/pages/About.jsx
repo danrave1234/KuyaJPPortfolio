@@ -1,26 +1,26 @@
 export default function About() {
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
-      <div className="container-responsive pt-24 pb-12">
-        <div className="mb-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="container-responsive pt-20 sm:pt-24 md:pt-20 lg:pt-24 pb-8 sm:pb-10 md:pb-12">
+        <div className="mb-6 sm:mb-8 md:mb-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
             <div className="lg:col-span-7">
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 transition-colors duration-300">About the Photographer</div>
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-2 sm:mb-3 transition-colors duration-300">About the Photographer</div>
               <h1 className="font-extrabold text-[rgb(var(--fg))] uppercase leading-[0.9] transition-colors duration-300">
-                <span className="block text-5xl sm:text-6xl md:text-7xl">Fieldwork</span>
-                <span className="block text-4xl sm:text-5xl md:text-6xl opacity-90">Behind the Lens</span>
+                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">Fieldwork</span>
+                <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl opacity-90">Behind the Lens</span>
               </h1>
-              <div className="mt-3 pt-3 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">Stories, craft, and dedication</div>
+              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
+                <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">Stories, craft, and dedication</div>
               </div>
             </div>
             <div className="lg:col-span-5 lg:self-end">
-              <p className="text-[rgb(var(--muted))] text-base sm:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-5 transition-colors duration-300">
+              <p className="text-[rgb(var(--muted))] text-sm sm:text-base md:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-5 transition-colors duration-300">
                 I'm a wildlife photographer with a passion for bird photography. My work focuses on capturing the intricate details and behaviors of various bird species in their natural environments, from majestic eagles to delicate songbirds.
               </p>
             </div>
           </div>
-          <div className="mt-6 h-px w-full bg-[rgb(var(--muted))]/20 transition-colors duration-300" />
+          <div className="mt-4 sm:mt-6 h-px w-full bg-[rgb(var(--muted))]/20 transition-colors duration-300" />
         </div>
 
         <section className="prose prose-invert max-w-3xl">

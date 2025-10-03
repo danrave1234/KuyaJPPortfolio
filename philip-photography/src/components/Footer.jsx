@@ -10,53 +10,60 @@ export default function Footer() {
   }
 
   return (
-    <footer className="border-t border-gray-200 dark:border-gray-800 mt-16">
-      <div className="container-responsive py-10 text-sm text-[rgb(var(--muted))]">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div className="space-y-2">
+    <footer className="border-t border-gray-200 dark:border-gray-800 mt-8 sm:mt-12 md:mt-16">
+      <div className="container-responsive py-6 sm:py-8 md:py-10 text-sm text-[rgb(var(--muted))]">
+        {/* Mobile: Single column, Desktop: Multi-column */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+          {/* Brand section - always visible */}
+          <div className="space-y-2 md:col-span-2 lg:col-span-1">
             <div className="text-[10px] uppercase tracking-[0.25em]">Philip Photography</div>
-            <p className="text-[rgb(var(--muted))]">Wildlife and nature photography focused on patient observation and storytelling.</p>
+            <p className="text-[rgb(var(--muted))] text-xs sm:text-sm">Wildlife and nature photography focused on patient observation and storytelling.</p>
           </div>
 
-          <nav className="space-y-2">
+          {/* Navigation - hidden on mobile, visible on tablet+ */}
+          <nav className="space-y-2 hidden md:block">
             <div className="text-[10px] uppercase tracking-[0.25em]">Navigate</div>
             <ul className="space-y-1">
-              <li><button onClick={() => navigate('/')} className="hover:text-[rgb(var(--fg))] transition">Home</button></li>
-              <li><button onClick={() => navigate('/gallery')} className="hover:text-[rgb(var(--fg))] transition">Gallery</button></li>
-              <li><button onClick={() => navigate('/about')} className="hover:text-[rgb(var(--fg))] transition">About</button></li>
-              <li><button onClick={() => navigate('/contact')} className="hover:text-[rgb(var(--fg))] transition">Contact</button></li>
+              <li><button onClick={() => navigate('/')} className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">Home</button></li>
+              <li><button onClick={() => navigate('/gallery')} className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">Gallery</button></li>
+              <li><button onClick={() => navigate('/about')} className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">About</button></li>
+              <li><button onClick={() => navigate('/contact')} className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">Contact</button></li>
             </ul>
           </nav>
 
+          {/* Contact - simplified for mobile */}
           <div className="space-y-2">
             <div className="text-[10px] uppercase tracking-[0.25em]">Contact</div>
             <ul className="space-y-1">
-              <li><a href="mailto:hello@philip.photo" className="hover:text-[rgb(var(--fg))] transition">hello@philip.photo</a></li>
-              <li><span>Based in Philippines • Available worldwide</span></li>
+              <li><a href="mailto:hello@philip.photo" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">hello@philip.photo</a></li>
+              <li><span className="text-xs sm:text-sm hidden sm:block">Based in Philippines • Available worldwide</span>
+                  <span className="text-xs sm:hidden">Philippines • Worldwide</span></li>
             </ul>
           </div>
 
+          {/* Social - simplified for mobile */}
           <div className="space-y-2">
             <div className="text-[10px] uppercase tracking-[0.25em]">Social</div>
-            <div className="flex items-center gap-4">
-              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="Instagram">
-                <Instagram size={18} />
-                <span>Instagram</span>
+            <div className="flex items-center gap-3 sm:gap-4">
+              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="Instagram">
+                <Instagram size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <span className="text-xs sm:text-sm hidden sm:inline">Instagram</span>
               </a>
-              <a href="https://facebook.com" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="Facebook">
-                <Facebook size={18} />
-                <span>Facebook</span>
+              <a href="https://facebook.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="Facebook">
+                <Facebook size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <span className="text-xs sm:text-sm hidden sm:inline">Facebook</span>
               </a>
-              <a href="https://youtube.com" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="YouTube">
-                <Youtube size={18} />
-                <span>YouTube</span>
+              <a href="https://youtube.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="YouTube">
+                <Youtube size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <span className="text-xs sm:text-sm hidden sm:inline">YouTube</span>
               </a>
             </div>
           </div>
         </div>
 
-        <div className="mt-8 flex items-center justify-between">
-          <span>© {new Date().getFullYear()} Philip Photography. All rights reserved.</span>
+        {/* Footer bottom - simplified for mobile */}
+        <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
+          <span className="text-xs sm:text-sm text-center sm:text-left">© {new Date().getFullYear()} Philip Photography. All rights reserved.</span>
           {/* Hidden admin access - invisible button */}
           <button 
             onClick={handleAdminAccess}

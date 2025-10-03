@@ -53,16 +53,31 @@ exports.getGalleryImages = functions.region('asia-southeast1').https.onRequest(a
           ? `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${token}`
           : `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
 
+        const filename = file.name.split('/').pop();
+        
+        // Auto-detect series based on filename patterns like "test.1", "test.2", etc.
+        const seriesMatch = filename.match(/^(.+)\.(\d+)(\.[^.]+)?$/);
+        let isSeries = metadata.metadata?.isSeries === 'true';
+        let seriesTitle = metadata.metadata?.title || filename;
+        let seriesIndex = metadata.metadata?.seriesIndex ? parseInt(metadata.metadata.seriesIndex) : 1;
+        
+        if (seriesMatch) {
+          const [, baseName, index, extension] = seriesMatch;
+          isSeries = true;
+          seriesTitle = baseName;
+          seriesIndex = parseInt(index);
+        }
+
         return {
           id: file.name,
-          name: file.name.split('/').pop(), // Get just the filename
+          name: filename,
           src: url,
           path: file.name,
-          title: metadata.metadata?.title || file.name.split('/').pop(),
-          alt: metadata.metadata?.alt || file.name.split('/').pop(),
+          title: seriesTitle,
+          alt: metadata.metadata?.alt || filename,
           description: metadata.metadata?.description || '',
-          isSeries: metadata.metadata?.isSeries === 'true',
-          seriesIndex: metadata.metadata?.seriesIndex ? parseInt(metadata.metadata.seriesIndex) : 1,
+          isSeries: isSeries,
+          seriesIndex: seriesIndex,
           size: parseInt(metadata.size || '0'),
           timeCreated: metadata.timeCreated,
           contentType: metadata.contentType
@@ -76,7 +91,7 @@ exports.getGalleryImages = functions.region('asia-southeast1').https.onRequest(a
     // Wait for all images to be processed
     const images = (await Promise.all(imagePromises)).filter(img => img !== null);
 
-    // Group images by series (same logic as frontend)
+    // Group images by series with proper sorting
     const groups = {};
     
     images.forEach(img => {
@@ -84,13 +99,18 @@ exports.getGalleryImages = functions.region('asia-southeast1').https.onRequest(a
         if (!groups[img.title]) {
           groups[img.title] = {
             images: [],
+            seriesData: [], // Store full image data for sorting
             title: img.title,
             alt: `${img.title} images`,
             isSeries: true,
             description: img.description || ''
           };
         }
-        groups[img.title].images.push(img.src);
+        groups[img.title].seriesData.push({
+          src: img.src,
+          seriesIndex: img.seriesIndex,
+          name: img.name
+        });
       } else {
         const individualName = `individual_${img.title || img.name}`;
         groups[individualName] = {
@@ -100,6 +120,15 @@ exports.getGalleryImages = functions.region('asia-southeast1').https.onRequest(a
           isSeries: false,
           description: img.description || ''
         };
+      }
+    });
+
+    // Sort series images by their index and extract src arrays
+    Object.values(groups).forEach(group => {
+      if (group.isSeries && group.seriesData) {
+        group.seriesData.sort((a, b) => a.seriesIndex - b.seriesIndex);
+        group.images = group.seriesData.map(item => item.src);
+        delete group.seriesData; // Clean up
       }
     });
 
@@ -182,16 +211,31 @@ exports.searchGalleryImages = functions.region('asia-southeast1').https.onReques
           ? `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${token}`
           : `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
 
+        const filename = file.name.split('/').pop();
+        
+        // Auto-detect series based on filename patterns like "test.1", "test.2", etc.
+        const seriesMatch = filename.match(/^(.+)\.(\d+)(\.[^.]+)?$/);
+        let isSeries = metadata.metadata?.isSeries === 'true';
+        let seriesTitle = metadata.metadata?.title || filename;
+        let seriesIndex = metadata.metadata?.seriesIndex ? parseInt(metadata.metadata.seriesIndex) : 1;
+        
+        if (seriesMatch) {
+          const [, baseName, index, extension] = seriesMatch;
+          isSeries = true;
+          seriesTitle = baseName;
+          seriesIndex = parseInt(index);
+        }
+
         return {
           id: file.name,
-          name: file.name.split('/').pop(),
+          name: filename,
           src: url,
           path: file.name,
-          title: metadata.metadata?.title || file.name.split('/').pop(),
-          alt: metadata.metadata?.alt || file.name.split('/').pop(),
+          title: seriesTitle,
+          alt: metadata.metadata?.alt || filename,
           description: metadata.metadata?.description || '',
-          isSeries: metadata.metadata?.isSeries === 'true',
-          seriesIndex: metadata.metadata?.seriesIndex ? parseInt(metadata.metadata.seriesIndex) : 1,
+          isSeries: isSeries,
+          seriesIndex: seriesIndex,
           size: parseInt(metadata.size || '0'),
           timeCreated: metadata.timeCreated,
           contentType: metadata.contentType
@@ -227,7 +271,7 @@ exports.searchGalleryImages = functions.region('asia-southeast1').https.onReques
     const paginatedImages = filteredImages.slice(offset, offset + limit);
     const hasMore = offset + limit < totalCount;
 
-    // Group images by series (same logic as main endpoint)
+    // Group images by series with proper sorting
     const groups = {};
     
     paginatedImages.forEach(img => {
@@ -235,13 +279,18 @@ exports.searchGalleryImages = functions.region('asia-southeast1').https.onReques
         if (!groups[img.title]) {
           groups[img.title] = {
             images: [],
+            seriesData: [], // Store full image data for sorting
             title: img.title,
             alt: `${img.title} images`,
             isSeries: true,
             description: img.description || ''
           };
         }
-        groups[img.title].images.push(img.src);
+        groups[img.title].seriesData.push({
+          src: img.src,
+          seriesIndex: img.seriesIndex,
+          name: img.name
+        });
       } else {
         const individualName = `individual_${img.title || img.name}`;
         groups[individualName] = {
@@ -251,6 +300,15 @@ exports.searchGalleryImages = functions.region('asia-southeast1').https.onReques
           isSeries: false,
           description: img.description || ''
         };
+      }
+    });
+
+    // Sort series images by their index and extract src arrays
+    Object.values(groups).forEach(group => {
+      if (group.isSeries && group.seriesData) {
+        group.seriesData.sort((a, b) => a.seriesIndex - b.seriesIndex);
+        group.images = group.seriesData.map(item => item.src);
+        delete group.seriesData; // Clean up
       }
     });
 
@@ -338,16 +396,31 @@ exports.getAdminGalleryImages = functions.region('asia-southeast1').https.onRequ
           ? `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${token}`
           : `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
 
+        const filename = file.name.split('/').pop();
+        
+        // Auto-detect series based on filename patterns like "test.1", "test.2", etc.
+        const seriesMatch = filename.match(/^(.+)\.(\d+)(\.[^.]+)?$/);
+        let isSeries = metadata.metadata?.isSeries === 'true';
+        let seriesTitle = metadata.metadata?.title || filename;
+        let seriesIndex = metadata.metadata?.seriesIndex ? parseInt(metadata.metadata.seriesIndex) : 1;
+        
+        if (seriesMatch) {
+          const [, baseName, index, extension] = seriesMatch;
+          isSeries = true;
+          seriesTitle = baseName;
+          seriesIndex = parseInt(index);
+        }
+
         return {
           id: file.name,
-          name: file.name.split('/').pop(),
+          name: filename,
           src: url,
           path: file.name,
-          title: metadata.metadata?.title || file.name.split('/').pop(),
-          alt: metadata.metadata?.alt || file.name.split('/').pop(),
+          title: seriesTitle,
+          alt: metadata.metadata?.alt || filename,
           description: metadata.metadata?.description || '',
-          isSeries: metadata.metadata?.isSeries === 'true',
-          seriesIndex: metadata.metadata?.seriesIndex ? parseInt(metadata.metadata.seriesIndex) : 1,
+          isSeries: isSeries,
+          seriesIndex: seriesIndex,
           size: parseInt(metadata.size || '0'),
           timeCreated: metadata.timeCreated,
           contentType: metadata.contentType,

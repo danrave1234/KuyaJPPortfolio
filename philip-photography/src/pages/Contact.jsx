@@ -14,26 +14,26 @@ export default function Contact() {
   }
   return (
     <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
-      <div className="container-responsive pt-24 pb-12">
-        <div className="mb-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="container-responsive pt-20 sm:pt-24 md:pt-20 lg:pt-24 pb-8 sm:pb-10 md:pb-12">
+        <div className="mb-6 sm:mb-8 md:mb-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
             <div className="lg:col-span-7">
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 transition-colors duration-300">Get in Touch</div>
+              <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-2 sm:mb-3 transition-colors duration-300">Get in Touch</div>
               <h1 className="font-extrabold text-[rgb(var(--fg))] uppercase leading-[0.9] transition-colors duration-300">
-                <span className="block text-5xl sm:text-6xl md:text-7xl">Booking</span>
-                <span className="block text-4xl sm:text-5xl md:text-6xl opacity-90">& Inquiries</span>
+                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">Booking</span>
+                <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl opacity-90">& Inquiries</span>
               </h1>
-              <div className="mt-3 pt-3 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">Collaborations and print requests</div>
+              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
+                <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">Collaborations and print requests</div>
               </div>
             </div>
             <div className="lg:col-span-5 lg:self-end">
-              <p className="text-[rgb(var(--muted))] text-base sm:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-5 transition-colors duration-300">
+              <p className="text-[rgb(var(--muted))] text-sm sm:text-base md:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-5 transition-colors duration-300">
                 For commissions, talks, workshops, or print inquiries, send a message. I typically reply within 48 hours.
               </p>
             </div>
           </div>
-          <div className="mt-6 h-px w-full bg-[rgb(var(--muted))]/20 transition-colors duration-300" />
+          <div className="mt-4 sm:mt-6 h-px w-full bg-[rgb(var(--muted))]/20 transition-colors duration-300" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -56,7 +56,7 @@ export default function Contact() {
               <span className="text-xs text-[rgb(var(--muted))] transition-colors duration-300">Typical response within 48 hours.</span>
             </div>
           </form>
-          <figure className="lg:col-span-6 rounded-xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300">
+          <figure className="lg:col-span-6 rounded-xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300 hidden lg:block">
             <img
               src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=1600&auto=format&fit=crop"
               alt="Lush green forest canopy"

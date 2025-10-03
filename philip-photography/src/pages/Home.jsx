@@ -202,10 +202,10 @@ export default function Home() {
             </div>
           </div>
           
-          {/* Testimonials Section - Bottom of Hero */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+          {/* Testimonials Section - Bottom of Hero - Hidden on mobile */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 hidden lg:block testimonials-mobile-hidden">
             <div className="w-full">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
                 <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden">
@@ -307,50 +307,53 @@ export default function Home() {
       </section>
 
       {/* Introduction section */}
-      <section className="snap-section bg-[rgb(var(--bg))] min-h-screen flex flex-col justify-start pt-16">
-        <div className="container-responsive py-6">
-          {/* Editorial masthead - alternative design */}
-          <div className="mb-10">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <section className="snap-section bg-[rgb(var(--bg))] min-h-screen flex flex-col justify-start">
+        <div className="container-responsive py-4 sm:py-6">
+          {/* Editorial masthead - mobile optimized */}
+          <div className="mb-6 sm:mb-8 lg:mb-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
               <div className="lg:col-span-5">
-                <h2 className="font-extrabold text-[rgb(var(--fg))] leading-tight max-w-xl">
-                  <span className="block text-4xl sm:text-5xl md:text-6xl">John Philip Morada</span>
-                  <span className="block text-2xl sm:text-3xl md:text-4xl text-[rgb(var(--muted-fg))]">Wildlife & Bird Photography</span>
+                <h2 className="font-extrabold leading-tight max-w-xl">
+                  <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl text-[rgb(var(--primary))]">John Philip Morada</span>
+                  <span className="block text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl text-[rgb(var(--fg))] mt-1">Wildlife & Bird Photography</span>
                 </h2>
-                <div className="mt-4 h-[3px] w-24 bg-[rgb(var(--primary))]" />
-                <p className="mt-4 text-[rgb(var(--muted-fg))] text-base leading-relaxed">
+                <div className="mt-3 sm:mt-4 h-[2px] sm:h-[3px] w-16 sm:w-20 lg:w-24 bg-[rgb(var(--primary))]" />
+                <p className="mt-3 sm:mt-4 text-[rgb(var(--muted-fg))] text-sm sm:text-base leading-relaxed">
                   Based in the Philippines. Field-driven work focused on light, timing, and honest stories from the wild.
                 </p>
-                <div className="mt-4 flex items-center gap-3">
-                  <div className="inline-block rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.25em] bg-[rgb(var(--muted))]/10 text-[rgb(var(--muted))]">Portfolio</div>
-                  <div className="text-xs text-[rgb(var(--muted))]">2024 Edition</div>
+                {/* Portfolio badge - hidden on mobile */}
+                <div className="mt-3 sm:mt-4 flex items-center gap-2 sm:gap-3 hidden sm:flex">
+                  <div className="inline-block rounded-full px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] uppercase tracking-[0.25em] bg-[rgb(var(--muted))]/10 text-[rgb(var(--muted))]">Portfolio</div>
+                  <div className="text-xs sm:text-sm text-[rgb(var(--muted))]">2024 Edition</div>
                 </div>
-              <div className="mt-6 grid grid-cols-3 gap-4 max-w-md">
-                <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-4 text-center">
-                  <div className="text-xl font-semibold text-[rgb(var(--fg))]">Birdlife</div>
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-1">Focus</div>
-                </div>
-                <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-4 text-center">
-                  <div className="text-xl font-semibold text-[rgb(var(--fg))]">Philippines</div>
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-1">Base</div>
-                </div>
-                <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-4 text-center">
-                  <div className="text-xl font-semibold text-[rgb(var(--fg))]">Worldwide</div>
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-1">Available</div>
+                {/* Category cards - hidden on mobile, visible on tablet+ */}
+                <div className="mt-4 sm:mt-6 grid grid-cols-3 gap-3 sm:gap-4 max-w-sm sm:max-w-md hidden md:grid">
+                  <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-3 sm:p-4 text-center hover:border-[rgb(var(--primary))]/30 transition-colors duration-300">
+                    <div className="text-lg sm:text-xl font-semibold text-[rgb(var(--fg))]">Birdlife</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-1">Focus</div>
+                  </div>
+                  <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-3 sm:p-4 text-center hover:border-[rgb(var(--primary))]/30 transition-colors duration-300">
+                    <div className="text-lg sm:text-xl font-semibold text-[rgb(var(--fg))]">Philippines</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-1">Base</div>
+                  </div>
+                  <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-3 sm:p-4 text-center hover:border-[rgb(var(--primary))]/30 transition-colors duration-300">
+                    <div className="text-lg sm:text-xl font-semibold text-[rgb(var(--fg))]">Worldwide</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-1">Available</div>
+                  </div>
                 </div>
               </div>
-              </div>
-              <div className="lg:col-span-5 lg:justify-self-end">
-                <figure className="relative group max-w-md lg:ml-auto">
+              {/* Hero image - always visible but responsive sizing */}
+              <div className="lg:col-span-5 lg:justify-self-end mt-6 lg:mt-0">
+                <figure className="relative group max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto lg:mx-0 lg:ml-auto">
                   <img
                     src="/KuyaJP.jpg"
                     alt="John Philip Morada photographing with a telephoto lens on a tripod"
-                    className="w-full aspect-square object-cover rounded-2xl shadow-xl border border-black/10 dark:border-white/10"
+                    className="w-full aspect-square object-cover rounded-xl sm:rounded-2xl shadow-xl border border-black/10 dark:border-white/10 hover:shadow-2xl transition-shadow duration-300"
                   />
-                  <figcaption className="absolute bottom-3 left-3 right-3 px-4 py-2 rounded-lg text-sm backdrop-blur-md bg-black/30 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                  <figcaption className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm backdrop-blur-md bg-black/30 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     In the field: patience, light, and timing.
                   </figcaption>
-                  <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-black/10 dark:ring-white/10" />
+                  <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl ring-1 ring-inset ring-black/10 dark:ring-white/10" />
                 </figure>
               </div>
             </div>
@@ -361,14 +364,14 @@ export default function Home() {
 
            {/* Selected Works - Continuous Horizontal Chain */}
           <div className="relative">
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-semibold text-[rgb(var(--fg))]">Selected Works</h3>
-              <p className="text-sm text-[rgb(var(--muted-fg))] mt-2">A glimpse into the wild through my lens</p>
+            <div className="text-center mb-4 sm:mb-6 md:mb-8">
+              <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-[rgb(var(--fg))]">Selected Works</h3>
+              <p className="text-xs sm:text-sm text-[rgb(var(--muted-fg))] mt-1 sm:mt-2">A glimpse into the wild through my lens</p>
               {/* Decorative elements */}
-              <div className="mt-4 flex items-center justify-center gap-4">
-                <div className="h-px w-12 bg-[rgb(var(--primary))]" />
-                <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))]" />
-                <div className="h-px w-12 bg-[rgb(var(--primary))]" />
+              <div className="mt-2 sm:mt-3 md:mt-4 flex items-center justify-center gap-2 sm:gap-3 md:gap-4">
+                <div className="h-px w-8 sm:w-10 md:w-12 bg-[rgb(var(--primary))]" />
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[rgb(var(--primary))]" />
+                <div className="h-px w-8 sm:w-10 md:w-12 bg-[rgb(var(--primary))]" />
               </div>
             </div>
 
