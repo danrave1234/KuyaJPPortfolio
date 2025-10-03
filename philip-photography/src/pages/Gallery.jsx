@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
-import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ArrowRight } from 'lucide-react'
-import { getImagesFromFolder } from '../firebase/storage'
+import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ArrowRight, Search } from 'lucide-react'
+import { getGalleryImages, searchGalleryImages } from '../firebase/api'
 
 export default function Gallery() {
   const [active, setActive] = useState(null) // { art, idx }
@@ -9,6 +9,125 @@ export default function Gallery() {
   const [firebaseImages, setFirebaseImages] = useState([])
   const [artworks, setArtworks] = useState([])
   const [galleryLoading, setGalleryLoading] = useState(true)
+  const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [totalCount, setTotalCount] = useState(0)
+  
+  // Search state
+  const [isSearching, setIsSearching] = useState(false)
+  const [isDebouncing, setIsDebouncing] = useState(false)
+  const [searchResults, setSearchResults] = useState([])
+  const [searchPage, setSearchPage] = useState(1)
+  const [searchHasMore, setSearchHasMore] = useState(false)
+
+  // Debounce search input
+  useEffect(() => {
+    if (query.trim()) {
+      setIsDebouncing(true);
+    } else {
+      setIsDebouncing(false);
+      setIsSearching(false);
+      setSearchResults([]);
+      setSearchPage(1);
+      setSearchHasMore(false);
+    }
+    
+    const handle = setTimeout(() => {
+      setDebouncedQuery(query.trim());
+      setIsDebouncing(false);
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [query])
+
+  // Handle search when debounced query changes
+  useEffect(() => {
+    if (debouncedQuery.trim()) {
+      performSearch(debouncedQuery, 1);
+    } else {
+      setIsSearching(false);
+      setSearchResults([]);
+      setSearchPage(1);
+      setSearchHasMore(false);
+    }
+  }, [debouncedQuery]);
+
+  // Clean up old search cache on component mount
+  useEffect(() => {
+    const cleanupSearchCache = () => {
+      const now = Date.now();
+      const cacheExpiry = 30 * 60 * 1000; // 30 minutes
+      
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && key.startsWith('gallery-search-')) {
+          try {
+            const cached = JSON.parse(sessionStorage.getItem(key));
+            if (cached.timestamp && (now - cached.timestamp) > cacheExpiry) {
+              sessionStorage.removeItem(key);
+            }
+          } catch (e) {
+            // Remove invalid cache entries
+            sessionStorage.removeItem(key);
+          }
+        }
+      }
+    };
+    
+    cleanupSearchCache();
+  }, []);
+
+  // Search function with caching
+  const performSearch = async (searchQuery, page = 1) => {
+    setIsSearching(true);
+    try {
+      // Check cache for search results
+      const cacheKey = `search-${searchQuery}-${page}`;
+      const cachedResults = sessionStorage.getItem(`gallery-search-${cacheKey}`);
+      
+      if (cachedResults) {
+        const parsedResults = JSON.parse(cachedResults);
+        if (page === 1) {
+          setSearchResults(parsedResults.images);
+        } else {
+          setSearchResults(prev => [...prev, ...parsedResults.images]);
+        }
+        setSearchPage(page);
+        setSearchHasMore(parsedResults.pagination?.hasMore || false);
+        setIsSearching(false);
+        return;
+      }
+
+      const result = await searchGalleryImages('gallery', searchQuery, page, 20);
+      if (result.success) {
+        const shuffled = shuffleArray(result.images);
+        
+        // Cache search results
+        const cacheData = {
+          images: shuffled,
+          pagination: result.pagination,
+          timestamp: Date.now()
+        };
+        sessionStorage.setItem(`gallery-search-${cacheKey}`, JSON.stringify(cacheData));
+        
+        if (page === 1) {
+          setSearchResults(shuffled);
+        } else {
+          setSearchResults(prev => [...prev, ...shuffled]);
+        }
+        setSearchPage(page);
+        setSearchHasMore(result.pagination?.hasMore || false);
+      }
+    } catch (error) {
+      console.error('Error searching images:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
   
   // Function to group images by series (using metadata)
   const groupImagesBySeries = (images) => {
@@ -43,40 +162,127 @@ export default function Gallery() {
     return Object.values(groups);
   }
   
-  // Load all images from Firebase Storage and group by series
+  // Load initial 20 images from Firebase Storage with pagination
   useEffect(() => {
-    const loadFirebaseImages = async () => {
+    let isMounted = true // Prevent state updates if component unmounts
+    
+    const loadInitialImages = async () => {
       try {
-        const result = await getImagesFromFolder('gallery');
-        if (result.success) {
-          // Group images by series (e.g., 2.1, 2.2, 2.3 -> Series 2)
-          const groupedImages = groupImagesBySeries(result.images);
-          
-          // Convert grouped images to artwork format
-          const artworkArray = groupedImages.map((group, index) => ({
-            id: index + 1,
-            images: group.images, // Multiple images per artwork for series
-            title: group.title,
-            alt: group.alt,
-            isSeries: group.isSeries,
-            description: group.description || ''
-          }))
+        // Check if we already have artworks loaded (prevent duplicate calls)
+        if (artworks.length > 0) {
+          setGalleryLoading(false)
+          return
+        }
 
-          // Shuffle and save order
-          const shuffled = shuffleArray(artworkArray)
-          localStorage.setItem('gallery-artwork-order', JSON.stringify(shuffled))
-          setArtworks(shuffled)
+        // Always fetch fresh data from Firebase Functions API (paginated!)
+        console.log('Loading initial 20 images from Firebase Functions...')
+        const result = await getGalleryImages('gallery', 1, 20);
+        if (result.success) {
+          // Images are already processed and grouped by the backend
+          const shuffled = shuffleArray(result.images)
+          
+          if (isMounted) {
+            setArtworks(shuffled)
+            setCurrentPage(1)
+            setHasMore(result.pagination?.hasMore || false)
+            setTotalCount(result.pagination?.totalCount || 0)
+            setGalleryLoading(false)
+          }
         } else {
           console.error('Failed to load Firebase images:', result.error)
+          if (isMounted) {
+            setGalleryLoading(false)
+          }
         }
       } catch (error) {
         console.error('Error loading Firebase images:', error)
-      } finally {
-        setGalleryLoading(false)
+        if (isMounted) {
+          setGalleryLoading(false)
+        }
       }
     };
-    loadFirebaseImages();
-  }, []);
+    loadInitialImages();
+    
+    // Cleanup function
+    return () => {
+      isMounted = false
+    }
+  }, []); // Empty dependency array to prevent re-runs
+  
+  // Load more images function for infinite scroll
+  const loadMoreImages = async () => {
+    if (loadingMore || !hasMore) return;
+    
+    setLoadingMore(true);
+    try {
+      const nextPage = currentPage + 1;
+      console.log(`Loading page ${nextPage} with 20 images...`);
+      const result = await getGalleryImages('gallery', nextPage, 20);
+      
+      if (result.success && result.images.length > 0) {
+        const newShuffled = shuffleArray(result.images);
+        setArtworks(prev => [...prev, ...newShuffled]);
+        setCurrentPage(nextPage);
+        setHasMore(result.pagination?.hasMore || false);
+        console.log(`Loaded ${result.images.length} more images. Total: ${artworks.length + result.images.length}`);
+      } else {
+        console.log('No more images to load');
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error('Error loading more images:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // Infinite scroll effect - trigger when statistics section comes into view
+  useEffect(() => {
+    // Only proceed if we have images loaded and more are available
+    if (artworks.length === 0 || (!hasMore && !searchHasMore)) {
+      return;
+    }
+
+    const handleIntersection = (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          if (debouncedQuery.trim()) {
+            // Load more search results
+            if (searchHasMore && !isSearching && !isDebouncing) {
+              console.log('Statistics section visible - loading more search results...');
+              performSearch(debouncedQuery, searchPage + 1);
+            }
+          } else {
+            // Load more regular images - only if we have more pages and not currently loading
+            if (hasMore && !loadingMore) {
+              console.log('Statistics section visible - loading more images...');
+              loadMoreImages();
+            }
+          }
+        }
+      });
+    };
+
+    // Create intersection observer to watch for statistics section
+    const observer = new IntersectionObserver(handleIntersection, {
+      root: null,
+      rootMargin: '100px', // Trigger when section is 100px away from viewport
+      threshold: 0.1 // Trigger when 10% of the section is visible
+    });
+
+    // Find the statistics section element
+    const statisticsSection = document.querySelector('[data-gallery-stats]');
+    if (statisticsSection) {
+      observer.observe(statisticsSection);
+    }
+
+    return () => {
+      if (statisticsSection) {
+        observer.unobserve(statisticsSection);
+      }
+      observer.disconnect();
+    };
+  }, [currentPage, hasMore, loadingMore, debouncedQuery, searchHasMore, isSearching, searchPage, isDebouncing, artworks.length]);
   
   // Shuffle function to randomize artwork order for chaotic layout
   const shuffleArray = (array) => {
@@ -90,6 +296,17 @@ export default function Gallery() {
   
   // Use artworks from Firebase instead of hardcoded array
   const shuffledArtworks = artworks
+  
+  // Use search results if searching, otherwise use regular artworks
+  const displayedArtworks = debouncedQuery.trim() ? searchResults : shuffledArtworks;
+  
+  // Deduplicate artworks based on unique identifier (src or images[0])
+  const deduplicatedArtworks = displayedArtworks.filter((art, index, array) => {
+    const uniqueKey = art.src || (art.images && art.images[0]) || art.id;
+    return array.findIndex(item => 
+      (item.src || (item.images && item.images[0]) || item.id) === uniqueKey
+    ) === index;
+  });
     
   // Hardcoded artworks removed - now using Firebase Storage images
 
@@ -161,46 +378,124 @@ export default function Gallery() {
 
 
   return (
-    <main className="min-h-screen bg-[rgb(var(--bg))]">
+    <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
       <div className="container-responsive pt-24 pb-8">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 mb-12">
-          <div className="flex-1">
-            <h1 className="text-5xl sm:text-7xl font-bold text-[rgb(var(--fg))] uppercase tracking-wider mb-4">
-              MY ARTWORKS
-            </h1>
+        <div className="mb-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 transition-colors duration-300">Feature Portfolio</div>
+              <h1 className="font-extrabold text-[rgb(var(--fg))] uppercase leading-[0.9] transition-colors duration-300">
+                <span className="block text-5xl sm:text-6xl md:text-7xl">Wildlife</span>
+                <span className="block text-4xl sm:text-5xl md:text-6xl opacity-90">Through My Lens</span>
+              </h1>
+              <div className="mt-3 pt-3 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
+                <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">
+                  Field Notes & Wild Encounters
+                </div>
+              </div>
+            </div>
+            <div className="lg:col-span-5 lg:self-end">
+              <p className="text-[rgb(var(--muted))] text-base sm:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-5 transition-colors duration-300">
+                A curated collection of wildlife and nature photography capturing the beauty and essence of the natural world through patient observation and artistic vision.
+              </p>
+            </div>
           </div>
-          <div className="flex-1 lg:max-w-lg">
-            <p className="text-[rgb(var(--muted))] text-lg leading-relaxed">
-              A curated collection of wildlife and nature photography capturing the beauty and essence of the natural world through patient observation and artistic vision.
-            </p>
+          <div className="mt-6 h-px w-full bg-[rgb(var(--muted))]/20 transition-colors duration-300" />
+        </div>
+
+        {/* Search and description row */}
+        <div className="mb-8 flex items-center justify-center">
+          <div className="w-full max-w-3xl">
+            <label htmlFor="gallery-search" className="sr-only">Search artworks</label>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <Search size={18} className="text-[rgb(var(--muted))] transition-colors duration-300" />
+              </div>
+              <input
+                id="gallery-search"
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by title or description..."
+                className="w-full rounded-full bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 pl-12 pr-5 py-3 text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] shadow-sm focus:outline-none focus:ring-4 focus:ring-[rgb(var(--primary))]/25 hover:border-[rgb(var(--muted))]/40 transition-colors duration-300"
+              />
+            </div>
+            {debouncedQuery && (
+              <div className="mt-2 text-center text-sm text-[rgb(var(--muted))] transition-colors duration-300">
+                Showing {deduplicatedArtworks.length} of {shuffledArtworks.length}
+              </div>
+            )}
           </div>
         </div>
 
         {galleryLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[rgb(var(--primary))] mx-auto mb-4"></div>
-              <p className="text-[rgb(var(--muted-fg))]">Loading gallery...</p>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-[320px] mb-6 grid-flow-dense">
+            {[
+              'large','small','medium','wide','small','large','small','medium','small','wide','small','medium'
+            ].map((size, i) => {
+              const gridClasses = size === 'large' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-2 lg:row-span-2' :
+                                   size === 'wide' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-1 lg:row-span-1' :
+                                   size === 'medium' ? 'sm:col-span-1 lg:col-span-1 sm:row-span-2 lg:row-span-2' :
+                                   'sm:col-span-1 lg:col-span-1 sm:row-span-1 lg:row-span-1'
+              return (
+                <div key={i} className={`${gridClasses} rounded-xl overflow-hidden relative border border-[rgb(var(--muted))]/10`}>
+                  <div className="absolute inset-0 animate-pulse bg-[rgb(var(--muted))]/20" />
+                </div>
+              )
+            })}
           </div>
         ) : shuffledArtworks.length === 0 ? (
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
-              <p className="text-[rgb(var(--muted-fg))]">No images found in Firebase Storage</p>
+              <p className="text-[rgb(var(--muted-fg))] transition-colors duration-300">No images found in Firebase Storage</p>
             </div>
           </div>
+        ) : debouncedQuery && deduplicatedArtworks.length === 0 && !isSearching ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <p className="text-[rgb(var(--muted-fg))] transition-colors duration-300">No results for "{debouncedQuery}"</p>
+            </div>
+          </div>
+        ) : (isSearching || isDebouncing) ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-[320px] mb-6 grid-flow-dense">
+            {[
+              'large','small','medium','wide','small','large','small','medium','small','wide','small','medium'
+            ].map((size, i) => {
+              const gridClasses = size === 'large' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-2 lg:row-span-2' :
+                                   size === 'wide' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-1 lg:row-span-1' :
+                                   size === 'medium' ? 'sm:col-span-1 lg:col-span-1 sm:row-span-2 lg:row-span-2' :
+                                   'sm:col-span-1 lg:col-span-1 sm:row-span-1 lg:row-span-1'
+              return (
+                <div key={i} className={`${gridClasses} rounded-xl overflow-hidden relative border border-[rgb(var(--muted))]/10`}>
+                  <div className="absolute inset-0 animate-pulse bg-[rgb(var(--muted))]/20" />
+                </div>
+              )
+            })}
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-[260px] mb-6 grid-flow-dense">
-            {shuffledArtworks.map((art, i) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 auto-rows-[320px] mb-6 grid-flow-dense">
+            {deduplicatedArtworks.map((art, i) => {
             const size = getBentoSize(art, i)
             const gridClasses = size === 'large' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-2 lg:row-span-2' : 
                                size === 'wide' ? 'sm:col-span-2 lg:col-span-2 sm:row-span-1 lg:row-span-1' :
                                size === 'medium' ? 'sm:col-span-1 lg:col-span-1 sm:row-span-2 lg:row-span-2' : 
                                'sm:col-span-1 lg:col-span-1 sm:row-span-1 lg:row-span-1'
-            
+          
+            // Defensive: skip items without an image
+            const firstImage = Array.isArray(art.images) && art.images.length > 0
+              ? art.images[0]
+              : (typeof art.src === 'string' ? art.src : null)
+
+            if (!firstImage) {
+              return null
+            }
+
+            // Create a unique key combining multiple identifiers
+            const uniqueKey = `${art.id || 'unknown'}-${i}-${art.src || (art.images && art.images[0]) || 'no-image'}`.replace(/[^a-zA-Z0-9-_]/g, '-');
+
             return (
               <figure 
-                key={art.id} 
+                key={uniqueKey} 
                 className={`group cursor-pointer ${gridClasses} rounded-xl overflow-hidden relative transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] border border-[rgb(var(--muted))]/10 hover:border-[rgb(var(--primary))]/30`}
                 onClick={() => setActive({ art, idx: 0 })}
               >
@@ -208,7 +503,7 @@ export default function Gallery() {
                   {art.composite ? (
                     // Composite item: single image in square format
                     <img
-                      src={art.images[0]}
+                      src={firstImage}
                       alt={art.title || ''}
                       className="w-full h-full object-contain bg-black transition-transform duration-700 group-hover:scale-110"
                       onLoad={(e) => {
@@ -219,7 +514,7 @@ export default function Gallery() {
                   ) : (
                     // Single image - smart scaling based on grid size and image aspect ratio
                 <img
-                  src={art.images[0]}
+                  src={firstImage}
                   alt={art.title || ''}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       style={{
@@ -233,13 +528,13 @@ export default function Gallery() {
                           // Calculate grid cell dimensions
                           let gridWidth, gridHeight
                           if (size === 'small') {
-                            gridWidth = 280; gridHeight = 260
+                            gridWidth = 280; gridHeight = 320
                           } else if (size === 'medium') {
-                            gridWidth = 280; gridHeight = 520 // 2 rows
+                            gridWidth = 280; gridHeight = 640 // 2 rows
                           } else if (size === 'large') {
-                            gridWidth = 560; gridHeight = 520 // 2 cols, 2 rows
+                            gridWidth = 560; gridHeight = 640 // 2 cols, 2 rows
                           } else {
-                            gridWidth = 560; gridHeight = 260 // wide: 2 cols, 1 row
+                            gridWidth = 560; gridHeight = 320 // wide: 2 cols, 1 row
                           }
                           
                           const gridRatio = gridWidth / gridHeight
@@ -284,29 +579,29 @@ export default function Gallery() {
         )}
 
         {/* Gallery Statistics */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12" data-gallery-stats>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
-            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-xl p-6">
-              <div className="text-3xl font-bold text-[rgb(var(--fg))] mb-2">
+            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-xl p-6 transition-colors duration-300">
+              <div className="text-3xl font-bold text-[rgb(var(--fg))] mb-2 transition-colors duration-300">
                 {shuffledArtworks.length}
               </div>
-              <div className="text-[rgb(var(--muted))] text-sm uppercase tracking-wide">
-                Total Artworks
+              <div className="text-[rgb(var(--muted))] text-sm uppercase tracking-wide transition-colors duration-300">
+                Total Photographs
               </div>
             </div>
-            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-xl p-6">
-              <div className="text-3xl font-bold text-[rgb(var(--fg))] mb-2">
+            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-xl p-6 transition-colors duration-300">
+              <div className="text-3xl font-bold text-[rgb(var(--fg))] mb-2 transition-colors duration-300">
                 2024
               </div>
-              <div className="text-[rgb(var(--muted))] text-sm uppercase tracking-wide">
+              <div className="text-[rgb(var(--muted))] text-sm uppercase tracking-wide transition-colors duration-300">
                 Latest Collection
               </div>
             </div>
-            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-xl p-6">
-              <div className="text-3xl font-bold text-[rgb(var(--fg))] mb-2">
+            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-xl p-6 transition-colors duration-300">
+              <div className="text-3xl font-bold text-[rgb(var(--fg))] mb-2 transition-colors duration-300">
                 Wildlife
               </div>
-              <div className="text-[rgb(var(--muted))] text-sm uppercase tracking-wide">
+              <div className="text-[rgb(var(--muted))] text-sm uppercase tracking-wide transition-colors duration-300">
                 Primary Focus
               </div>
             </div>
@@ -327,6 +622,11 @@ export default function Gallery() {
 }
 
 function ModalViewer({ active, setActive }) {
+  // Early return if active is null or invalid
+  if (!active || !active.art) {
+    return null
+  }
+
   const activeRef = useRef(active)
   useEffect(() => { activeRef.current = active }, [active])
   useEffect(() => {
@@ -335,7 +635,7 @@ function ModalViewer({ active, setActive }) {
     const onKey = (e) => {
       const a = activeRef.current
       if (e.key === 'Escape') setActive(null)
-      if (!a?.art?.images) return
+      if (!a?.art?.images || !Array.isArray(a.art.images) || a.art.images.length === 0) return
       if (e.key === 'ArrowLeft') setActive({ art: a.art, idx: (a.idx - 1 + a.art.images.length) % a.art.images.length })
       if (e.key === 'ArrowRight') setActive({ art: a.art, idx: (a.idx + 1) % a.art.images.length })
     }
@@ -366,6 +666,18 @@ function ModalViewer({ active, setActive }) {
     }
   }
 
+  // Get the current image source safely
+  const getCurrentImageSrc = () => {
+    if (!active.art.images || !Array.isArray(active.art.images) || active.art.images.length === 0) {
+      // Fallback to single image if available
+      return active.art.src || active.art.image || null
+    }
+    return active.art.images[active.idx] || null
+  }
+
+  const currentImageSrc = getCurrentImageSrc()
+  const hasMultipleImages = active.art.images && Array.isArray(active.art.images) && active.art.images.length > 1
+
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-md" onClick={() => setActive(null)} />
@@ -382,7 +694,16 @@ function ModalViewer({ active, setActive }) {
               </button>
             </div>
             <div className="relative flex-1 min-h-0">
-              <img src={active.art.images[active.idx]} alt={active.art.title || ''} className={`w-full h-full max-h-[72dvh] object-contain transition-opacity duration-500 ${visible ? 'opacity-100' : 'opacity-0'}`}/>
+              {currentImageSrc ? (
+                <img src={currentImageSrc} alt={active.art.title || ''} className={`w-full h-full max-h-[72dvh] object-contain transition-opacity duration-500 ${visible ? 'opacity-100' : 'opacity-0'}`}/>
+              ) : (
+                <div className="w-full h-full max-h-[72dvh] flex items-center justify-center bg-gray-800 text-white">
+                  <div className="text-center">
+                    <div className="text-lg font-semibold mb-2">Image not available</div>
+                    <div className="text-sm opacity-70">Unable to load image</div>
+                  </div>
+                </div>
+              )}
             </div>
             {(active.art.title || active.art.desc) && (
               <div className="px-4 sm:px-6 mt-3">
@@ -393,7 +714,7 @@ function ModalViewer({ active, setActive }) {
                 </div>
               </div>
             )}
-            {active.art.images.length > 1 && (
+            {hasMultipleImages && (
               <div className="p-2 flex items-center justify-center">
                 <div className="flex gap-2 overflow-x-auto px-3 py-2 bg-black/40 rounded-full backdrop-blur-md ring-1 ring-white/10 max-w-[95%]">
                   {active.art.images.map((src, i) => (
@@ -405,7 +726,7 @@ function ModalViewer({ active, setActive }) {
                 </div>
               </div>
             )}
-            {active.art.images.length > 1 && (
+            {hasMultipleImages && (
               <>
                 <button aria-label="Previous" className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/70 text-white hover:bg-black/80 transition-colors shadow ring-1 ring-white/20" onClick={() => setActive({ art: active.art, idx: (active.idx - 1 + active.art.images.length) % active.art.images.length })}>
                   <ChevronLeft size={18} />
@@ -417,6 +738,21 @@ function ModalViewer({ active, setActive }) {
             )}
           </div>
         </div>
+        
+        {/* Loading more indicator */}
+        {loadingMore && (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary))]"></div>
+            <span className="ml-3 text-[rgb(var(--muted-fg))] transition-colors duration-300">Loading more images...</span>
+          </div>
+        )}
+        
+        {/* End of gallery indicator */}
+        {!hasMore && artworks.length > 0 && !loadingMore && (
+          <div className="flex justify-center items-center py-8">
+            <span className="text-[rgb(var(--muted-fg))] text-sm transition-colors duration-300">You've reached the end of the gallery</span>
+          </div>
+        )}
       </div>
     </>
   )

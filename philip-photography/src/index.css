@@ -9,16 +9,37 @@
     --fg: 17 24 39;
     --muted: 107 114 128;
     --primary: 79 70 229;
+    /* Ensure native form controls match theme */
+    color-scheme: light;
   }
   .dark :root, :root.dark {
     --bg: 17 24 39;
     --fg: 243 244 246;
     --muted: 156 163 175;
     --primary: 99 102 241;
+    color-scheme: dark;
   }
   body {
     @apply bg-[rgb(var(--bg))] text-[rgb(var(--fg))] antialiased;
   }
+  /* Simple theme transitions - only for basic elements */
+  body {
+    transition: background-color 300ms ease, color 300ms ease;
+  }
+  header, footer, nav {
+    transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease;
+  }
+  button, input, textarea, select {
+    transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; }
+  }
+  /* Base form element theming to stay in sync */
+  input, textarea, select {
+    @apply bg-[rgb(var(--bg))] text-[rgb(var(--fg))] border border-gray-300 dark:border-gray-600 placeholder:text-[rgb(var(--muted))];
+  }
+  button { @apply transition-colors; }
   html { scroll-behavior: smooth; scroll-padding-top: 4rem; scroll-snap-type: y mandatory; }
   body { height: 100%; }
   
@@ -146,7 +167,24 @@
 
 @layer utilities {
   .container-responsive {
-    @apply mx-auto px-4 sm:px-6 lg:px-8 w-full max-w-screen-xl;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 0.8rem; /* 20% less than 1rem */
+    padding-right: 0.8rem;
+    width: 100%;
+    max-width: 1440px; /* widen layout to reduce center compression */
+  }
+  @media (min-width: 640px) {
+    .container-responsive {
+      padding-left: 1.2rem; /* 20% less than 1.5rem */
+      padding-right: 1.2rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .container-responsive {
+      padding-left: 1.6rem; /* 20% less than 2rem */
+      padding-right: 1.6rem;
+    }
   }
   .snap-start {
     scroll-snap-align: start;

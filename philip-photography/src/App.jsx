@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
+import BackToTop from './components/BackToTop.jsx'
 import Home from './pages/Home.jsx'
 import Gallery from './pages/Gallery.jsx'
 import About from './pages/About.jsx'
@@ -21,6 +22,7 @@ function App() {
           <Route path="/admin" element={<Admin />} />
         </Routes>
         <Footer />
+        <BackToTop />
       </BrowserRouter>
     </AuthProvider>
   )

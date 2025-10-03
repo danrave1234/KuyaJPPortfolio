@@ -10,10 +10,35 @@ export default function Home() {
   const [firebaseImages, setFirebaseImages] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Load images from Firebase Storage
+  // Load images from Firebase Storage with multi-layer caching
   useEffect(() => {
     const loadFirebaseImages = async () => {
       try {
+        // 1. Check browser cache first (sessionStorage for immediate loads)
+        const sessionCache = sessionStorage.getItem('home-gallery-session')
+        if (sessionCache) {
+          const parsedImages = JSON.parse(sessionCache)
+          setFirebaseImages(parsedImages)
+          setLoading(false)
+          return
+        }
+
+        // 2. Check localStorage cache (persistent across sessions)
+        const cachedImages = localStorage.getItem('home-gallery-cache')
+        const cacheTimestamp = localStorage.getItem('home-gallery-cache-timestamp')
+        const now = Date.now()
+        const cacheExpiry = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+        if (cachedImages && cacheTimestamp && (now - parseInt(cacheTimestamp)) < cacheExpiry) {
+          const parsedImages = JSON.parse(cachedImages)
+          setFirebaseImages(parsedImages)
+          // Also store in sessionStorage for faster subsequent loads
+          sessionStorage.setItem('home-gallery-session', cachedImages)
+          setLoading(false)
+          return
+        }
+
+        // 3. Fetch from Firebase with HTTP caching headers
         const result = await getImagesFromFolder('gallery')
         if (result.success) {
           const imagesWithIds = result.images.map((img, index) => ({
@@ -22,6 +47,13 @@ export default function Home() {
             title: img.title || img.name,
             alt: img.alt || img.name
           }))
+          
+          // Store in both caches
+          const imagesJson = JSON.stringify(imagesWithIds)
+          localStorage.setItem('home-gallery-cache', imagesJson)
+          localStorage.setItem('home-gallery-cache-timestamp', now.toString())
+          sessionStorage.setItem('home-gallery-session', imagesJson)
+          
           setFirebaseImages(imagesWithIds)
         } else {
           console.error('Failed to load Firebase images:', result.error)
@@ -191,50 +223,85 @@ export default function Home() {
       </section>
 
       {/* Introduction section */}
-      <section className="snap-section bg-[rgb(var(--bg))] min-h-screen flex flex-col justify-start pt-20">
-        <div className="container-responsive py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center mb-12">
-            <div className="order-2 lg:order-1">
-              <h2 className="text-3xl sm:text-4xl font-bold text-[rgb(var(--fg))]">John Philip Morada</h2>
-              <p className="mt-4 text-[rgb(var(--muted-fg))] leading-relaxed">
-                Wildlife and bird photographer based in the Philippines. John Philip captures fleeting
-                behavior, texture, and light—telling quiet stories from the field through patient observation
-                and respectful distance.
-              </p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link to="/about" className="btn-solid">About the Photographer</Link>
-                <Link to="/gallery" className="btn-outline">View Selected Works</Link>
+      <section className="snap-section bg-[rgb(var(--bg))] min-h-screen flex flex-col justify-start pt-16">
+        <div className="container-responsive py-6">
+          {/* Editorial masthead - alternative design */}
+          <div className="mb-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              <div className="lg:col-span-5">
+                <h2 className="font-extrabold text-[rgb(var(--fg))] leading-tight max-w-xl">
+                  <span className="block text-4xl sm:text-5xl md:text-6xl">John Philip Morada</span>
+                  <span className="block text-2xl sm:text-3xl md:text-4xl text-[rgb(var(--muted-fg))]">Wildlife & Bird Photography</span>
+                </h2>
+                <div className="mt-4 h-[3px] w-24 bg-[rgb(var(--primary))]" />
+                <p className="mt-4 text-[rgb(var(--muted-fg))] text-base leading-relaxed">
+                  Based in the Philippines. Field-driven work focused on light, timing, and honest stories from the wild.
+                </p>
+                <div className="mt-4 flex items-center gap-3">
+                  <div className="inline-block rounded-full px-3 py-1 text-[10px] uppercase tracking-[0.25em] bg-[rgb(var(--muted))]/10 text-[rgb(var(--muted))]">Portfolio</div>
+                  <div className="text-xs text-[rgb(var(--muted))]">2024 Edition</div>
+                </div>
+              <div className="mt-6 grid grid-cols-3 gap-4 max-w-md">
+                <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-4 text-center">
+                  <div className="text-xl font-semibold text-[rgb(var(--fg))]">Birdlife</div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-1">Focus</div>
+                </div>
+                <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-4 text-center">
+                  <div className="text-xl font-semibold text-[rgb(var(--fg))]">Philippines</div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-1">Base</div>
+                </div>
+                <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-4 text-center">
+                  <div className="text-xl font-semibold text-[rgb(var(--fg))]">Worldwide</div>
+                  <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-1">Available</div>
+                </div>
+              </div>
+              </div>
+              <div className="lg:col-span-5 lg:justify-self-end">
+                <figure className="relative group max-w-md lg:ml-auto">
+                  <img
+                    src="/KuyaJP.jpg"
+                    alt="John Philip Morada photographing with a telephoto lens on a tripod"
+                    className="w-full aspect-square object-cover rounded-2xl shadow-xl border border-black/10 dark:border-white/10"
+                  />
+                  <figcaption className="absolute bottom-3 left-3 right-3 px-4 py-2 rounded-lg text-sm backdrop-blur-md bg-black/30 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                    In the field: patience, light, and timing.
+                  </figcaption>
+                  <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-black/10 dark:ring-white/10" />
+                </figure>
+              </div>
+            </div>
+            
+          </div>
+
+          {/* Removed secondary CTA row per request */}
+
+           {/* Selected Works - Continuous Horizontal Chain */}
+          <div className="relative">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-semibold text-[rgb(var(--fg))]">Selected Works</h3>
+              <p className="text-sm text-[rgb(var(--muted-fg))] mt-2">A glimpse into the wild through my lens</p>
+              {/* Decorative elements */}
+              <div className="mt-4 flex items-center justify-center gap-4">
+                <div className="h-px w-12 bg-[rgb(var(--primary))]" />
+                <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))]" />
+                <div className="h-px w-12 bg-[rgb(var(--primary))]" />
               </div>
             </div>
 
-            <div className="order-1 lg:order-2">
-              <figure className="relative group max-w-sm mx-auto">
-                <img
-                  src="/KuyaJP.jpg"
-                  alt="John Philip Morada photographing with a telephoto lens on a tripod"
-                  className="w-full aspect-square object-cover rounded-2xl shadow-xl border border-black/10 dark:border-white/10"
-                />
-                <figcaption className="absolute bottom-3 left-3 right-3 px-4 py-2 rounded-lg text-sm backdrop-blur-md bg-black/30 text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                  In the field: patience, light, and timing.
-                </figcaption>
-                <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-black/10 dark:ring-white/10" />
-              </figure>
-            </div>
-          </div>
-
-           {/* Selected Works - Continuous Horizontal Chain */}
-           <div className="relative">
-             <div className="text-center mb-6">
-               <h3 className="text-2xl font-semibold text-[rgb(var(--fg))]">Selected Works</h3>
-               <p className="text-sm text-[rgb(var(--muted-fg))] mt-2">A glimpse into the wild through my lens</p>
-             </div>
-
-            {/* Full-width photo chain that breaks out of container */}
+            {/* Full-width photo chain with edge fades */}
             <div className="absolute left-0 w-screen overflow-hidden" style={{ left: '50%', transform: 'translateX(-50%)' }}>
+              {/* Gradient edge fades */}
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[rgb(var(--bg))] to-transparent" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[rgb(var(--bg))] to-transparent" />
+              {/* Top-right hint */}
+              <div className="absolute right-6 -top-6 text-[10px] tracking-widest uppercase text-[rgb(var(--muted))]">Hover to pause</div>
               {loading ? (
-                <div className="flex gap-4 items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                  <span className="text-white/70 text-sm ml-3">Loading images...</span>
+                <div className="flex gap-4 py-8">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="flex-shrink-0 w-48 h-32 sm:w-52 sm:h-36 rounded-lg overflow-hidden">
+                      <div className="w-full h-full bg-gray-800 animate-pulse" />
+                    </div>
+                  ))}
                 </div>
               ) : displayImages.length === 0 ? (
                 <div className="flex items-center justify-center py-8">
@@ -254,7 +321,7 @@ export default function Home() {
                     className="flex-shrink-0 group cursor-pointer"
                     onClick={() => setActive({ art: { images: [photo.src], title: photo.title }, idx: 0 })}
                   >
-                    <div className="relative w-48 h-32 sm:w-52 sm:h-36 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    <div className="relative w-48 h-32 sm:w-52 sm:h-36 rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 ring-1 ring-black/10 dark:ring-white/10 hover:ring-[rgb(var(--primary))]/40">
                       <img
                         src={photo.src}
                         alt={photo.alt}
@@ -265,6 +332,7 @@ export default function Home() {
                         }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute top-2 left-2 text-[10px] font-mono px-2 py-0.5 rounded bg-black/50 text-white/80">{String(index + 1).padStart(2, '0')}</div>
                       <div className="absolute bottom-2 left-2 right-2 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100">
                         <div className="text-white text-xs font-mono tracking-widest opacity-80 mb-1">
                           {String(index + 1).padStart(2, '0')}/
@@ -283,13 +351,14 @@ export default function Home() {
                     className="flex-shrink-0 group cursor-pointer"
                     onClick={() => setActive({ art: { images: [photo.src], title: photo.title }, idx: 0 })}
                   >
-                    <div className="relative w-48 h-32 sm:w-52 sm:h-36 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    <div className="relative w-48 h-32 sm:w-52 sm:h-36 rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 ring-1 ring-black/10 dark:ring-white/10 hover:ring-[rgb(var(--primary))]/40">
                       <img
                         src={photo.src}
                         alt={photo.alt}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-95"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute top-2 left-2 text-[10px] font-mono px-2 py-0.5 rounded bg-black/50 text-white/80">{String(index + 1).padStart(2, '0')}</div>
                       <div className="absolute bottom-2 left-2 right-2 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100">
                         <div className="text-white text-xs font-mono tracking-widest opacity-80 mb-1">
                           {String(index + 1).padStart(2, '0')}/
@@ -308,13 +377,14 @@ export default function Home() {
                     className="flex-shrink-0 group cursor-pointer"
                     onClick={() => setActive({ art: { images: [photo.src], title: photo.title }, idx: 0 })}
                   >
-                    <div className="relative w-48 h-32 sm:w-52 sm:h-36 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                    <div className="relative w-48 h-32 sm:w-52 sm:h-36 rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 ring-1 ring-black/10 dark:ring-white/10 hover:ring-[rgb(var(--primary))]/40">
                       <img
                         src={photo.src}
                         alt={photo.alt}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-95"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute top-2 left-2 text-[10px] font-mono px-2 py-0.5 rounded bg-black/50 text-white/80">{String(index + 1).padStart(2, '0')}</div>
                       <div className="absolute bottom-2 left-2 right-2 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100">
                         <div className="text-white text-xs font-mono tracking-widest opacity-80 mb-1">
                           {String(index + 1).padStart(2, '0')}/

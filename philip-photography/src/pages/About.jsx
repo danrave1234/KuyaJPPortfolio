@@ -1,8 +1,115 @@
 export default function About() {
   return (
-    <main className="container-responsive py-12">
-      <h2 className="text-2xl sm:text-4xl font-semibold mb-4">About</h2>
-      <p className="text-[rgb(var(--muted))] max-w-3xl">I'm a wildlife photographer with a passion for bird photography. My work focuses on capturing the intricate details and behaviors of various bird species in their natural environments, from majestic eagles to delicate songbirds.</p>
+    <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
+      <div className="container-responsive pt-24 pb-12">
+        <div className="mb-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-7">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 transition-colors duration-300">About the Photographer</div>
+              <h1 className="font-extrabold text-[rgb(var(--fg))] uppercase leading-[0.9] transition-colors duration-300">
+                <span className="block text-5xl sm:text-6xl md:text-7xl">Fieldwork</span>
+                <span className="block text-4xl sm:text-5xl md:text-6xl opacity-90">Behind the Lens</span>
+              </h1>
+              <div className="mt-3 pt-3 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
+                <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">Stories, craft, and dedication</div>
+              </div>
+            </div>
+            <div className="lg:col-span-5 lg:self-end">
+              <p className="text-[rgb(var(--muted))] text-base sm:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-5 transition-colors duration-300">
+                I'm a wildlife photographer with a passion for bird photography. My work focuses on capturing the intricate details and behaviors of various bird species in their natural environments, from majestic eagles to delicate songbirds.
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 h-px w-full bg-[rgb(var(--muted))]/20 transition-colors duration-300" />
+        </div>
+
+        <section className="prose prose-invert max-w-3xl">
+          <p className="text-[rgb(var(--muted-fg))] transition-colors duration-300">
+            Years in the field taught me patience, quiet movement, and respect for habitat. Every photograph begins long before the shutter by understanding light, studying behavior, and waiting for the right moment.
+          </p>
+        </section>
+
+        {/* Removed introductory image collage per request */}
+
+        {/* Authentic sections: what / why / how / approach */}
+        <div className="mt-14 space-y-12">
+          {/* What */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            <div className="lg:col-span-6">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-2 transition-colors duration-300">What I Photograph</div>
+              <h3 className="text-2xl sm:text-3xl font-semibold text-[rgb(var(--fg))] mb-3 transition-colors duration-300">Birdlife and the quiet drama of the wild</h3>
+              <p className="text-[rgb(var(--muted-fg))] leading-relaxed transition-colors duration-300">
+                I focus on moments that often pass unnoticed, such as pre-flight tension, subtle glances, rain on plumage, and the hush before first light. My work is slow and observational, favoring behavior and habitat over spectacle.
+              </p>
+            </div>
+            <figure className="lg:col-span-6 rounded-xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300">
+              <img
+                src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?q=80&w=1600&auto=format&fit=crop"
+                alt="Heron in mist over forested water"
+                className="w-full h-72 object-cover"
+                loading="lazy"
+              />
+            </figure>
+          </section>
+
+          {/* Why */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            <figure className="lg:col-span-6 rounded-xl overflow-hidden border border-[rgb(var(--muted))]/20 lg:order-1 order-2 transition-colors duration-300">
+              <img
+                src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1600&auto=format&fit=crop"
+                alt="Fog drifting through conifer forest"
+                className="w-full h-72 object-cover"
+                loading="lazy"
+              />
+            </figure>
+            <div className="lg:col-span-6 lg:order-2 order-1">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-2 transition-colors duration-300">Why I Photograph</div>
+              <h3 className="text-2xl sm:text-3xl font-semibold text-[rgb(var(--fg))] mb-3 transition-colors duration-300">To advocate for places that can't speak</h3>
+              <p className="text-[rgb(var(--muted-fg))] leading-relaxed transition-colors duration-300">
+                Photography is my way of inviting others to care. If a single image can slow someone down long enough to feel wonder, then it can also open the door to protection and respect.
+              </p>
+            </div>
+          </section>
+
+          {/* How */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            <div className="lg:col-span-6">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-2 transition-colors duration-300">How I Work</div>
+              <h3 className="text-2xl sm:text-3xl font-semibold text-[rgb(var(--fg))] mb-3 transition-colors duration-300">Fieldcraft over shortcuts</h3>
+              <p className="text-[rgb(var(--muted-fg))] leading-relaxed transition-colors duration-300">
+                I scout locations, read light, and learn patterns. Most shoots begin with long sits, mapping wind and approach, and end quietly. I do not use baiting, recorded calls, or anything that causes disturbance. The story matters more than the shot.
+              </p>
+            </div>
+            <figure className="lg:col-span-6 rounded-xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300">
+              <img
+                src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop"
+                alt="Forest path leading to a hide"
+                className="w-full h-72 object-cover"
+                loading="lazy"
+              />
+            </figure>
+          </section>
+
+          {/* Approach & Ethics */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            <figure className="lg:col-span-6 rounded-xl overflow-hidden border border-[rgb(var(--muted))]/20 lg:order-1 order-2 transition-colors duration-300">
+              <img
+                src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1600&auto=format&fit=crop"
+                alt="Dense forest habitat"
+                className="w-full h-72 object-cover"
+                loading="lazy"
+              />
+            </figure>
+            <div className="lg:col-span-6 lg:order-2 order-1">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-2 transition-colors duration-300">Approach & Ethics</div>
+              <h3 className="text-2xl sm:text-3xl font-semibold text-[rgb(var(--fg))] mb-3 transition-colors duration-300">Leave no trace, tell the truth</h3>
+              <p className="text-[rgb(var(--muted-fg))] leading-relaxed transition-colors duration-300">
+                I follow a simple code: subjects first, habitat first. I disclose context, avoid manipulation that changes meaning, and favor sequences that show how a moment unfolded.
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
     </main>
   )
 }

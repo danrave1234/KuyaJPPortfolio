@@ -99,15 +99,49 @@ export const deleteImage = async (imagePath) => {
   }
 };
 
-// Get all images from a folder
+// Request deduplication cache
+const urlCache = new Map();
+const metadataCache = new Map();
+
+// Get all images from a folder with optimized batching and caching
 export const getImagesFromFolder = async (folderPath = 'gallery') => {
   try {
     const folderRef = ref(storage, folderPath);
     const result = await listAll(folderRef);
     
+    // Batch all requests together for better performance
     const imagePromises = result.items.map(async (item) => {
-      const url = await getDownloadURL(item);
-      const metadata = await getMetadata(item);
+      const cacheKey = item.fullPath;
+      
+      // Check if we already have cached data for this item
+      if (urlCache.has(cacheKey) && metadataCache.has(cacheKey)) {
+        const cachedUrl = urlCache.get(cacheKey);
+        const cachedMetadata = metadataCache.get(cacheKey);
+        return {
+          id: item.name,
+          name: item.name,
+          src: cachedUrl,
+          path: item.fullPath,
+          title: cachedMetadata.customMetadata?.title || item.name,
+          alt: cachedMetadata.customMetadata?.alt || item.name,
+          description: cachedMetadata.customMetadata?.description || '',
+          isSeries: cachedMetadata.customMetadata?.isSeries === 'true',
+          seriesIndex: cachedMetadata.customMetadata?.seriesIndex ? parseInt(cachedMetadata.customMetadata.seriesIndex) : 1,
+          size: cachedMetadata.size,
+          timeCreated: cachedMetadata.timeCreated
+        };
+      }
+      
+      // Fetch URL and metadata in parallel
+      const [url, metadata] = await Promise.all([
+        getDownloadURL(item),
+        getMetadata(item)
+      ]);
+      
+      // Cache the results
+      urlCache.set(cacheKey, url);
+      metadataCache.set(cacheKey, metadata);
+      
       return {
         id: item.name,
         name: item.name,
@@ -115,8 +149,8 @@ export const getImagesFromFolder = async (folderPath = 'gallery') => {
         path: item.fullPath,
         title: metadata.customMetadata?.title || item.name,
         alt: metadata.customMetadata?.alt || item.name,
-        description: metadata.customMetadata?.description || '', // Retrieve description
-        isSeries: metadata.customMetadata?.isSeries === 'true', // Convert back to boolean
+        description: metadata.customMetadata?.description || '',
+        isSeries: metadata.customMetadata?.isSeries === 'true',
         seriesIndex: metadata.customMetadata?.seriesIndex ? parseInt(metadata.customMetadata.seriesIndex) : 1,
         size: metadata.size,
         timeCreated: metadata.timeCreated
@@ -124,6 +158,25 @@ export const getImagesFromFolder = async (folderPath = 'gallery') => {
     });
     
     const images = await Promise.all(imagePromises);
+    
+    // Store in server-side cache (if using a backend)
+    // This would typically be handled by your backend API
+    if (typeof window !== 'undefined') {
+      // Client-side: Store in browser cache with cache headers
+      const cacheKey = `firebase-gallery-${folderPath}`
+      const cacheData = {
+        images,
+        timestamp: Date.now(),
+        etag: `gallery-${Date.now()}` // Simple ETag for cache validation
+      }
+      
+      // Store in memory cache for this session
+      if (!window.firebaseCache) {
+        window.firebaseCache = new Map()
+      }
+      window.firebaseCache.set(cacheKey, cacheData)
+    }
+    
     return { success: true, images, error: null };
   } catch (error) {
     return { success: false, images: [], error: error.message };

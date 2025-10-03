@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { uploadMultipleImages, deleteImage, getImagesFromFolder } from '../firebase/storage'
+import { getAdminGalleryImages, searchAdminGalleryImages, clearAdminCache, cleanupAdminCache, uploadWithProgress, deleteImageWithCache } from '../firebase/admin-api'
 import { signInUser, signOutUser } from '../firebase/auth'
 import { 
   Upload, 
@@ -35,6 +36,13 @@ export default function Admin() {
   const [editForm, setEditForm] = useState({ title: '', description: '' })
   const [uploadTitle, setUploadTitle] = useState('')
   const [uploadDescription, setUploadDescription] = useState('')
+  
+  // Admin pagination and search state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isSearching, setIsSearching] = useState(false)
 
   // Handle login
   const handleLogin = async (e) => {
@@ -60,13 +68,59 @@ export default function Admin() {
     }
   }
 
-  // Load gallery images from Firebase Storage
-  const loadGalleryImages = async () => {
-    const result = await getImagesFromFolder('gallery')
-    if (result.success) {
-      setGalleryImages(result.images)
-    } else {
-      setMessage(`Failed to load images: ${result.error}`)
+  // Load gallery images with caching
+  const loadGalleryImages = async (page = 1, searchQuery = '') => {
+    setUploading(true)
+    try {
+      let result;
+      if (searchQuery.trim()) {
+        result = await searchAdminGalleryImages('gallery', searchQuery, page, 50);
+      } else {
+        result = await getAdminGalleryImages('gallery', page, 50);
+      }
+      
+      if (result.success) {
+        if (page === 1) {
+          setGalleryImages(result.images);
+        } else {
+          setGalleryImages(prev => [...prev, ...result.images]);
+        }
+        setCurrentPage(page);
+        setHasMore(result.pagination?.hasMore || false);
+        setMessage(`Loaded ${result.images.length} images`);
+      } else {
+        setMessage(`Failed to load images: ${result.error}`);
+      }
+    } catch (error) {
+      setMessage(`Error loading images: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  // Load more images for pagination
+  const loadMoreImages = async () => {
+    if (loadingMore || !hasMore) return;
+    
+    setLoadingMore(true);
+    try {
+      const nextPage = currentPage + 1;
+      await loadGalleryImages(nextPage, searchQuery);
+    } catch (error) {
+      setMessage(`Error loading more images: ${error.message}`);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  // Handle search
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
+    setIsSearching(true);
+    try {
+      await loadGalleryImages(1, query);
+    } finally {
+      setIsSearching(false);
     }
   }
 
@@ -94,6 +148,7 @@ export default function Admin() {
   // Load images when authenticated
   useEffect(() => {
     if (isAuthenticated) {
+      cleanupAdminCache()
       loadGalleryImages()
     }
   }, [isAuthenticated])
@@ -144,26 +199,29 @@ export default function Admin() {
     }
   }
 
-  // Handle file upload
+  // Handle file upload with cache invalidation
   const handleUpload = async () => {
     if (files.length === 0 || !uploadTitle.trim()) return
     
     setUploading(true)
     try {
-      const result = await uploadMultipleImages(files, 'gallery', uploadTitle.trim(), uploadDescription.trim())
+      const result = await uploadWithProgress(files, (progress) => {
+        setMessage(`Uploading... ${Math.round(progress)}%`)
+      })
       
-            if (result.success) {
-              setMessage(`Successfully uploaded ${result.successful.length} images as "${uploadTitle}"!`)
-              setFiles([])
-              setUploadTitle('')
-              setUploadDescription('')
-              const fileInput = document.getElementById('file-input')
-              if (fileInput) fileInput.value = ''
-              // Immediately refresh the gallery
-              await loadGalleryImages()
-            } else {
-              setMessage(`Upload failed: ${result.error}`)
-            }
+      if (result.success) {
+        setMessage(`Successfully uploaded ${result.successful.length} images as "${uploadTitle}"!`)
+        setFiles([])
+        setUploadTitle('')
+        setUploadDescription('')
+        const fileInput = document.getElementById('file-input')
+        if (fileInput) fileInput.value = ''
+        // Clear caches and refresh the gallery
+        clearAdminCache()
+        await loadGalleryImages(1, searchQuery)
+      } else {
+        setMessage(`Upload failed: ${result.error}`)
+      }
     } catch (error) {
       setMessage(`Upload error: ${error.message}`)
     } finally {
@@ -171,7 +229,7 @@ export default function Admin() {
     }
   }
 
-  // Handle image deletion
+  // Handle image deletion with cache invalidation
   const handleDeleteSelected = async () => {
     if (selectedImages.size === 0) {
       setMessage('Please select images to delete')
@@ -183,7 +241,7 @@ export default function Admin() {
     let failCount = 0
 
     for (const imagePath of selectedImages) {
-      const result = await deleteImage(imagePath)
+      const result = await deleteImageWithCache(imagePath)
       if (result.success) {
         successCount++
       } else {
@@ -194,7 +252,9 @@ export default function Admin() {
     setMessage(`Deleted ${successCount} images${failCount > 0 ? `, ${failCount} failed` : ''}`)
     setSelectedImages(new Set())
     setShowDeleteConfirm(false)
-    loadGalleryImages() // Refresh the gallery
+    // Clear caches and refresh the gallery
+    clearAdminCache()
+    loadGalleryImages(1, searchQuery)
     setUploading(false)
   }
 
