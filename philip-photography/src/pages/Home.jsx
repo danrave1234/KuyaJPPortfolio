@@ -74,43 +74,30 @@ export default function Home() {
     loadFirebaseImages()
   }, [])
 
-  // Process images to pre-populate landscape images without waiting for onLoad
+  // Process images to populate landscape images for future use (optional)
   const processImagesForCarousel = (images) => {
-    // Batch process images to reduce stuttering
-    const processBatch = (imageBatch) => {
-      const promises = imageBatch.map((image) => {
-        return new Promise((resolve) => {
-          const img = new Image()
-          img.onload = () => {
-            const aspectRatio = img.naturalWidth / img.naturalHeight
-            if (aspectRatio > 1.2) {
-              resolve(image)
-            } else {
-              resolve(null)
-            }
+    // Process all images at once to avoid staggered updates
+    const promises = images.map((image) => {
+      return new Promise((resolve) => {
+        const img = new Image()
+        img.onload = () => {
+          const aspectRatio = img.naturalWidth / img.naturalHeight
+          if (aspectRatio > 1.2) {
+            resolve(image)
+          } else {
+            resolve(null)
           }
-          img.onerror = () => resolve(null)
-          img.src = image.src
-        })
-      })
-      
-      Promise.all(promises).then((results) => {
-        const landscapeBatch = results.filter(Boolean)
-        if (landscapeBatch.length > 0) {
-          setLandscapeImages(prev => {
-            const newImages = landscapeBatch.filter(img => !prev.find(p => p.id === img.id))
-            return [...prev, ...newImages]
-          })
         }
+        img.onerror = () => resolve(null)
+        img.src = image.src
       })
-    }
+    })
     
-    // Process images in smaller batches to reduce stuttering
-    const batchSize = 5
-    for (let i = 0; i < images.length; i += batchSize) {
-      const batch = images.slice(i, i + batchSize)
-      setTimeout(() => processBatch(batch), i * 100) // Stagger processing
-    }
+    // Wait for all images to load, then update state once (for debugging/analytics)
+    Promise.all(promises).then((results) => {
+      const landscapeImages = results.filter(Boolean)
+      setLandscapeImages(landscapeImages)
+    })
   }
 
   // Use Firebase images instead of hardcoded array
@@ -135,47 +122,17 @@ export default function Home() {
     }
   }
 
-  // Improved display logic - show all images initially, then filter to landscape as they load
-  // Fallback: if no landscape images are loaded after 2 seconds, show all images
-  const [showFallback, setShowFallback] = useState(false)
-  const [isProcessing, setIsProcessing] = useState(false)
-  
-  useEffect(() => {
-    if (allPhotographs.length > 0) {
-      setIsProcessing(true)
-      const timer = setTimeout(() => {
-        if (landscapeImages.length === 0) {
-          setShowFallback(true)
-        }
-        setIsProcessing(false)
-      }, 2000) // Reduced to 2 seconds for faster fallback
-      
-      return () => clearTimeout(timer)
-    }
-  }, [allPhotographs.length, landscapeImages.length])
-  
-  // More stable display logic - avoid switching between states too quickly
-  const displayImages = (() => {
-    if (allPhotographs.length === 0) return []
-    
-    // If we have landscape images and we're not in fallback mode, use them
-    if (landscapeImages.length > 0 && !showFallback) {
-      return landscapeImages
-    }
-    
-    // Otherwise use all images
-    return allPhotographs
-  })()
+  // Always use all images to prevent any staggering
+  const displayImages = allPhotographs
   
   // Debug logging
   useEffect(() => {
     console.log('Home carousel debug:', {
       allPhotographs: allPhotographs.length,
       landscapeImages: landscapeImages.length,
-      showFallback,
       displayImages: displayImages.length
     })
-  }, [allPhotographs.length, landscapeImages.length, showFallback, displayImages.length])
+  }, [allPhotographs.length, landscapeImages.length, displayImages.length])
 
   // Snapping functionality disabled - normal scrolling only
   useEffect(() => {
@@ -382,7 +339,7 @@ export default function Home() {
               <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[rgb(var(--bg))] to-transparent" />
               {/* Top-right hint */}
               <div className="absolute right-6 -top-6 text-[10px] tracking-widest uppercase text-[rgb(var(--muted))]">Hover to pause</div>
-              {loading || (isProcessing && displayImages.length === 0) ? (
+              {loading ? (
                 <div className="flex gap-4 py-8">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
                     <div key={i} className="flex-shrink-0 w-48 h-32 sm:w-52 sm:h-36 rounded-lg overflow-hidden">
@@ -398,7 +355,8 @@ export default function Home() {
                 <div 
                   className="flex gap-4 infinite-scroll transition-all duration-500 ease-in-out"
                   style={{ 
-                    width: `calc(${displayImages.length * 3} * (200px + 16px))`
+                    width: `calc(${displayImages.length * 3} * (200px + 16px))`,
+                    minHeight: '144px' // Fixed height to prevent layout shifts (36 * 4 for sm screens)
                   }}
                 >
                 {/* First set of images */}
