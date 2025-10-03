@@ -122,17 +122,31 @@ export default function Home() {
     }
   }
 
-  // Always use all images to prevent any staggering
-  const displayImages = allPhotographs
+  // Fallback state for when no landscape images are found
+  const [useAllImages, setUseAllImages] = useState(false)
+  
+  useEffect(() => {
+    // If no landscape images are found after 3 seconds, use all images
+    if (allPhotographs.length > 0 && landscapeImages.length === 0) {
+      const timer = setTimeout(() => {
+        setUseAllImages(true)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [allPhotographs.length, landscapeImages.length])
+  
+  // Use landscape images if available, otherwise fallback to all images
+  const displayImages = landscapeImages.length > 0 ? landscapeImages : (useAllImages ? allPhotographs : [])
   
   // Debug logging
   useEffect(() => {
     console.log('Home carousel debug:', {
       allPhotographs: allPhotographs.length,
       landscapeImages: landscapeImages.length,
+      useAllImages,
       displayImages: displayImages.length
     })
-  }, [allPhotographs.length, landscapeImages.length, displayImages.length])
+  }, [allPhotographs.length, landscapeImages.length, useAllImages, displayImages.length])
 
   // Snapping functionality disabled - normal scrolling only
   useEffect(() => {
@@ -338,8 +352,10 @@ export default function Home() {
               <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[rgb(var(--bg))] to-transparent" />
               <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[rgb(var(--bg))] to-transparent" />
               {/* Top-right hint */}
-              <div className="absolute right-6 -top-6 text-[10px] tracking-widest uppercase text-[rgb(var(--muted))]">Hover to pause</div>
-              {loading ? (
+              <div className="absolute right-6 -top-6 text-[10px] tracking-widest uppercase text-[rgb(var(--muted))]">
+                {allPhotographs.length > 0 && landscapeImages.length === 0 ? 'Processing images...' : 'Hover to pause'}
+              </div>
+              {loading || (allPhotographs.length > 0 && landscapeImages.length === 0) ? (
                 <div className="flex gap-4 py-8">
                   {[1, 2, 3, 4, 5, 6].map((i) => (
                     <div key={i} className="flex-shrink-0 w-48 h-32 sm:w-52 sm:h-36 rounded-lg overflow-hidden">
