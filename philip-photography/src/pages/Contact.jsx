@@ -6,7 +6,7 @@ export default function Contact() {
   const onChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   const onSubmit = (e) => {
     e.preventDefault()
-    const to = 'hello@philip.photo'
+    const to = 'danravekeh123@gmail.com'
     const subject = `Inquiry from ${form.name || 'Website Visitor'}`
     const body = `Name: ${form.name}\nEmail: ${form.email}\n\n${form.message}`
     const mailto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
@@ -70,7 +70,7 @@ export default function Contact() {
         <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="card p-4 transition-colors duration-300">
             <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-1 transition-colors duration-300">Email</div>
-            <a href="mailto:hello@philip.photo" className="text-[rgb(var(--fg))] hover:underline transition-colors duration-300">hello@philip.photo</a>
+            <a href="mailto:danravekeh123@gmail.com" className="text-[rgb(var(--fg))] hover:underline transition-colors duration-300">danravekeh123@gmail.com</a>
           </div>
           <div className="card p-4 transition-colors duration-300">
             <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-1 transition-colors duration-300">Location</div>

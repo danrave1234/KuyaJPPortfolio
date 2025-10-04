@@ -29,7 +29,7 @@ export default function BackToTop() {
   return (
     <button
       onClick={scrollToTop}
-      className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[rgb(var(--primary))] text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[rgb(var(--primary))]/25"
+      className="fixed bottom-6 right-6 z-50 p-3 rounded-full bg-[rgb(var(--primary))] text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-[rgb(var(--primary))]/25 back-to-top-mobile"
       aria-label="Back to top"
     >
       <ChevronUp size={20} />

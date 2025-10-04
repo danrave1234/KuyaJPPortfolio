@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { uploadMultipleImages, deleteImage, getImagesFromFolder } from '../firebase/storage'
-import { getAdminGalleryImages, searchAdminGalleryImages, clearAdminCache, cleanupAdminCache, uploadWithProgress, deleteImageWithCache, updateImageMetadataWithCache } from '../firebase/admin-api'
+import { getAdminGalleryImages, searchAdminGalleryImages, clearAdminCache, cleanupAdminCache, uploadWithProgress, deleteImageWithCache, updateImageMetadataWithCache, getAdminFeaturedImages, uploadFeaturedWithProgress, deleteFeaturedImageWithCache, clearFeaturedCache } from '../firebase/admin-api'
 import { signInUser, signOutUser } from '../firebase/auth'
 import { 
   Upload, 
@@ -36,6 +36,15 @@ export default function Admin() {
   const [editForm, setEditForm] = useState({ title: '', description: '' })
   const [uploadTitle, setUploadTitle] = useState('')
   const [uploadDescription, setUploadDescription] = useState('')
+  
+  // Featured gallery state
+  const [activeTab, setActiveTab] = useState('gallery') // 'gallery' or 'featured'
+  const [featuredImages, setFeaturedImages] = useState([])
+  const [featuredSelectedImages, setFeaturedSelectedImages] = useState(new Set())
+  const [featuredEditingImage, setFeaturedEditingImage] = useState(null)
+  const [featuredEditForm, setFeaturedEditForm] = useState({ title: '', description: '' })
+  const [featuredUploadTitle, setFeaturedUploadTitle] = useState('')
+  const [featuredUploadDescription, setFeaturedUploadDescription] = useState('')
   
   // Admin pagination and search state
   const [currentPage, setCurrentPage] = useState(1)
@@ -210,11 +219,30 @@ export default function Admin() {
     return groups;
   }
 
+  // Load featured images
+  const loadFeaturedImages = async () => {
+    setUploading(true)
+    try {
+      const result = await getAdminFeaturedImages()
+      if (result.success) {
+        setFeaturedImages(result.images)
+        setMessage(`Loaded ${result.images.length} featured images`)
+      } else {
+        setMessage(`Error loading featured images: ${result.error}`)
+      }
+    } catch (error) {
+      setMessage(`Error loading featured images: ${error.message}`)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   // Load images when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       cleanupAdminCache()
       loadGalleryImages()
+      loadFeaturedImages()
     }
   }, [isAuthenticated])
 
@@ -304,6 +332,8 @@ export default function Admin() {
     
     setUploading(true)
     try {
+      setMessage('Checking for existing images to replace...')
+      
       const result = await uploadWithProgress(files, (progress) => {
         setMessage(`Uploading... ${Math.round(progress)}%`)
       }, uploadTitle.trim(), uploadDescription.trim())
@@ -324,6 +354,38 @@ export default function Admin() {
       }
     } catch (error) {
       setMessage(`Upload error: ${error.message}`)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  // Handle featured gallery upload
+  const handleFeaturedUpload = async () => {
+    if (files.length === 0 || !featuredUploadTitle.trim()) return
+    
+    setUploading(true)
+    try {
+      setMessage('Checking for existing images to replace...')
+      
+      const result = await uploadFeaturedWithProgress(files, (progress) => {
+        setMessage(`Uploading featured images... ${Math.round(progress)}%`)
+      }, featuredUploadTitle.trim(), featuredUploadDescription.trim())
+      
+      if (result.success) {
+        setMessage(`Successfully uploaded ${result.successful.length} featured images as "${featuredUploadTitle}"!`)
+        setFiles([])
+        setFeaturedUploadTitle('')
+        setFeaturedUploadDescription('')
+        const fileInput = document.getElementById('featured-file-input')
+        if (fileInput) fileInput.value = ''
+        // Clear featured caches and refresh
+        clearFeaturedCache()
+        await loadFeaturedImages()
+      } else {
+        setMessage(`Featured upload failed: ${result.error}`)
+      }
+    } catch (error) {
+      setMessage(`Featured upload error: ${error.message}`)
     } finally {
       setUploading(false)
     }
@@ -359,6 +421,35 @@ export default function Admin() {
     setUploading(false)
   }
 
+  // Handle featured image deletion
+  const handleFeaturedDeleteSelected = async () => {
+    if (featuredSelectedImages.size === 0) {
+      setMessage('Please select featured images to delete')
+      return
+    }
+
+    setUploading(true)
+    let successCount = 0
+    let failCount = 0
+
+    for (const imagePath of featuredSelectedImages) {
+      const result = await deleteFeaturedImageWithCache(imagePath)
+      if (result.success) {
+        successCount++
+      } else {
+        failCount++
+      }
+    }
+
+    setMessage(`Deleted ${successCount} featured images${failCount > 0 ? `, ${failCount} failed` : ''}`)
+    setFeaturedSelectedImages(new Set())
+    setShowDeleteConfirm(false)
+    // Clear featured caches and refresh
+    clearFeaturedCache()
+    await loadFeaturedImages()
+    setUploading(false)
+  }
+
   // Toggle image selection
   const toggleImageSelection = (imagePath) => {
     const newSelected = new Set(selectedImages)
@@ -368,6 +459,17 @@ export default function Admin() {
       newSelected.add(imagePath)
     }
     setSelectedImages(newSelected)
+  }
+
+  // Toggle featured image selection
+  const toggleFeaturedImageSelection = (imagePath) => {
+    const newSelected = new Set(featuredSelectedImages)
+    if (newSelected.has(imagePath)) {
+      newSelected.delete(imagePath)
+    } else {
+      newSelected.add(imagePath)
+    }
+    setFeaturedSelectedImages(newSelected)
   }
 
   // Handle edit image
@@ -546,10 +648,45 @@ export default function Admin() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-6 pt-24 pb-12 space-y-8">
+      {/* Tab Navigation */}
+      <div className="fixed top-20 left-0 right-0 z-30 bg-[rgb(var(--bg))]/95 backdrop-blur-xl border-b border-[rgb(var(--muted))]/20">
+        <div className="container mx-auto px-6">
+          <div className="flex space-x-1">
+            <button
+              onClick={() => setActiveTab('gallery')}
+              className={`px-6 py-3 text-sm font-medium rounded-t-lg transition-all duration-200 ${
+                activeTab === 'gallery'
+                  ? 'bg-[rgb(var(--primary))] text-white shadow-lg'
+                  : 'bg-[rgb(var(--muted))]/10 text-[rgb(var(--muted-fg))] hover:bg-[rgb(var(--muted))]/20'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <ImageIcon size={16} />
+                <span>Main Gallery</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('featured')}
+              className={`px-6 py-3 text-sm font-medium rounded-t-lg transition-all duration-200 ${
+                activeTab === 'featured'
+                  ? 'bg-[rgb(var(--primary))] text-white shadow-lg'
+                  : 'bg-[rgb(var(--muted))]/10 text-[rgb(var(--muted-fg))] hover:bg-[rgb(var(--muted))]/20'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Zap size={16} />
+                <span>Featured Gallery</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
 
-          {/* Quick Stats */}
+      {/* Main Content */}
+      <main className="container mx-auto px-6 pt-32 pb-12 space-y-8">
+        {activeTab === 'gallery' && (
+          <>
+            {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-6 rounded-2xl border border-[rgb(var(--muted))]/20 shadow-lg hover:shadow-xl transition-all duration-300 group">
             <div className="flex items-center gap-4">
@@ -1191,7 +1328,6 @@ export default function Admin() {
             </div>
           </div>
         )}
-      </main>
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
@@ -1203,7 +1339,7 @@ export default function Admin() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                  Delete Images
+                  Delete {activeTab === 'featured' ? 'Featured' : ''} Images
                 </h3>
                 <p className="text-slate-600 dark:text-slate-400">
                   This action cannot be undone
@@ -1221,12 +1357,12 @@ export default function Admin() {
                 Cancel
                 </button>
               <button
-                onClick={handleDeleteSelected}
+                onClick={activeTab === 'featured' ? handleFeaturedDeleteSelected : handleDeleteSelected}
                 disabled={uploading}
                 className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-red-400 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:transform-none"
               >
-                {uploading ? 'Deleting...' : 'Delete Images'}
-                </button>
+                {uploading ? 'Deleting...' : `Delete ${activeTab === 'featured' ? 'Featured' : ''} Images`}
+              </button>
               </div>
           </div>
         </div>
@@ -1319,6 +1455,217 @@ export default function Admin() {
           </div>
         </div>
       )}
+          </>
+        )}
+
+        {activeTab === 'featured' && (
+          <>
+            {/* Featured Gallery Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-6 rounded-2xl border border-[rgb(var(--muted))]/20 shadow-lg hover:shadow-xl transition-all duration-300 group">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-[rgb(var(--primary))] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                    <Zap className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-[rgb(var(--fg))]">{featuredImages.length}</div>
+                    <div className="text-sm text-[rgb(var(--muted-fg))] font-medium">Featured Images</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-6 rounded-2xl border border-[rgb(var(--muted))]/20 shadow-lg hover:shadow-xl transition-all duration-300 group">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-emerald-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
+                    <Check className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-[rgb(var(--fg))]">{featuredSelectedImages.size}</div>
+                    <div className="text-sm text-[rgb(var(--muted-fg))] font-medium">Selected</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Featured Upload Section */}
+            <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl rounded-3xl border border-[rgb(var(--muted))]/20 shadow-xl overflow-hidden">
+              <div className="p-8 border-b border-[rgb(var(--muted))]/20 bg-[rgb(var(--primary))]/5">
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="w-12 h-12 bg-[rgb(var(--primary))] rounded-xl flex items-center justify-center shadow-lg">
+                    <Upload className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-[rgb(var(--fg))]">Upload Featured Images</h2>
+                    <p className="text-[rgb(var(--muted-fg))] text-sm">Add images to the featured gallery (3x2 grid on homepage)</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 space-y-6">
+                {/* File Upload */}
+                <div
+                  className="border-2 border-dashed border-[rgb(var(--muted))]/30 rounded-2xl p-8 text-center hover:border-[rgb(var(--primary))]/50 transition-all duration-300 cursor-pointer bg-[rgb(var(--muted))]/5"
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onClick={() => document.getElementById('featured-file-input').click()}
+                >
+                  <input
+                    id="featured-file-input"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <div className="space-y-4">
+                    <div className="w-16 h-16 bg-[rgb(var(--primary))]/10 rounded-2xl mx-auto flex items-center justify-center">
+                      <Upload className="w-8 h-8 text-[rgb(var(--primary))]" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-[rgb(var(--fg))] mb-2">
+                        {files.length > 0 ? `${files.length} files selected` : 'Drop images here or click to browse'}
+                      </h3>
+                      <p className="text-[rgb(var(--muted-fg))] text-sm">
+                        Supports JPG, PNG, GIF, WebP formats
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Upload Form */}
+                {files.length > 0 && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                        Featured Title *
+                      </label>
+                      <input
+                        type="text"
+                        value={featuredUploadTitle}
+                        onChange={(e) => setFeaturedUploadTitle(e.target.value)}
+                        className="w-full px-4 py-3 bg-[rgb(var(--bg))]/50 border border-[rgb(var(--muted))]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted-fg))] transition-all duration-200"
+                        placeholder="Enter featured title"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                        Description (Optional)
+                      </label>
+                      <textarea
+                        value={featuredUploadDescription}
+                        onChange={(e) => setFeaturedUploadDescription(e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-3 bg-[rgb(var(--bg))]/50 border border-[rgb(var(--muted))]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted-fg))] resize-none transition-all duration-200"
+                        placeholder="Enter description..."
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleFeaturedUpload}
+                      disabled={uploading || !featuredUploadTitle.trim()}
+                      className="w-full bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 disabled:bg-[rgb(var(--primary))]/50 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:transform-none flex items-center justify-center gap-3"
+                    >
+                      {uploading ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          Uploading Featured Images...
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={20} />
+                          Upload {files.length} Featured Image{files.length > 1 ? 's' : ''}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Featured Gallery Grid */}
+            <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl rounded-3xl border border-[rgb(var(--muted))]/20 shadow-xl overflow-hidden">
+              <div className="p-8 border-b border-[rgb(var(--muted))]/20 bg-[rgb(var(--primary))]/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-[rgb(var(--primary))] rounded-xl flex items-center justify-center shadow-lg">
+                      <Zap className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-[rgb(var(--fg))]">Featured Gallery</h2>
+                      <p className="text-[rgb(var(--muted-fg))] text-sm">Manage featured images for the homepage grid</p>
+                    </div>
+                  </div>
+                  
+                  {featuredSelectedImages.size > 0 && (
+                    <button
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-all duration-200"
+                    >
+                      <Trash2 size={16} />
+                      Delete Selected ({featuredSelectedImages.size})
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-8">
+                {featuredImages.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-[rgb(var(--muted))]/10 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+                      <Zap className="w-8 h-8 text-[rgb(var(--muted))]" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-[rgb(var(--fg))] mb-2">No Featured Images</h3>
+                    <p className="text-[rgb(var(--muted-fg))] text-sm">Upload images to create your featured gallery</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                    {featuredImages.map((image, index) => (
+                      <div key={image.id} className="group relative">
+                        <div className="relative overflow-hidden rounded-xl bg-[rgb(var(--muted))]/10 aspect-square">
+                          <img
+                            src={image.src}
+                            alt={image.alt}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                          />
+                          
+                          {/* Selection Overlay */}
+                          <div
+                            className={`absolute inset-0 transition-all duration-200 ${
+                              featuredSelectedImages.has(image.path)
+                                ? 'bg-[rgb(var(--primary))]/20 border-2 border-[rgb(var(--primary))]'
+                                : 'bg-black/0 group-hover:bg-black/20'
+                            }`}
+                          />
+                          
+                          {/* Selection Checkbox */}
+                          <button
+                            onClick={() => toggleFeaturedImageSelection(image.path)}
+                            className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                              featuredSelectedImages.has(image.path)
+                                ? 'bg-[rgb(var(--primary))] border-[rgb(var(--primary))] text-white'
+                                : 'bg-white/80 border-white/80 text-transparent hover:bg-white'
+                            } flex items-center justify-center`}
+                          >
+                            {featuredSelectedImages.has(image.path) && <Check size={14} />}
+                          </button>
+
+                          {/* Image Info */}
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <p className="text-white text-sm truncate font-semibold">{image.title}</p>
+                            <p className="text-white/80 text-xs truncate">{image.name}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </main>
     </div>
   )
 }

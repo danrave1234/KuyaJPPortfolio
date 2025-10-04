@@ -654,3 +654,168 @@ exports.getGalleryImagesCallable = functions.region('asia-southeast1').https.onC
     throw new functions.https.HttpsError('internal', error.message);
   }
 });
+
+// Featured Gallery Management Functions
+exports.getFeaturedImages = functions.region('asia-southeast1').https.onRequest(async (req, res) => {
+  // Enable CORS for your frontend domain
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const bucket = admin.storage().bucket();
+    const folderPath = 'featured';
+    
+    // List all files in the featured folder
+    const [files] = await bucket.getFiles({
+      prefix: `${folderPath}/`,
+      delimiter: '/'
+    });
+
+    // Filter out folder entries and non-image files
+    const validFiles = files.filter(file => {
+      const name = file.name.split('/').pop();
+      return name && name.includes('.') && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(name);
+    });
+
+    // Process all images
+    const imagePromises = validFiles.map(async (file) => {
+      try {
+        const [metadata] = await file.getMetadata();
+        const tokens = metadata?.metadata?.firebaseStorageDownloadTokens || '';
+        const token = typeof tokens === 'string' ? tokens.split(',')[0] : '';
+        const bucketName = file.bucket.name || (admin.storage().bucket().name);
+        const encodedPath = encodeURIComponent(file.name);
+        const url = token
+          ? `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${token}`
+          : `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
+
+        const filename = file.name.split('/').pop();
+
+        return {
+          id: file.name,
+          name: filename,
+          src: url,
+          path: file.name,
+          title: metadata.metadata?.title || filename,
+          alt: metadata.metadata?.alt || filename,
+          description: metadata.metadata?.description || '',
+          size: parseInt(metadata.size || '0'),
+          timeCreated: metadata.timeCreated,
+          contentType: metadata.contentType,
+          fullPath: file.name,
+          bucket: bucketName,
+          metadata: metadata.metadata || {}
+        };
+      } catch (error) {
+        console.error(`Error processing featured file ${file.name}:`, error);
+        return null;
+      }
+    });
+
+    const images = (await Promise.all(imagePromises)).filter(img => img !== null);
+
+    res.json({
+      success: true,
+      images,
+      totalCount: images.length,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error in getFeaturedImages:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      images: []
+    });
+  }
+});
+
+exports.getAdminFeaturedImages = functions.region('asia-southeast1').https.onRequest(async (req, res) => {
+  // Enable CORS for your frontend domain
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const bucket = admin.storage().bucket();
+    const folderPath = 'featured';
+    
+    // List all files in the featured folder
+    const [files] = await bucket.getFiles({
+      prefix: `${folderPath}/`,
+      delimiter: '/'
+    });
+
+    // Filter out folder entries and non-image files
+    const validFiles = files.filter(file => {
+      const name = file.name.split('/').pop();
+      return name && name.includes('.') && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(name);
+    });
+
+    // Process all images with admin-specific fields
+    const imagePromises = validFiles.map(async (file) => {
+      try {
+        const [metadata] = await file.getMetadata();
+        const tokens = metadata?.metadata?.firebaseStorageDownloadTokens || '';
+        const token = typeof tokens === 'string' ? tokens.split(',')[0] : '';
+        const bucketName = file.bucket.name || (admin.storage().bucket().name);
+        const encodedPath = encodeURIComponent(file.name);
+        const url = token
+          ? `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${token}`
+          : `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
+
+        const filename = file.name.split('/').pop();
+
+        return {
+          id: file.name,
+          name: filename,
+          src: url,
+          path: file.name,
+          title: metadata.metadata?.title || filename,
+          alt: metadata.metadata?.alt || filename,
+          description: metadata.metadata?.description || '',
+          size: parseInt(metadata.size || '0'),
+          timeCreated: metadata.timeCreated,
+          contentType: metadata.contentType,
+          // Admin-specific fields
+          fullPath: file.name,
+          bucket: bucketName,
+          metadata: metadata.metadata || {}
+        };
+      } catch (error) {
+        console.error(`Error processing admin featured file ${file.name}:`, error);
+        return null;
+      }
+    });
+
+    const images = (await Promise.all(imagePromises)).filter(img => img !== null);
+
+    res.json({
+      success: true,
+      images,
+      totalCount: images.length,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error in getAdminFeaturedImages:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      images: []
+    });
+  }
+});
+
