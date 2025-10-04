@@ -194,7 +194,7 @@ export default function Home() {
     }))
   }
 
-  // Calculate dynamic grid layout for featured images
+  // Calculate balanced grid layout for featured images
   const getFeaturedGridLayout = () => {
     if (featuredLoading || featuredImages.length === 0) return { gridCols: 3, gridRows: 2, images: [] }
     
@@ -207,17 +207,46 @@ export default function Home() {
       }
     })
 
-    // Sort images: portraits first (for vertical spans), then landscapes
-    const sortedImages = processedImages.sort((a, b) => {
-      if (a.isPortrait && !b.isPortrait) return -1
-      if (!a.isPortrait && b.isPortrait) return 1
-      return 0
-    })
+    // Create a balanced 3x2 grid layout
+    // Strategy: Place 1 portrait (spanning 2 rows) and fill remaining with landscapes
+    const portraits = processedImages.filter(img => img.isPortrait)
+    const landscapes = processedImages.filter(img => !img.isPortrait)
+    
+    const layoutImages = []
+    const maxImages = Math.min(6, processedImages.length)
+    
+    // Place one portrait that spans 2 rows (position 0)
+    if (portraits.length > 0 && maxImages >= 1) {
+      layoutImages.push({ ...portraits.shift(), gridClass: 'col-span-1 row-span-2' })
+    }
+    
+    // Fill remaining positions with landscapes or additional portraits
+    let currentIndex = 1
+    while (layoutImages.length < maxImages && currentIndex < 6) {
+      // For positions 1, 2, 4, 5 (avoid position 3 which is below the portrait)
+      if (currentIndex !== 3) {
+        if (landscapes.length > 0) {
+          layoutImages.push({ ...landscapes.shift(), gridClass: 'col-span-1 row-span-1' })
+        } else if (portraits.length > 0) {
+          layoutImages.push({ ...portraits.shift(), gridClass: 'col-span-1 row-span-1' })
+        }
+      }
+      currentIndex++
+    }
+    
+    // If we have position 3 available (below portrait), fill it
+    if (layoutImages.length < maxImages && (landscapes.length > 0 || portraits.length > 0)) {
+      if (landscapes.length > 0) {
+        layoutImages.push({ ...landscapes.shift(), gridClass: 'col-span-1 row-span-1' })
+      } else if (portraits.length > 0) {
+        layoutImages.push({ ...portraits.shift(), gridClass: 'col-span-1 row-span-1' })
+      }
+    }
 
     return {
       gridCols: 3,
       gridRows: 2,
-      images: sortedImages.slice(0, 6) // Max 6 images
+      images: layoutImages.slice(0, 6)
     }
   }
 
@@ -506,15 +535,12 @@ export default function Home() {
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 grid-rows-2 gap-2 sm:gap-3 md:gap-4 auto-rows-fr">
+                  <div className="grid grid-cols-3 grid-rows-2 gap-2 sm:gap-3 md:gap-4">
                     {getFeaturedGridLayout().images.map((photo, index) => {
-                      const isPortrait = photo.isPortrait
-                      const gridSpan = isPortrait ? 'row-span-2' : 'row-span-1'
-                      
                       return (
                         <div 
                           key={photo.id} 
-                          className={`group cursor-pointer ${gridSpan}`}
+                          className={`group cursor-pointer ${photo.gridClass || 'col-span-1 row-span-1'}`}
                           onClick={() => setActive({ art: { images: [photo.src], title: photo.title }, idx: 0 })}
                         >
                           <div className="relative h-full overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
