@@ -264,7 +264,7 @@ export const cleanupAdminCache = () => {
 };
 
 // Upload progress tracking with replacement handling
-export const uploadWithProgress = async (files, onProgress, seriesTitle = '', seriesDescription = '') => {
+export const uploadWithProgress = async (files, onProgress, seriesTitle = '', seriesDescription = '', scientificName = '', location = '', timeTaken = '', history = '') => {
   try {
     // Clear relevant caches when uploading
     clearAdminCache();
@@ -275,9 +275,9 @@ export const uploadWithProgress = async (files, onProgress, seriesTitle = '', se
       console.log(`Replaced ${replacedCount} existing gallery images`);
     }
     
-    // Call your existing upload function with title and description
+    // Call your existing upload function with all metadata
     const { uploadMultipleImages } = await import('./storage.js');
-    const result = await uploadMultipleImages(files, 'gallery', seriesTitle, seriesDescription);
+    const result = await uploadMultipleImages(files, 'gallery', seriesTitle, seriesDescription, scientificName, location, timeTaken, history);
     
     // Clear gallery caches too since new images are added
     sessionStorage.removeItem('gallery-artwork-session');

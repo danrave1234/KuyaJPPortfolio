@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ArrowRight, Search } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ArrowRight, Search, Heart, Filter } from 'lucide-react'
 import { getGalleryImages, searchGalleryImages } from '../firebase/api'
 
 export default function Gallery() {
@@ -11,6 +11,9 @@ export default function Gallery() {
   const [galleryLoading, setGalleryLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
+  
+  // Filter state
+  const [sortFilter, setSortFilter] = useState('default') // 'default', 'most-liked'
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -56,6 +59,28 @@ export default function Gallery() {
     }
   }, [debouncedQuery]);
 
+  // Re-sort results when sort filter changes
+  useEffect(() => {
+    if (!debouncedQuery && sortFilter !== 'default') {
+      // Re-sort the main artworks when filter changes
+      const sorted = sortFilter === 'most-liked' ? sortByLikes([...artworks]) : artworks;
+      setArtworks(sorted);
+    } else if (!debouncedQuery && sortFilter === 'default') {
+      // Reset to original order when filter is reset - reload from cache or API
+      const sessionCache = sessionStorage.getItem('gallery-artwork-session');
+      if (sessionCache) {
+        try {
+          const parsedArtworks = JSON.parse(sessionCache);
+          if (parsedArtworks && Array.isArray(parsedArtworks) && parsedArtworks.length > 0) {
+            setArtworks(parsedArtworks);
+          }
+        } catch (error) {
+          console.error('Error parsing cached artworks:', error);
+        }
+      }
+    }
+  }, [sortFilter]);
+
   // Clean up old search cache on component mount
   useEffect(() => {
     const cleanupSearchCache = () => {
@@ -91,10 +116,13 @@ export default function Gallery() {
       
       if (cachedResults) {
         const parsedResults = JSON.parse(cachedResults);
+        // Apply sort filter to cached results
+        const sortedCachedResults = sortFilter === 'most-liked' ? sortByLikes(parsedResults.images) : parsedResults.images;
+        
         if (page === 1) {
-          setSearchResults(parsedResults.images);
+          setSearchResults(sortedCachedResults);
         } else {
-          setSearchResults(prev => [...prev, ...parsedResults.images]);
+          setSearchResults(prev => [...prev, ...sortedCachedResults]);
         }
         setSearchPage(page);
         setSearchHasMore(parsedResults.pagination?.hasMore || false);
@@ -104,7 +132,9 @@ export default function Gallery() {
 
       const result = await searchGalleryImages('gallery', searchQuery, page, 20);
       if (result.success) {
-        const shuffled = shuffleArray(result.images);
+        // Group search results by series like the main gallery
+        const groupedResults = groupImagesBySeries(result.images);
+        const shuffled = shuffleArray(groupedResults);
         
         // Cache search results
         const cacheData = {
@@ -114,10 +144,13 @@ export default function Gallery() {
         };
         sessionStorage.setItem(`gallery-search-${cacheKey}`, JSON.stringify(cacheData));
         
+        // Apply sort filter to search results
+        const sortedResults = sortFilter === 'most-liked' ? sortByLikes(shuffled) : shuffled;
+        
         if (page === 1) {
-          setSearchResults(shuffled);
+          setSearchResults(sortedResults);
         } else {
-          setSearchResults(prev => [...prev, ...shuffled]);
+          setSearchResults(prev => [...prev, ...sortedResults]);
         }
         setSearchPage(page);
         setSearchHasMore(result.pagination?.hasMore || false);
@@ -142,24 +175,54 @@ export default function Gallery() {
             title: img.title,
             alt: `${img.title} images`,
             isSeries: true,
-            description: img.description || ''
+            description: img.description || '',
+            scientificName: img.scientificName || ''
           };
         }
-        groups[img.title].images.push(img.src);
+        // Push the full image object, not just the src
+        groups[img.title].images.push({
+          id: img.id,
+          src: img.src,
+          title: img.title,
+          alt: img.alt,
+          description: img.description,
+          scientificName: img.scientificName,
+          location: img.location,
+          timeTaken: img.timeTaken,
+          history: img.history,
+          likes: img.likes,
+          path: img.path,
+          seriesIndex: img.seriesIndex
+        });
       } else {
         // Individual image (not part of a series)
         const individualName = `individual_${img.title || img.name}`;
         groups[individualName] = {
-          images: [img.src],
+          images: [{
+            id: img.id,
+            src: img.src,
+            title: img.title || img.name.replace(/\.[^/.]+$/, ""),
+            alt: img.alt || img.name,
+            description: img.description,
+            scientificName: img.scientificName,
+            location: img.location,
+            timeTaken: img.timeTaken,
+            history: img.history,
+            likes: img.likes,
+            path: img.path
+          }],
           title: img.title || img.name.replace(/\.[^/.]+$/, ""),
           alt: img.alt || img.name,
           isSeries: false,
-          description: img.description || ''
+          description: img.description || '',
+          scientificName: img.scientificName || ''
         };
       }
     });
     
-    return Object.values(groups);
+    const result = Object.values(groups);
+    console.log('Grouped images by series:', result);
+    return result;
   }
   
   // Load initial 20 images from Firebase Storage with enhanced caching
@@ -255,8 +318,9 @@ export default function Gallery() {
         console.log('No valid cache found, fetching from Firebase Functions...')
         const result = await getGalleryImages('gallery', 1, 20);
         if (result.success) {
-          // Images are already processed and grouped by the backend
-          const shuffled = shuffleArray(result.images)
+          // Group images by series first, then shuffle
+          const groupedImages = groupImagesBySeries(result.images)
+          const shuffled = shuffleArray(groupedImages)
           
           // Store in all caches
           const artworksJson = JSON.stringify(shuffled)
@@ -306,7 +370,8 @@ export default function Gallery() {
       const result = await getGalleryImages('gallery', nextPage, 20);
       
       if (result.success && result.images.length > 0) {
-        const newShuffled = shuffleArray(result.images);
+        const newGroupedImages = groupImagesBySeries(result.images);
+        const newShuffled = shuffleArray(newGroupedImages);
         
         // Update state with new images
         setArtworks(prev => {
@@ -399,18 +464,81 @@ export default function Gallery() {
     }
     return shuffled
   }
+
+  // Sort images by likes
+  const sortByLikes = (images) => {
+    return images.sort((a, b) => {
+      const aLikes = a.likes || 0
+      const bLikes = b.likes || 0
+      return bLikes - aLikes // Sort descending (most liked first)
+    })
+  }
+  
+  // Apply sorting filter to artworks
+  const sortedArtworks = sortFilter === 'most-liked' ? sortByLikes([...artworks]) : artworks
   
   // Use artworks from Firebase instead of hardcoded array
-  const shuffledArtworks = artworks
+  const shuffledArtworks = sortedArtworks
   
   // Use search results if searching, otherwise use regular artworks
   const displayedArtworks = debouncedQuery.trim() ? searchResults : shuffledArtworks;
   
-  // Deduplicate artworks based on unique identifier (src or images[0])
-  const deduplicatedArtworks = displayedArtworks.filter((art, index, array) => {
-    const uniqueKey = art.src || (art.images && art.images[0]) || art.id;
+  // Separate series photos into individual items
+  const separatedArtworks = displayedArtworks.flatMap(art => {
+    if (art.isSeries && art.images && art.images.length > 1) {
+      // For series, create individual items for each image
+      return art.images.map((image, index) => ({
+        ...art,
+        id: `${art.id}-${index}`,
+        src: image.src,
+        images: undefined, // Remove the images array since this is now a single image
+        isSeries: false, // This individual image is not a series
+        seriesIndex: index + 1,
+        seriesTotal: art.images.length,
+        originalSeriesId: art.id,
+        title: `${art.title}${art.scientificName ? ` - ${art.scientificName}` : ''} - Part ${index + 1}`,
+        alt: `${art.title}${art.scientificName ? ` - ${art.scientificName}` : ''} - Part ${index + 1}`,
+        description: art.description,
+        scientificName: art.scientificName,
+        location: art.location,
+        timeTaken: art.timeTaken,
+        history: art.history,
+        likes: image.likes || art.likes || 0,
+        // Preserve additional metadata that might be needed
+        path: image.path || art.path,
+        size: image.size || art.size,
+        timeCreated: image.timeCreated || art.timeCreated,
+        contentType: image.contentType || art.contentType,
+        metadata: image.metadata || art.metadata,
+        // Store the complete series data for modal access
+        completeSeriesData: {
+          id: art.id,
+          isSeries: true,
+          images: art.images,
+          title: art.title,
+          description: art.description,
+          scientificName: art.scientificName,
+          location: art.location,
+          timeTaken: art.timeTaken,
+          history: art.history,
+          path: art.path,
+          size: art.size,
+          timeCreated: art.timeCreated,
+          contentType: art.contentType,
+          metadata: art.metadata
+        }
+      }));
+    } else {
+      // For single images, keep as is
+      return [art];
+    }
+  });
+  
+  // Deduplicate separated artworks based on unique identifier
+  const deduplicatedArtworks = separatedArtworks.filter((art, index, array) => {
+    const uniqueKey = art.src || art.id;
     return array.findIndex(item => 
-      (item.src || (item.images && item.images[0]) || item.id) === uniqueKey
+      (item.src || item.id) === uniqueKey
     ) === index;
   });
     
@@ -512,23 +640,49 @@ export default function Gallery() {
         {/* Search and description row */}
         <div className="mb-8 flex items-center justify-center">
           <div className="w-full max-w-3xl">
-            <label htmlFor="gallery-search" className="sr-only">Search artworks</label>
-            <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 sm:pl-4">
-                <Search size={16} className="sm:w-[18px] sm:h-[18px] text-[rgb(var(--muted))] transition-colors duration-300" />
+            <div className="flex gap-3 items-center">
+              {/* Search Input */}
+              <div className="flex-1">
+                <label htmlFor="gallery-search" className="sr-only">Search artworks</label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 sm:pl-4">
+                    <Search size={16} className="sm:w-[18px] sm:h-[18px] text-[rgb(var(--muted))] transition-colors duration-300" />
+                  </div>
+                  <input
+                    id="gallery-search"
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search by title or description..."
+                    className="w-full rounded-full bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 pl-10 sm:pl-12 pr-4 sm:pr-5 py-2 sm:py-3 text-sm sm:text-base text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] shadow-sm focus:outline-none focus:ring-4 focus:ring-[rgb(var(--primary))]/25 hover:border-[rgb(var(--muted))]/40 transition-colors duration-300"
+                  />
+                </div>
               </div>
-              <input
-                id="gallery-search"
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by title or description..."
-                className="w-full rounded-full bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 pl-10 sm:pl-12 pr-4 sm:pr-5 py-2 sm:py-3 text-sm sm:text-base text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] shadow-sm focus:outline-none focus:ring-4 focus:ring-[rgb(var(--primary))]/25 hover:border-[rgb(var(--muted))]/40 transition-colors duration-300"
-              />
+              
+              {/* Filter Dropdown */}
+              <div className="relative">
+                <select
+                  value={sortFilter}
+                  onChange={(e) => setSortFilter(e.target.value)}
+                  className="appearance-none bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-full px-4 py-2 sm:py-3 pr-8 text-sm sm:text-base text-[rgb(var(--fg))] focus:outline-none focus:ring-4 focus:ring-[rgb(var(--primary))]/25 hover:border-[rgb(var(--muted))]/40 transition-colors duration-300 cursor-pointer"
+                >
+                  <option value="default">All</option>
+                  <option value="most-liked">Most Liked</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                  <Filter size={14} className="text-[rgb(var(--muted))] transition-colors duration-300" />
+                </div>
+              </div>
             </div>
-            {debouncedQuery && (
+            
+            {(debouncedQuery || sortFilter !== 'default') && (
               <div className="mt-2 text-center text-sm text-[rgb(var(--muted))] transition-colors duration-300">
-                Showing {deduplicatedArtworks.length} of {shuffledArtworks.length}
+                {debouncedQuery && (
+                  <span>Showing {deduplicatedArtworks.length} results</span>
+                )}
+                {sortFilter !== 'default' && !debouncedQuery && (
+                  <span>Sorted by {sortFilter === 'most-liked' ? 'Most Liked' : 'Default'}</span>
+                )}
               </div>
             )}
           </div>
@@ -588,28 +742,39 @@ export default function Gallery() {
                                'col-span-1 row-span-1'
           
             // Defensive: skip items without an image
-            const firstImage = Array.isArray(art.images) && art.images.length > 0
-              ? art.images[0]
-              : (typeof art.src === 'string' ? art.src : null)
+            const imageSrc = typeof art.src === 'string' ? art.src : null
 
-            if (!firstImage) {
+            if (!imageSrc) {
               return null
             }
 
             // Create a unique key combining multiple identifiers
-            const uniqueKey = `${art.id || 'unknown'}-${i}-${art.src || (art.images && art.images[0]) || 'no-image'}`.replace(/[^a-zA-Z0-9-_]/g, '-');
+            const uniqueKey = `${art.id || 'unknown'}-${i}-${art.src || 'no-image'}`.replace(/[^a-zA-Z0-9-_]/g, '-');
 
             return (
               <figure 
                 key={uniqueKey} 
                 className={`group cursor-pointer ${gridClasses} rounded-lg overflow-hidden relative transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] border border-[rgb(var(--muted))]/10 hover:border-[rgb(var(--primary))]/30`}
-                onClick={() => setActive({ art, idx: 0 })}
+                onClick={() => {
+                  // If this is a separated series item, use the complete series data
+                  if (art.completeSeriesData) {
+                    console.log('Opening series modal with complete data:', art.completeSeriesData);
+                    console.log('Opening at index:', art.seriesIndex - 1);
+                    
+                    // Use the complete series data directly
+                    setActive({ art: art.completeSeriesData, idx: art.seriesIndex - 1 });
+                  } else {
+                    // For single images, open normally
+                    console.log('Opening single image modal:', art);
+                    setActive({ art, idx: 0 });
+                  }
+                }}
               >
                 <div className="w-full h-full relative overflow-hidden">
                   {art.composite ? (
                     // Composite item: single image in square format
                     <img
-                      src={firstImage}
+                      src={imageSrc}
                       alt={art.title || ''}
                       className="w-full h-full object-contain bg-black transition-transform duration-700 group-hover:scale-110 rounded-lg"
                       onLoad={(e) => {
@@ -620,7 +785,7 @@ export default function Gallery() {
                   ) : (
                     // Single image - smart scaling based on grid size and image aspect ratio
                 <img
-                  src={firstImage}
+                  src={imageSrc}
                   alt={art.title || ''}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 rounded-lg"
                       style={{
@@ -693,7 +858,7 @@ export default function Gallery() {
         )}
         
         {/* End of gallery indicator */}
-        {!hasMore && artworks.length > 0 && !loadingMore && (
+        {!hasMore && deduplicatedArtworks.length > 0 && !loadingMore && (
           <div className="flex justify-center items-center py-8">
             <span className="text-[rgb(var(--muted-fg))] text-sm transition-colors duration-300">You've reached the end of the gallery</span>
           </div>
@@ -704,7 +869,7 @@ export default function Gallery() {
           <div className="grid grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8 mb-6 sm:mb-8">
             <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-md sm:rounded-lg p-3 sm:p-4 md:p-6 transition-colors duration-300">
               <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[rgb(var(--fg))] mb-1 sm:mb-2 transition-colors duration-300">
-                {shuffledArtworks.length}
+                {deduplicatedArtworks.length}
               </div>
               <div className="text-[rgb(var(--muted))] text-xs sm:text-sm uppercase tracking-wide transition-colors duration-300">
                 Total Photographs
@@ -731,14 +896,14 @@ export default function Gallery() {
       </div>
 
       {active && (
-        <ModalViewer active={active} setActive={setActive} />
+        <ModalViewer active={active} setActive={setActive} allArtworks={artworks} />
       )}
       </div>
     </main>
   )
 }
 
-function ModalViewer({ active, setActive }) {
+function ModalViewer({ active, setActive, allArtworks }) {
   // Early return if active is null or invalid
   if (!active || !active.art) {
     return null
@@ -746,18 +911,141 @@ function ModalViewer({ active, setActive }) {
 
   const activeRef = useRef(active)
   useEffect(() => { activeRef.current = active }, [active])
+  
+  // Smart navigation functions - navigate within series or between artworks
+  const navigateLeft = () => {
+    const currentActive = activeRef.current
+    if (!currentActive?.art) return
+    
+    // If it's a series and we're not on the first image, navigate within the series
+    if (currentActive.art.isSeries && currentActive.idx > 0) {
+      setActive({ art: currentActive.art, idx: currentActive.idx - 1 })
+      return
+    }
+    
+    // Otherwise, navigate to previous artwork
+    const currentIndex = allArtworks.findIndex(art => art.id === currentActive.art.id)
+    if (currentIndex > 0) {
+      const prevArt = allArtworks[currentIndex - 1]
+      // If previous artwork is a series, go to its last image
+      const lastIdx = prevArt.isSeries ? (prevArt.images?.length || 1) - 1 : 0
+      setActive({ art: prevArt, idx: lastIdx })
+    }
+  }
+  
+  const navigateRight = () => {
+    const currentActive = activeRef.current
+    if (!currentActive?.art) return
+    
+    // If it's a series and we're not on the last image, navigate within the series
+    if (currentActive.art.isSeries && currentActive.idx < (currentActive.art.images?.length || 1) - 1) {
+      setActive({ art: currentActive.art, idx: currentActive.idx + 1 })
+      return
+    }
+    
+    // Otherwise, navigate to next artwork
+    const currentIndex = allArtworks.findIndex(art => art.id === currentActive.art.id)
+    if (currentIndex < allArtworks.length - 1) {
+      const nextArt = allArtworks[currentIndex + 1]
+      setActive({ art: nextArt, idx: 0 })
+    }
+  }
+  
+  // Helper functions to determine navigation context
+  const getLeftNavigationInfo = () => {
+    const currentActive = activeRef.current
+    if (!currentActive?.art) return { type: 'artwork', label: 'Previous', disabled: true }
+
+    // If it's a series and we're not on the first image
+    if (currentActive.art.isSeries && currentActive.idx > 0) {
+      return { type: 'image', label: 'Previous Image', disabled: false }
+    }
+    
+    // Check if we can go to previous artwork
+    const currentIndex = allArtworks.findIndex(art => art.id === currentActive.art.id)
+    if (currentIndex > 0) {
+      const prevArt = allArtworks[currentIndex - 1]
+      return { 
+        type: 'artwork', 
+        label: prevArt.isSeries ? 'Previous Series' : 'Previous', 
+        disabled: false 
+      }
+    } else {
+      return { type: 'artwork', label: 'Previous', disabled: true }
+    }
+  }
+  
+  const getRightNavigationInfo = () => {
+    const currentActive = activeRef.current
+    if (!currentActive?.art) return { type: 'artwork', label: 'Next', disabled: true }
+
+    // If it's a series and we're not on the last image
+    if (currentActive.art.isSeries && currentActive.idx < (currentActive.art.images?.length || 1) - 1) {
+      return { type: 'image', label: 'Next Image', disabled: false }
+    }
+    
+    // Check if we can go to next artwork
+    const currentIndex = allArtworks.findIndex(art => art.id === currentActive.art.id)
+    if (currentIndex < allArtworks.length - 1) {
+      const nextArt = allArtworks[currentIndex + 1]
+      return { 
+        type: 'artwork', 
+        label: nextArt.isSeries ? 'Next Series' : 'Next', 
+        disabled: false 
+      }
+    } else {
+      return { type: 'artwork', label: 'Next', disabled: true }
+    }
+  }
+  
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     
+    // Focus the modal container to ensure keyboard events are captured
+    setTimeout(() => {
+      const modalContainer = document.querySelector('[role="dialog"]')
+      if (modalContainer) {
+        modalContainer.focus()
+      }
+    }, 100)
+    
     // Keyboard navigation
     const onKey = (e) => {
       const a = activeRef.current
-      if (e.key === 'Escape') setActive(null)
-      if (!a?.art?.images || !Array.isArray(a.art.images) || a.art.images.length === 0) return
-      if (e.key === 'ArrowLeft') setActive({ art: a.art, idx: (a.idx - 1 + (a.art.images?.length || 1)) % (a.art.images?.length || 1) })
-      if (e.key === 'ArrowRight') setActive({ art: a.art, idx: (a.idx + 1) % (a.art.images?.length || 1) })
+      
+      // Only handle keys when modal is open
+      if (!a || !a.art) {
+        return
+      }
+      
+      if (e.key === 'Escape') {
+        setActive(null)
+        return
+      }
+      
+      // Prevent default behavior for arrow keys
+      if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+      
+      if (e.key === 'ArrowLeft') {
+        navigateLeft()
+      }
+      if (e.key === 'ArrowRight') {
+        navigateRight()
+      }
     }
+    
+    // Add a global keyboard handler that works regardless of focus
+    const globalKeyHandler = (e) => {
+      onKey(e)
+    }
+    
+    // Add to both document and window with capture phase
+    document.addEventListener('keydown', globalKeyHandler, { capture: true })
+    window.addEventListener('keydown', globalKeyHandler, { capture: true })
     
     // Touch gesture handling for mobile
     let touchStartX = 0
@@ -770,32 +1058,34 @@ function ModalViewer({ active, setActive }) {
     
     const handleTouchEnd = (e) => {
       const a = activeRef.current
-      if (!a?.art?.images || !Array.isArray(a.art.images) || a.art.images.length === 0) return
+      if (!a?.art) return
       
       const touchEndX = e.changedTouches[0].clientX
       const touchEndY = e.changedTouches[0].clientY
       const deltaX = touchStartX - touchEndX
       const deltaY = touchStartY - touchEndY
       
-      // Only handle horizontal swipes (ignore vertical scrolling)
+      // Handle horizontal swipes for navigation
       if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
         if (deltaX > 0) {
-          // Swipe left - next image
-          setActive({ art: a.art, idx: (a.idx + 1) % (a.art.images?.length || 1) })
+          // Swipe left - navigate right (next)
+          navigateRight()
         } else {
-          // Swipe right - previous image
-          setActive({ art: a.art, idx: (a.idx - 1 + (a.art.images?.length || 1)) % (a.art.images?.length || 1) })
+          // Swipe right - navigate left (previous)
+          navigateLeft()
         }
       }
     }
     
-    window.addEventListener('keydown', onKey)
+    // Only use the global key handlers, remove duplicate listeners
     window.addEventListener('touchstart', handleTouchStart, { passive: true })
     window.addEventListener('touchend', handleTouchEnd, { passive: true })
     
     return () => { 
       document.body.style.overflow = prev
-      window.removeEventListener('keydown', onKey)
+      // Remove global key handlers
+      document.removeEventListener('keydown', globalKeyHandler, { capture: true })
+      window.removeEventListener('keydown', globalKeyHandler, { capture: true })
       window.removeEventListener('touchstart', handleTouchStart)
       window.removeEventListener('touchend', handleTouchEnd)
       // Clean up fullscreen container if modal is closed
@@ -909,17 +1199,91 @@ function ModalViewer({ active, setActive }) {
     }
   }
 
+  // Handle like functionality
+  const handleLike = async (art) => {
+    try {
+      const response = await fetch('https://asia-southeast1-kuyajp-portfolio.cloudfunctions.net/likePhoto', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ imagePath: art.path || art.id })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Update the likes count - handle both series and single images
+        setActive(prev => {
+          if (prev.art.isSeries && prev.art.images && prev.art.images.length > 0) {
+            // For series, update the specific image's likes
+            const updatedImages = prev.art.images.map((image, index) => 
+              index === prev.idx ? { ...image, likes: result.newLikesCount } : image
+            );
+            return {
+              ...prev,
+              art: {
+                ...prev.art,
+                images: updatedImages
+              }
+            };
+          } else {
+            // For single images, update the main artwork's likes
+            return {
+              ...prev,
+              art: {
+                ...prev.art,
+                likes: result.newLikesCount
+              }
+            };
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error liking photo:', error);
+    }
+  };
+
   // Get the current image source safely
   const getCurrentImageSrc = () => {
-    if (!active.art.images || !Array.isArray(active.art.images) || active.art.images.length === 0) {
-      // Fallback to single image if available
-      return active.art.src || active.art.image || null
+    if (!active?.art) return null
+    
+    // If it's a series, get the current image from the series array
+    if (active.art.isSeries && active.art.images && active.art.images.length > 0) {
+      const currentImage = active.art.images[active.idx]
+      return currentImage?.src || null
     }
-    return active.art.images[active.idx] || null
+    
+    // Otherwise, use the artwork's src
+    return active.art.src || active.art.image || null
+  }
+
+  // Get the current image data (for series) or artwork data (for single images)
+  const getCurrentImageData = () => {
+    if (!active?.art) return null
+    
+    console.log('Modal active data:', active);
+    console.log('Series images length:', active.art.images?.length);
+    
+    // If it's a series, get the current image from the series array
+    if (active.art.isSeries && active.art.images && active.art.images.length > 0) {
+      const currentImage = active.art.images[active.idx]
+      return {
+        ...currentImage,
+        // Use series title for display
+        title: active.art.title,
+        description: active.art.description,
+        scientificName: active.art.scientificName
+      }
+    }
+    
+    // Otherwise, use the artwork data
+    return active.art
   }
 
   const currentImageSrc = getCurrentImageSrc()
-  const hasMultipleImages = active.art.images && Array.isArray(active.art.images) && active.art.images.length > 1
+  const currentImageData = getCurrentImageData()
+  const hasMultipleImages = active?.art?.isSeries && active?.art?.images?.length > 1
 
   return (
     <>
@@ -933,23 +1297,34 @@ function ModalViewer({ active, setActive }) {
       />
       
       {/* Main modal container */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-8 overflow-y-auto" role="dialog" aria-modal="true">
-        <div ref={containerRef} className="w-full max-w-7xl max-h-[98vh] sm:max-h-[95vh] relative my-auto">
+      <div 
+        className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-0 sm:p-2 lg:p-4 overflow-y-auto" 
+        role="dialog" 
+        aria-modal="true"
+        tabIndex={-1}
+        onKeyDown={(e) => {
+          // Ensure keyboard events are captured by the modal
+          e.stopPropagation()
+        }}
+        style={{ outline: 'none' }}
+      >
+        <div ref={containerRef} className="w-full h-full sm:h-auto max-w-7xl max-h-[100vh] sm:max-h-[95vh] relative sm:my-auto">
           <div 
             ref={viewerRef} 
-            className="relative rounded-2xl shadow-2xl ring-1 ring-[rgb(var(--muted))]/20 overflow-hidden transition-colors duration-300"
+            className="relative sm:rounded-2xl shadow-2xl ring-0 sm:ring-1 ring-[rgb(var(--muted))]/20 overflow-hidden transition-colors duration-300 h-full sm:h-auto"
             style={{ 
               backgroundColor: 'rgb(var(--bg))',
               maxWidth: '100vw',
-              maxHeight: '95vh'
+              maxHeight: '100vh',
+              minHeight: 'auto'
             }}
           >
             
             {/* Header with controls */}
             <div 
-              className="absolute top-0 left-0 right-0 z-20 p-3 sm:p-4 lg:p-6 transition-colors duration-300"
+              className="absolute top-0 left-0 right-0 z-20 p-2 sm:p-4 lg:p-6 transition-colors duration-300"
               style={{ 
-                background: 'linear-gradient(to bottom, rgba(var(--bg), 0.9) 0%, rgba(var(--bg), 0.7) 50%, transparent 100%)'
+                background: 'linear-gradient(to bottom, rgba(var(--bg), 0.95) 0%, rgba(var(--bg), 0.8) 50%, transparent 100%)'
               }}
             >
               <div className="flex items-center justify-between">
@@ -1006,30 +1381,34 @@ function ModalViewer({ active, setActive }) {
             </div>
 
             {/* Main content area */}
-            <div className="flex flex-col lg:flex-row min-h-[75vh] sm:min-h-[75vh] lg:min-h-[80vh] overflow-y-auto" style={{ maxHeight: 'calc(98vh - 80px)' }}>
+            <div className="flex flex-col lg:flex-row lg:min-h-[80vh] overflow-y-auto" style={{ maxHeight: '100vh' }}>
               
               {/* Image section */}
               <div 
-                className="relative flex-1 overflow-hidden transition-colors duration-300"
+                className="relative lg:flex-1 overflow-hidden transition-colors duration-300"
                 style={{ 
-                  background: 'linear-gradient(135deg, rgba(var(--muted), 0.1) 0%, rgba(var(--muted), 0.05) 100%)'
+                  background: 'linear-gradient(135deg, rgba(var(--muted), 0.1) 0%, rgba(var(--muted), 0.05) 100%)',
+                  minHeight: 'auto'
                 }}
               >
-                <div className="relative h-full min-h-[60vh] sm:min-h-[55vh] lg:min-h-[70vh] flex items-center justify-center p-4 sm:p-6 lg:p-8 pt-14 sm:pt-16 lg:pt-16 pb-12 sm:pb-10 lg:pb-8 overflow-hidden">
+                <div className="relative w-full flex flex-col lg:h-full lg:min-h-[70vh] lg:flex-row lg:items-center lg:justify-center p-2 sm:p-4 lg:p-8 pt-12 sm:pt-16 lg:pt-16 pb-2 sm:pb-4 lg:pb-8 overflow-hidden">
                   {currentImageSrc ? (
-                    <img 
-                      ref={imageRef}
-                      src={currentImageSrc} 
-                      alt={active.art.title || ''} 
-                      className={`max-w-full max-h-full object-contain transition-all duration-700 rounded-lg ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
-                      style={{ 
-                        maxWidth: '100%', 
-                        maxHeight: 'calc(100% - 4rem)', 
-                        width: 'auto', 
-                        height: 'auto',
-                        objectFit: 'contain'
-                      }}
-                    />
+                    <div className="w-full flex items-start sm:items-center lg:items-center justify-center relative" style={{ minHeight: 'auto' }}>
+                      <img 
+                        ref={imageRef}
+                        src={currentImageSrc} 
+                        alt={active.art.title || ''} 
+                        className={`max-w-full object-contain transition-all duration-700 rounded-lg ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+                        style={{ 
+                          maxWidth: '100%', 
+                          maxHeight: 'calc(100vh - 200px)', // Account for header and details
+                          width: 'auto', 
+                          height: 'auto',
+                          objectFit: 'contain',
+                          display: 'block'
+                        }}
+                      />
+                    </div>
                   ) : (
                     <div className="flex items-center justify-center h-full">
                       <div className="text-center">
@@ -1056,49 +1435,274 @@ function ModalViewer({ active, setActive }) {
                   )}
                 </div>
 
-                {/* Navigation arrows */}
+                {/* Like Button - Outside Image Area, Bottom Right */}
+                <div className="absolute bottom-4 right-4 z-20">
+                  {!visible ? (
+                    // Skeleton loading state for like button
+                    <div 
+                      className="flex items-center gap-3 px-4 py-3 rounded-2xl backdrop-blur-md"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(var(--primary), 0.08) 0%, rgba(var(--primary), 0.04) 100%)',
+                        border: '1px solid rgba(var(--primary), 0.2)'
+                      }}
+                    >
+                      <div className="w-6 h-6 bg-[rgb(var(--primary))]/20 rounded animate-pulse"></div>
+                      <div className="flex flex-col gap-1">
+                        <div className="w-8 h-5 bg-[rgb(var(--primary))]/20 rounded animate-pulse"></div>
+                        <div className="w-12 h-3 bg-[rgb(var(--primary))]/20 rounded animate-pulse"></div>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleLike(currentImageData)}
+                      className="relative flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group overflow-hidden backdrop-blur-md shadow-lg hover:shadow-xl"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(var(--primary), 0.15) 0%, rgba(var(--primary), 0.08) 100%)',
+                        border: '1px solid rgba(var(--primary), 0.3)',
+                        backdropFilter: 'blur(12px)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = 'linear-gradient(135deg, rgba(var(--primary), 0.25) 0%, rgba(var(--primary), 0.15) 100%)'
+                        e.target.style.borderColor = 'rgba(var(--primary), 0.5)'
+                        e.target.style.transform = 'translateY(-2px) scale(1.05)'
+                        e.target.style.boxShadow = '0 8px 25px rgba(var(--primary), 0.25)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = 'linear-gradient(135deg, rgba(var(--primary), 0.15) 0%, rgba(var(--primary), 0.08) 100%)'
+                        e.target.style.borderColor = 'rgba(var(--primary), 0.3)'
+                        e.target.style.transform = 'translateY(0px) scale(1)'
+                        e.target.style.boxShadow = '0 4px 15px rgba(var(--primary), 0.15)'
+                      }}
+                      title="Like this photo"
+                    >
+                      {/* Animated background effect */}
+                      <div 
+                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(var(--primary), 0.1) 0%, rgba(var(--primary), 0.05) 100%)'
+                        }}
+                      />
+                      
+                      {/* Heart icon with enhanced styling */}
+                      <div className="relative z-10">
+                        <Heart
+                          size={20}
+                          className="text-[rgb(var(--primary))] group-hover:scale-110 transition-all duration-300 drop-shadow-lg"
+                          style={{
+                            filter: 'drop-shadow(0 2px 6px rgba(var(--primary), 0.4))'
+                          }}
+                        />
+                      </div>
+                      
+                      {/* Like count with compact typography */}
+                      <div className="relative z-10 flex flex-col items-start">
+                        <span 
+                          className="text-lg font-bold transition-all duration-300 group-hover:scale-105" 
+                          style={{ 
+                            color: 'rgb(var(--fg))',
+                            textShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                          }}
+                        >
+                          {currentImageData?.likes || 0}
+                        </span>
+                        <span 
+                          className="text-xs font-medium transition-colors duration-300" 
+                          style={{ 
+                            color: 'rgba(var(--muted-fg), 0.9)',
+                            letterSpacing: '0.5px'
+                          }}
+                        >
+                          {currentImageData?.likes === 1 ? 'LIKE' : 'LIKES'}
+                        </span>
+                      </div>
+                      
+                      {/* Pulse animation */}
+                      <div 
+                        className="absolute top-1/2 left-1/2 w-0 h-0 rounded-full opacity-0 group-hover:opacity-20 group-hover:w-24 group-hover:h-24 transition-all duration-500 -translate-x-1/2 -translate-y-1/2"
+                        style={{ backgroundColor: 'rgb(var(--primary))' }}
+                      />
+                    </button>
+                  )}
+                </div>
+
+                {/* Smart Navigation arrows - always left/right with context-aware labels */}
+                <div className="absolute inset-0 flex items-center justify-between pointer-events-none">
+                  {/* Left navigation button */}
+                  <div className="ml-2 sm:ml-4">
+                    {(() => {
+                      const leftInfo = getLeftNavigationInfo()
+                      return (
+                        <button
+                          onClick={navigateLeft}
+                          className={`pointer-events-auto p-2 sm:p-3 rounded-full transition-all duration-200 backdrop-blur-sm shadow-lg hover:scale-110 touch-manipulation ${
+                            leftInfo.disabled
+                              ? 'bg-black/20 text-gray-400 cursor-not-allowed' 
+                              : 'bg-black/60 hover:bg-black/80 text-white'
+                          }`}
+                          title={leftInfo.label}
+                          disabled={leftInfo.disabled}
+                        >
+                          <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
+                        </button>
+                      )
+                    })()}
+                  </div>
+                  
+                  {/* Right navigation button */}
+                  <div className="mr-2 sm:mr-4">
+                    {(() => {
+                      const rightInfo = getRightNavigationInfo()
+                      return (
+                        <button
+                          onClick={navigateRight}
+                          className={`pointer-events-auto p-2 sm:p-3 rounded-full transition-all duration-200 backdrop-blur-sm shadow-lg hover:scale-110 touch-manipulation ${
+                            rightInfo.disabled
+                              ? 'bg-black/20 text-gray-400 cursor-not-allowed' 
+                              : 'bg-black/60 hover:bg-black/80 text-white'
+                          }`}
+                          title={rightInfo.label}
+                          disabled={rightInfo.disabled}
+                        >
+                          <ChevronRight size={18} className="sm:w-5 sm:h-5" />
+                        </button>
+                      )
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile/Tablet Photo Details - Only visible on small screens */}
+              <div className="lg:hidden p-4 border-t border-gray-300 dark:border-gray-600 transition-colors duration-300" style={{ backgroundColor: 'rgb(var(--bg))' }}>
+                {/* Photo Title and Scientific Name */}
+                <div className="mb-4">
+                  {!visible ? (
+                    // Skeleton loading state for title
+                    <div className="space-y-1">
+                      <div className="w-24 h-4 bg-[rgb(var(--muted))]/20 rounded animate-pulse"></div>
+                      <div className="w-32 h-3 bg-[rgb(var(--muted))]/20 rounded animate-pulse"></div>
+                    </div>
+                  ) : (
+                    <div>
+                      <h1 className="text-sm font-bold transition-colors duration-300" style={{ color: 'rgb(var(--fg))' }}>
+                        {active.art.title || 'Untitled'}{currentImageData?.scientificName && ` - ${currentImageData.scientificName}`}
+                      </h1>
+                    </div>
+                  )}
+                </div>
+
+
+
+                {/* Photo Details */}
+                <div className="transition-colors duration-300">
+                  <div 
+                    className="text-sm font-bold uppercase tracking-wider mb-3 transition-colors duration-300"
+                    style={{ color: 'rgba(var(--primary), 0.9)' }}
+                  >
+                    PHOTO DETAILS
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    {/* Location */}
+                    <div className="flex justify-between items-start py-2">
+                      <span 
+                        className="font-medium transition-colors duration-300 text-sm flex-shrink-0 mr-3"
+                        style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
+                      >
+                        Location
+                      </span>
+                      <span 
+                        className="font-semibold transition-colors duration-300 text-sm text-right flex-1 break-words"
+                        style={{ color: currentImageData?.location ? 'rgb(var(--fg))' : 'rgba(var(--muted-fg), 0.6)' }}
+                      >
+                        {currentImageData?.location || <span className="italic">Not specified</span>}
+                      </span>
+                    </div>
+                    <div
+                      className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
+                    ></div>
+                    
+                    {/* Time Taken */}
+                    <div className="flex justify-between items-start py-2">
+                      <span 
+                        className="font-medium transition-colors duration-300 text-sm flex-shrink-0 mr-3"
+                        style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
+                      >
+                        Date Taken
+                      </span>
+                      <span 
+                        className="font-semibold transition-colors duration-300 text-sm text-right flex-1"
+                        style={{ color: currentImageData?.timeTaken ? 'rgb(var(--fg))' : 'rgba(var(--muted-fg), 0.6)' }}
+                      >
+                        {currentImageData?.timeTaken || <span className="italic">Not specified</span>}
+                      </span>
+                    </div>
+                    <div
+                      className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
+                    ></div>
+                    
+                    {/* History */}
+                    <div className="py-2">
+                      <span 
+                        className="font-medium transition-colors duration-300 block mb-2 text-sm"
+                        style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
+                      >
+                        History
+                      </span>
+                      <p 
+                        className="text-sm transition-colors duration-300 leading-relaxed"
+                        style={{ color: currentImageData?.history ? 'rgba(var(--muted-fg), 0.9)' : 'rgba(var(--muted-fg), 0.6)' }}
+                      >
+                        {currentImageData?.history || <span className="italic">No additional information available</span>}
+                      </p>
+                    </div>
+                    
+                  </div>
+                </div>
+
+                {/* Mobile Gallery Navigation - Only visible when there are multiple images */}
                 {hasMultipleImages && (
                   <>
-                    <button 
-                      aria-label="Previous image" 
-                      className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full backdrop-blur-sm hover:scale-110 transition-all duration-200 shadow-lg touch-manipulation" 
-                      style={{ 
-                        backgroundColor: 'rgba(var(--bg), 0.8)',
-                        color: 'rgb(var(--fg))',
-                        border: '1px solid rgba(var(--muted), 0.2)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = 'rgba(var(--bg), 0.9)'
-                        e.target.style.borderColor = 'rgba(var(--muted), 0.3)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = 'rgba(var(--bg), 0.8)'
-                        e.target.style.borderColor = 'rgba(var(--muted), 0.2)'
-                      }}
-                      onClick={() => setActive({ art: active.art, idx: (active.idx - 1 + (active.art.images?.length || 1)) % (active.art.images?.length || 1) })}
-                    >
-                      <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
-                    </button>
-                    <button 
-                      aria-label="Next image" 
-                      className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full backdrop-blur-sm hover:scale-110 transition-all duration-200 shadow-lg touch-manipulation" 
-                      style={{ 
-                        backgroundColor: 'rgba(var(--bg), 0.8)',
-                        color: 'rgb(var(--fg))',
-                        border: '1px solid rgba(var(--muted), 0.2)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = 'rgba(var(--bg), 0.9)'
-                        e.target.style.borderColor = 'rgba(var(--muted), 0.3)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = 'rgba(var(--bg), 0.8)'
-                        e.target.style.borderColor = 'rgba(var(--muted), 0.2)'
-                      }}
-                      onClick={() => setActive({ art: active.art, idx: (active.idx + 1) % (active.art.images?.length || 1) })}
-                    >
-                      <ChevronRight size={18} className="sm:w-5 sm:h-5" />
-                    </button>
+                    {/* Divider before thumbnails */}
+                    <div 
+                      className="w-full h-[2px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300 my-4"
+                    ></div>
+                    <div className="transition-colors duration-300">
+                      <div className="grid grid-cols-4 gap-2">
+                        {active.art.images.map((image, i) => (
+                          <button 
+                            key={i} 
+                            className={`relative group rounded-lg overflow-hidden transition-all duration-200 touch-manipulation ${
+                              i === active.idx 
+                                ? 'scale-105 shadow-lg' 
+                                : 'hover:scale-105 shadow-md hover:shadow-lg active:scale-95'
+                            }`} 
+                            style={{ 
+                              border: i === active.idx ? '2px solid rgb(var(--primary))' : '2px solid transparent'
+                            }}
+                            onClick={() => setActive({ art: active.art, idx: i })}
+                          >
+                            <img 
+                              src={image.src} 
+                              alt={`${active.art.title} - Part ${i + 1}`} 
+                              className={`w-full h-16 object-cover transition-opacity duration-200 ${
+                                i === active.idx ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'
+                              }`} 
+                            />
+                            {i === active.idx && (
+                              <div 
+                                className="absolute inset-0 pointer-events-none transition-colors duration-300"
+                                style={{ backgroundColor: 'rgba(var(--primary), 0.2)' }}
+                              />
+                            )}
+                            <div 
+                              className="absolute bottom-1 right-1 text-white text-xs px-1 py-0.5 rounded text-xs font-mono transition-colors duration-300"
+                              style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
+                            >
+                              {i + 1}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </>
                 )}
               </div>
@@ -1110,15 +1714,15 @@ function ModalViewer({ active, setActive }) {
 
               {/* Sidebar with info and thumbnails */}
               <div 
-                className="w-full lg:w-80 flex flex-col transition-colors duration-300 overflow-y-auto mt-4 sm:mt-0"
+                className="hidden lg:flex w-80 flex-col transition-colors duration-300 overflow-y-auto"
                 style={{ 
                   backgroundColor: 'rgb(var(--bg))',
-                  maxHeight: 'calc(95vh - 80px)'
+                  maxHeight: 'calc(100vh - 80px)'
                 }}
               >
                 
                 {/* Content section */}
-                <div className="flex-1 p-4 sm:p-6 lg:p-8">
+                <div className="flex-1 p-3 sm:p-4 lg:p-8">
                   
                   {/* Title and metadata */}
                   <div className="mb-6 sm:mb-8">
@@ -1156,35 +1760,7 @@ function ModalViewer({ active, setActive }) {
                       </div>
                     )}
 
-                    {/* Series info */}
-                    {active.art.isSeries && (
-                      <div 
-                        className="mt-6 p-4 rounded-xl border transition-colors duration-300"
-                        style={{
-                          backgroundColor: 'rgba(var(--primary), 0.08)',
-                          borderColor: 'rgba(var(--primary), 0.15)'
-                        }}
-                      >
-                        <div className="flex items-center gap-3 mb-2">
-                          <div 
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: 'rgb(var(--primary))' }}
-                          ></div>
-                          <span 
-                            className="text-sm font-semibold transition-colors duration-300"
-                            style={{ color: 'rgb(var(--primary))' }}
-                          >
-                            Series Collection
-                          </span>
-                        </div>
-                        <p 
-                          className="text-sm transition-colors duration-300 ml-6"
-                          style={{ color: 'rgba(var(--primary), 0.9)' }}
-                        >
-                          Part {active.idx + 1} of {active.art.images?.length || 0} images
-                        </p>
-                      </div>
-                    )}
+
                   </div>
 
                   {/* Divider between title/description and details */}
@@ -1192,62 +1768,90 @@ function ModalViewer({ active, setActive }) {
                     className="w-full h-[2px] mb-4 sm:mb-6 bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
                   ></div>
 
-                  {/* Technical details */}
+                  {/* Photo Details */}
                   <div className="transition-colors duration-300">
                     <h3 
                       className="text-sm sm:text-base font-bold mb-4 sm:mb-5 uppercase tracking-wider transition-colors duration-300"
                       style={{ color: 'rgb(var(--fg))' }}
                     >
-                      Technical Details
+                      Photo Details
                     </h3>
-                    <div className="space-y-0 text-sm sm:text-base">
-                      <div className="flex justify-between items-center py-3 sm:py-3.5 px-0">
+                    <div className="space-y-0 text-xs sm:text-sm">
+                      {/* Scientific Name */}
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 sm:py-3 px-0 gap-1 sm:gap-0">
                         <span 
-                          className="font-medium transition-colors duration-300"
+                          className="font-medium transition-colors duration-300 text-xs sm:text-sm"
                           style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
                         >
-                          Format
+                          Scientific Name
                         </span>
                         <span 
-                          className="font-semibold transition-colors duration-300"
-                          style={{ color: 'rgb(var(--fg))' }}
+                          className="font-semibold transition-colors duration-300 text-right text-xs sm:text-sm"
+                          style={{ color: currentImageData?.scientificName ? 'rgb(var(--fg))' : 'rgba(var(--muted-fg), 0.5)' }}
                         >
-                          Digital
+                          {currentImageData?.scientificName ? (
+                            <em>{currentImageData.scientificName}</em>
+                          ) : (
+                            <span className="italic">Not specified</span>
+                          )}
                         </span>
                       </div>
                       <div 
                         className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
                       ></div>
-                      <div className="flex justify-between items-center py-3 sm:py-3.5 px-0">
+                      
+                      {/* Location */}
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 sm:py-3 px-0 gap-1 sm:gap-0">
                         <span 
-                          className="font-medium transition-colors duration-300"
+                          className="font-medium transition-colors duration-300 text-xs sm:text-sm"
                           style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
                         >
-                          Category
+                          Location
                         </span>
                         <span 
-                          className="font-semibold transition-colors duration-300"
-                          style={{ color: 'rgb(var(--fg))' }}
+                          className="font-semibold transition-colors duration-300 text-right text-xs sm:text-sm break-words"
+                          style={{ color: currentImageData?.location ? 'rgb(var(--fg))' : 'rgba(var(--muted-fg), 0.5)' }}
                         >
-                          Wildlife Photography
+                          {currentImageData?.location || <span className="italic">Not specified</span>}
                         </span>
                       </div>
                       <div 
                         className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
                       ></div>
-                      <div className="flex justify-between items-center py-3 sm:py-3.5 px-0">
+                      
+                      {/* Time Taken */}
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 sm:py-3 px-0 gap-1 sm:gap-0">
                         <span 
-                          className="font-medium transition-colors duration-300"
+                          className="font-medium transition-colors duration-300 text-xs sm:text-sm"
                           style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
                         >
-                          Collection
+                          Date Taken
                         </span>
                         <span 
-                          className="font-semibold transition-colors duration-300"
-                          style={{ color: 'rgb(var(--fg))' }}
+                          className="font-semibold transition-colors duration-300 text-right text-xs sm:text-sm"
+                          style={{ color: currentImageData?.timeTaken ? 'rgb(var(--fg))' : 'rgba(var(--muted-fg), 0.5)' }}
                         >
-                          2024 Portfolio
+                          {currentImageData?.timeTaken || <span className="italic">Not specified</span>}
                         </span>
+                      </div>
+                      <div 
+                        className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
+                      ></div>
+                      
+                      {/* History */}
+                      <div className="py-2 sm:py-3 px-0">
+                        <span 
+                          className="font-medium transition-colors duration-300 block mb-1 sm:mb-2 text-xs sm:text-sm"
+                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
+                        >
+                          History
+                        </span>
+                        <p 
+                          className="text-xs sm:text-sm transition-colors duration-300 leading-relaxed"
+                          style={{ color: currentImageData?.history ? 'rgba(var(--muted-fg), 0.9)' : 'rgba(var(--muted-fg), 0.5)' }}
+                        >
+                          {currentImageData?.history || <span className="italic">No additional information available</span>}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1261,7 +1865,7 @@ function ModalViewer({ active, setActive }) {
                       className="w-full h-[2px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
                     ></div>
                     <div 
-                      className="p-4 sm:p-6 transition-colors duration-300"
+                      className="p-3 sm:p-4 lg:p-6 transition-colors duration-300"
                       style={{ 
                         backgroundColor: 'rgba(var(--muted), 0.05)'
                       }}
@@ -1273,7 +1877,7 @@ function ModalViewer({ active, setActive }) {
                       Gallery Navigation
                     </h3>
                     <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-1.5 sm:gap-2">
-                      {active.art.images.map((src, i) => (
+                      {active.art.images.map((image, i) => (
                         <button 
                           key={i} 
                           className={`relative group rounded-lg overflow-hidden transition-all duration-200 touch-manipulation ${
@@ -1287,7 +1891,7 @@ function ModalViewer({ active, setActive }) {
                           onClick={() => setActive({ art: active.art, idx: i })}
                         >
                           <img 
-                            src={src} 
+                            src={image.src} 
                             alt={`${active.art.title} - Part ${i + 1}`} 
                             className={`w-full h-16 sm:h-20 object-cover transition-opacity duration-200 ${
                               i === active.idx ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'
@@ -1314,10 +1918,13 @@ function ModalViewer({ active, setActive }) {
               </div>
             </div>
           </div>
+          
         </div>
       </div>
     </>
   )
 }
+
+
 
 

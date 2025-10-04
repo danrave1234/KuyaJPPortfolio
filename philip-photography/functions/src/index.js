@@ -411,14 +411,22 @@ exports.getAdminGalleryImages = functions.region('asia-southeast1').https.onRequ
           seriesIndex = parseInt(index);
         }
 
+        // Get metadata from either metadata.metadata or metadata.customMetadata
+        const customMetadata = metadata.metadata || metadata.customMetadata || {};
+        
         return {
           id: file.name,
           name: filename,
           src: url,
           path: file.name,
           title: seriesTitle,
-          alt: metadata.metadata?.alt || filename,
-          description: metadata.metadata?.description || '',
+          alt: customMetadata?.alt || filename,
+          description: customMetadata?.description || '',
+          scientificName: customMetadata?.scientificName || '',
+          location: customMetadata?.location || '',
+          timeTaken: customMetadata?.timeTaken || '',
+          history: customMetadata?.history || '',
+          likes: parseInt(customMetadata?.likes || '0'),
           isSeries: isSeries,
           seriesIndex: seriesIndex,
           size: parseInt(metadata.size || '0'),
@@ -427,7 +435,7 @@ exports.getAdminGalleryImages = functions.region('asia-southeast1').https.onRequ
           // Admin-specific fields
           fullPath: file.name,
           bucket: bucketName,
-          metadata: metadata.metadata || {}
+          metadata: customMetadata
         };
       } catch (error) {
         console.error(`Error processing file ${file.name}:`, error);
@@ -504,23 +512,31 @@ exports.searchAdminGalleryImages = functions.region('asia-southeast1').https.onR
           ? `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${token}`
           : `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
 
+        // Get metadata from either metadata.metadata or metadata.customMetadata
+        const customMetadata = metadata.metadata || metadata.customMetadata || {};
+        
         return {
           id: file.name,
           name: file.name.split('/').pop(),
           src: url,
           path: file.name,
-          title: metadata.metadata?.title || file.name.split('/').pop(),
-          alt: metadata.metadata?.alt || file.name.split('/').pop(),
-          description: metadata.metadata?.description || '',
-          isSeries: metadata.metadata?.isSeries === 'true',
-          seriesIndex: metadata.metadata?.seriesIndex ? parseInt(metadata.metadata.seriesIndex) : 1,
+          title: customMetadata?.title || file.name.split('/').pop(),
+          alt: customMetadata?.alt || file.name.split('/').pop(),
+          description: customMetadata?.description || '',
+          scientificName: customMetadata?.scientificName || '',
+          location: customMetadata?.location || '',
+          timeTaken: customMetadata?.timeTaken || '',
+          history: customMetadata?.history || '',
+          likes: parseInt(customMetadata?.likes || '0'),
+          isSeries: customMetadata?.isSeries === 'true',
+          seriesIndex: customMetadata?.seriesIndex ? parseInt(customMetadata.seriesIndex) : 1,
           size: parseInt(metadata.size || '0'),
           timeCreated: metadata.timeCreated,
           contentType: metadata.contentType,
           // Admin-specific fields
           fullPath: file.name,
           bucket: bucketName,
-          metadata: metadata.metadata || {}
+          metadata: customMetadata
         };
       } catch (error) {
         console.error(`Error processing file ${file.name}:`, error);
@@ -614,19 +630,31 @@ exports.getGalleryImagesCallable = functions.region('asia-southeast1').https.onC
           ? `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media&token=${token}`
           : `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
 
+        // Get metadata from either metadata.metadata or metadata.customMetadata
+        const customMetadata = metadata.metadata || metadata.customMetadata || {};
+        
         return {
           id: file.name,
           name: file.name.split('/').pop(),
           src: url,
           path: file.name,
-          title: metadata.metadata?.title || file.name.split('/').pop(),
-          alt: metadata.metadata?.alt || file.name.split('/').pop(),
-          description: metadata.metadata?.description || '',
-          isSeries: metadata.metadata?.isSeries === 'true',
-          seriesIndex: metadata.metadata?.seriesIndex ? parseInt(metadata.metadata.seriesIndex) : 1,
+          title: customMetadata?.title || file.name.split('/').pop(),
+          alt: customMetadata?.alt || file.name.split('/').pop(),
+          description: customMetadata?.description || '',
+          scientificName: customMetadata?.scientificName || '',
+          location: customMetadata?.location || '',
+          timeTaken: customMetadata?.timeTaken || '',
+          history: customMetadata?.history || '',
+          likes: parseInt(customMetadata?.likes || '0'),
+          isSeries: customMetadata?.isSeries === 'true',
+          seriesIndex: customMetadata?.seriesIndex ? parseInt(customMetadata.seriesIndex) : 1,
           size: parseInt(metadata.size || '0'),
           timeCreated: metadata.timeCreated,
-          contentType: metadata.contentType
+          contentType: metadata.contentType,
+          // Admin-specific fields
+          fullPath: file.name,
+          bucket: bucketName,
+          metadata: customMetadata
         };
       } catch (error) {
         console.error(`Error processing file ${file.name}:`, error);
@@ -819,3 +847,57 @@ exports.getAdminFeaturedImages = functions.region('asia-southeast1').https.onReq
   }
 });
 
+
+// Like a photo function
+exports.likePhoto = functions.region('asia-southeast1').https.onRequest(async (req, res) => {
+  // Enable CORS for your frontend domain
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const { imagePath } = req.body;
+    
+    if (!imagePath) {
+      return res.status(400).json({
+        success: false,
+        error: 'Image path is required'
+      });
+    }
+
+    const bucket = admin.storage().bucket();
+    const file = bucket.file(imagePath);
+    
+    // Get current metadata
+    const [metadata] = await file.getMetadata();
+    const currentLikes = parseInt(metadata.metadata?.likes || '0');
+    
+    // Update likes count
+    const newMetadata = {
+      ...metadata.metadata,
+      likes: (currentLikes + 1).toString()
+    };
+    
+    await file.setMetadata({
+      metadata: newMetadata
+    });
+
+    res.json({
+      success: true,
+      newLikesCount: currentLikes + 1,
+      message: 'Photo liked successfully'
+    });
+
+  } catch (error) {
+    console.error('Error liking photo:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});

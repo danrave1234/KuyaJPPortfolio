@@ -29,6 +29,13 @@ export default function Admin() {
   const [files, setFiles] = useState([])
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
+  
+  // Debug: Log message changes
+  useEffect(() => {
+    if (message && typeof message !== 'string') {
+      console.error('Message is not a string:', message)
+    }
+  }, [message])
   const [galleryImages, setGalleryImages] = useState([])
   const [selectedImages, setSelectedImages] = useState(new Set())
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -36,6 +43,10 @@ export default function Admin() {
   const [editForm, setEditForm] = useState({ title: '', description: '' })
   const [uploadTitle, setUploadTitle] = useState('')
   const [uploadDescription, setUploadDescription] = useState('')
+  const [uploadScientificName, setUploadScientificName] = useState('')
+  const [uploadLocation, setUploadLocation] = useState('')
+  const [uploadTimeTaken, setUploadTimeTaken] = useState('')
+  const [uploadHistory, setUploadHistory] = useState('')
   
   // Featured gallery state
   const [activeTab, setActiveTab] = useState('gallery') // 'gallery' or 'featured'
@@ -250,11 +261,18 @@ export default function Admin() {
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files)
     
+    // Only allow 1 file for featured images (check if we're on featured tab)
+    if (activeTab === 'featured' && selectedFiles.length > 1) {
+      setMessage('Only 1 image can be selected for featured gallery')
+      setTimeout(() => setMessage(''), 3000)
+      return
+    }
+    
     // Filter out non-image files
     const imageFiles = selectedFiles.filter(file => {
       const isValidImage = file.type.startsWith('image/')
       if (!isValidImage) {
-        setMessage(`Skipped ${file.name} - Only image files are supported`)
+        setMessage(`Skipped ${file.name || 'file'} - Only image files are supported`)
         setTimeout(() => setMessage(''), 3000)
       }
       return isValidImage
@@ -299,6 +317,81 @@ export default function Admin() {
     setCacheTimestamps({});
   };
 
+  // State for tracking image orientations in preview
+  const [previewImageDimensions, setPreviewImageDimensions] = useState({})
+
+  // Calculate grid layout for featured images preview (mimics homepage logic)
+  const getFeaturedPreviewLayout = (files) => {
+    if (!files || files.length === 0) return []
+    
+    const maxImages = Math.min(6, files.length)
+    const processedFiles = files.slice(0, maxImages).map((file, index) => {
+      const dimensions = previewImageDimensions[index]
+      const aspectRatio = dimensions?.aspectRatio || 1
+      const isPortrait = dimensions ? dimensions.aspectRatio < 1 : false
+      
+      return {
+        ...file,
+        id: index + 1,
+        aspectRatio,
+        isPortrait
+      }
+    })
+
+    // Smart grid arrangement based on orientation (same logic as homepage)
+    const portraits = processedFiles.filter(img => img.isPortrait)
+    const landscapes = processedFiles.filter(img => !img.isPortrait)
+    
+    const layoutImages = []
+    let usedSlots = 0
+    let portraitCount = 0
+    let landscapeCount = 0
+    
+    // First, place portraits (they take 2 rows each)
+    while (portraitCount < portraits.length && usedSlots + 2 <= 6) {
+      const portrait = portraits[portraitCount]
+      layoutImages.push({ 
+        ...portrait, 
+        gridClass: 'col-span-1 row-span-2'
+      })
+      usedSlots += 2
+      portraitCount++
+    }
+    
+    // Then fill remaining slots with landscapes
+    while (landscapeCount < landscapes.length && usedSlots < 6) {
+      const landscape = landscapes[landscapeCount]
+      layoutImages.push({ 
+        ...landscape, 
+        gridClass: 'col-span-1 row-span-1'
+      })
+      usedSlots += 1
+      landscapeCount++
+    }
+    
+    // If we still have slots and more portraits, place them as single-row
+    while (portraitCount < portraits.length && usedSlots < 6) {
+      const portrait = portraits[portraitCount]
+      layoutImages.push({ 
+        ...portrait, 
+        gridClass: 'col-span-1 row-span-1'
+      })
+      usedSlots += 1
+      portraitCount++
+    }
+    
+    return layoutImages
+  }
+
+  // Handle image load for preview orientation detection
+  const handlePreviewImageLoad = (index, naturalWidth, naturalHeight) => {
+    const aspectRatio = naturalWidth / naturalHeight
+    setPreviewImageDimensions(prev => ({
+      ...prev,
+      [index]: { width: naturalWidth, height: naturalHeight, aspectRatio }
+    }))
+  }
+
   // Auto-close toast messages
   useEffect(() => {
     if (message) {
@@ -336,13 +429,17 @@ export default function Admin() {
       
       const result = await uploadWithProgress(files, (progress) => {
         setMessage(`Uploading... ${Math.round(progress)}%`)
-      }, uploadTitle.trim(), uploadDescription.trim())
+      }, uploadTitle.trim(), uploadDescription.trim(), uploadScientificName.trim(), uploadLocation.trim(), uploadTimeTaken.trim(), uploadHistory.trim())
       
       if (result.success) {
         setMessage(`Successfully uploaded ${result.successful.length} images as "${uploadTitle}"!`)
         setFiles([])
         setUploadTitle('')
         setUploadDescription('')
+        setUploadScientificName('')
+        setUploadLocation('')
+        setUploadTimeTaken('')
+        setUploadHistory('')
         const fileInput = document.getElementById('file-input')
         if (fileInput) fileInput.value = ''
         // Clear all caches and refresh the gallery
@@ -368,11 +465,11 @@ export default function Admin() {
       setMessage('Checking for existing images to replace...')
       
       const result = await uploadFeaturedWithProgress(files, (progress) => {
-        setMessage(`Uploading featured images... ${Math.round(progress)}%`)
+        setMessage(`Uploading featured image... ${Math.round(progress)}%`)
       }, featuredUploadTitle.trim(), featuredUploadDescription.trim())
       
       if (result.success) {
-        setMessage(`Successfully uploaded ${result.successful.length} featured images as "${featuredUploadTitle}"!`)
+        setMessage(`Successfully uploaded featured image "${featuredUploadTitle}"!`)
         setFiles([])
         setFeaturedUploadTitle('')
         setFeaturedUploadDescription('')
@@ -459,6 +556,17 @@ export default function Admin() {
       newSelected.add(imagePath)
     }
     setSelectedImages(newSelected)
+  }
+
+  // Select all images on current page
+  const selectAllImages = () => {
+    const allImagePaths = galleryImages.map(image => image.path)
+    setSelectedImages(new Set(allImagePaths))
+  }
+
+  // Deselect all images
+  const deselectAllImages = () => {
+    setSelectedImages(new Set())
   }
 
   // Toggle featured image selection
@@ -590,11 +698,11 @@ export default function Admin() {
           
           {message && (
             <div className={`mt-6 p-4 rounded-xl text-sm font-medium ${
-              message.includes('Success') 
+              typeof message === 'string' && message.includes('Success') 
                 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700' 
                 : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700'
             }`}>
-              {message}
+              {typeof message === 'string' ? message : JSON.stringify(message)}
           </div>
           )}
         </div>
@@ -807,8 +915,7 @@ export default function Admin() {
                     />
                     <div 
                       className="border-2 border-dashed border-[rgb(var(--muted))]/30 rounded-2xl p-8 text-center hover:border-[rgb(var(--primary))]/50 transition-all duration-300 cursor-pointer bg-[rgb(var(--bg))]/30 hover:bg-[rgb(var(--primary))]/5"
-                      onDragOver={handleDragOver}
-                      onDrop={handleDrop}
+                      onClick={() => document.getElementById('file-input').click()}
                     >
                       <div className="w-16 h-16 bg-[rgb(var(--primary))] rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <Plus className="w-8 h-8 text-white" />
@@ -830,8 +937,8 @@ export default function Admin() {
                           <div key={index} className="relative group cursor-pointer">
                             <div className="aspect-square rounded-2xl overflow-hidden border-2 border-[rgb(var(--muted))]/20 group-hover:border-[rgb(var(--primary))]/50 transition-all duration-300 group-hover:shadow-2xl group-hover:scale-110 group-hover:z-10">
                               <img
-                                src={URL.createObjectURL(file)}
-                                alt={file.name}
+                                src={file instanceof File ? URL.createObjectURL(file) : file.src || '#'}
+                                alt={file.name || 'Image'}
                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                               />
                             </div>
@@ -920,6 +1027,58 @@ export default function Admin() {
                         placeholder="Describe your series or add context..."
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                        Scientific Name
+                      </label>
+                      <input
+                        type="text"
+                        value={uploadScientificName}
+                        onChange={(e) => setUploadScientificName(e.target.value)}
+                        className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
+                        placeholder="e.g., Panthera leo"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                        Location
+                      </label>
+                      <input
+                        type="text"
+                        value={uploadLocation}
+                        onChange={(e) => setUploadLocation(e.target.value)}
+                        className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
+                        placeholder="e.g., Serengeti National Park, Tanzania"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                        Date Taken
+                      </label>
+                      <input
+                        type="text"
+                        value={uploadTimeTaken}
+                        onChange={(e) => setUploadTimeTaken(e.target.value)}
+                        className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
+                        placeholder="e.g., March 15, 2024"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                        History (Optional)
+                      </label>
+                      <textarea
+                        value={uploadHistory}
+                        onChange={(e) => setUploadHistory(e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200 resize-none"
+                        placeholder="Add any interesting history or context about this photo..."
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -963,7 +1122,7 @@ export default function Admin() {
                       {galleryImages.length} images in your portfolio
                     </p>
                     <button
-                      onClick={loadGalleryImages}
+                      onClick={() => loadGalleryImages(1, searchQuery)}
                       className="inline-flex items-center gap-2 text-[rgb(var(--primary))] hover:text-[rgb(var(--primary))]/80 font-medium transition-colors duration-200 hover:bg-[rgb(var(--primary))]/10 px-3 py-1 rounded-lg"
                       title="Refresh gallery"
                     >
@@ -985,15 +1144,36 @@ export default function Admin() {
                 </div>
               </div>
               
-              {selectedImages.size > 0 && (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="flex items-center gap-3 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 text-[rgb(var(--fg))] px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg"
-                >
-                  <Trash2 size={18} />
-                  Delete Selected ({selectedImages.size})
-                </button>
-              )}
+              {/* Selection Controls */}
+              <div className="flex items-center gap-3">
+                {selectedImages.size > 0 ? (
+                  <button
+                    onClick={deselectAllImages}
+                    className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 px-4 py-2 rounded-lg font-medium transition-all duration-200"
+                  >
+                    <X size={16} />
+                    Deselect All
+                  </button>
+                ) : (
+                  <button
+                    onClick={selectAllImages}
+                    className="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-400 px-4 py-2 rounded-lg font-medium transition-all duration-200"
+                  >
+                    <Check size={16} />
+                    Select All
+                  </button>
+                )}
+                
+                {selectedImages.size > 0 && (
+                  <button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="flex items-center gap-3 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg"
+                  >
+                    <Trash2 size={18} />
+                    Delete Selected ({selectedImages.size})
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           
@@ -1072,9 +1252,9 @@ export default function Admin() {
                 <div className="flex items-center gap-4">
                   <div className="text-sm text-[rgb(var(--muted))]">
                     {isSearching ? (
-                      <span>Search results: {galleryImages.length} images</span>
+                      <span>Search results: {galleryImages.length} images{selectedImages.size > 0 && ` • ${selectedImages.size} selected`}</span>
                     ) : (
-                      <span>Page {currentPage} • {galleryImages.length} images on this page</span>
+                      <span>Page {currentPage} • {galleryImages.length} images on this page{selectedImages.size > 0 && ` • ${selectedImages.size} selected`}</span>
                     )}
                   </div>
                   <button
@@ -1290,34 +1470,36 @@ export default function Admin() {
             <div className="flex items-center gap-3">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                 (() => {
-                  if (message.includes('Success') || message.includes('successfully')) {
-                    return 'bg-emerald-500';
-                  } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
-                    return 'bg-red-500';
-                  } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
-                    return 'bg-blue-500';
-                  } else if (message.includes('Skipped') || message.includes('Please select')) {
-                    return 'bg-yellow-500';
-                  } else {
-                    return 'bg-slate-500';
+                  if (typeof message === 'string') {
+                    if (message.includes('Success') || message.includes('successfully')) {
+                      return 'bg-emerald-500';
+                    } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
+                      return 'bg-red-500';
+                    } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
+                      return 'bg-blue-500';
+                    } else if (message.includes('Skipped') || message.includes('Please select')) {
+                      return 'bg-yellow-500';
+                    }
                   }
+                  return 'bg-slate-500';
                 })()
               }`}>
                 {(() => {
-                  if (message.includes('Success') || message.includes('successfully')) {
-                    return <Check size={16} className="text-white" />;
-                  } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
-                    return <AlertCircle size={16} className="text-white" />;
-                  } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
-                    return <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>;
-                  } else if (message.includes('Skipped') || message.includes('Please select')) {
-                    return <AlertCircle size={16} className="text-white" />;
-                  } else {
-                    return <AlertCircle size={16} className="text-white" />;
+                  if (typeof message === 'string') {
+                    if (message.includes('Success') || message.includes('successfully')) {
+                      return <Check size={16} className="text-white" />;
+                    } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
+                      return <AlertCircle size={16} className="text-white" />;
+                    } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
+                      return <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>;
+                    } else if (message.includes('Skipped') || message.includes('Please select')) {
+                      return <AlertCircle size={16} className="text-white" />;
+                    }
                   }
+                  return <AlertCircle size={16} className="text-white" />;
                 })()}
               </div>
-              <p className="font-medium flex-1">{message}</p>
+              <p className="font-medium flex-1">{typeof message === 'string' ? message : JSON.stringify(message)}</p>
               <button
                 onClick={() => setMessage('')}
                 className="ml-2 p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors duration-200"
@@ -1495,8 +1677,8 @@ export default function Admin() {
                     <Upload className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-[rgb(var(--fg))]">Upload Featured Images</h2>
-                    <p className="text-[rgb(var(--muted-fg))] text-sm">Add images to the featured gallery (3x2 grid on homepage)</p>
+                    <h2 className="text-xl font-bold text-[rgb(var(--fg))]">Upload Featured Image</h2>
+                    <p className="text-[rgb(var(--muted-fg))] text-sm">Add a single featured image to the homepage</p>
                   </div>
                 </div>
               </div>
@@ -1505,14 +1687,11 @@ export default function Admin() {
                 {/* File Upload */}
                 <div
                   className="border-2 border-dashed border-[rgb(var(--muted))]/30 rounded-2xl p-8 text-center hover:border-[rgb(var(--primary))]/50 transition-all duration-300 cursor-pointer bg-[rgb(var(--muted))]/5"
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
                   onClick={() => document.getElementById('featured-file-input').click()}
                 >
                   <input
                     id="featured-file-input"
                     type="file"
-                    multiple
                     accept="image/*"
                     onChange={handleFileChange}
                     className="hidden"
@@ -1523,14 +1702,79 @@ export default function Admin() {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold text-[rgb(var(--fg))] mb-2">
-                        {files.length > 0 ? `${files.length} files selected` : 'Drop images here or click to browse'}
+                        {files.length > 0 ? '1 image selected' : 'Click to select featured image'}
                       </h3>
                       <p className="text-[rgb(var(--muted-fg))] text-sm">
-                        Supports JPG, PNG, GIF, WebP formats
+                        Supports JPG, PNG, GIF, WebP formats (single image only)
                       </p>
                     </div>
                   </div>
                 </div>
+
+                {/* File Preview */}
+                {files.length > 0 && (
+                  <div className="space-y-6">
+                    {/* Single Image Preview */}
+                    <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-6 border border-[rgb(var(--muted))]/20">
+                      <h3 className="text-lg font-semibold text-[rgb(var(--fg))] mb-4 flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Homepage Preview
+                      </h3>
+                      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-[rgb(var(--muted))]/20">
+                        <div className="max-w-md mx-auto">
+                          {(() => {
+                            const file = files[0]
+                            if (!file) return null
+                            
+                            // Auto-fit container based on image orientation
+                            const dimensions = previewImageDimensions[0]
+                            const aspectRatio = dimensions?.aspectRatio || 1
+                            const isPortrait = dimensions ? dimensions.aspectRatio < 1 : false
+                            
+                            const containerClass = isPortrait 
+                              ? 'aspect-[3/4] max-w-sm mx-auto' // Portrait: taller container
+                              : 'aspect-[4/3] w-full' // Landscape: wider container
+                            
+                            return (
+                              <div className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${containerClass}`}>
+                                <img
+                                  src={file instanceof File ? URL.createObjectURL(file) : file.src || '#'}
+                                  alt={file.name || 'Image'}
+                                  className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-110"
+                                  onLoad={(e) => {
+                                    const { naturalWidth, naturalHeight } = e.target
+                                    handlePreviewImageLoad(0, naturalWidth, naturalHeight)
+                                  }}
+                                />
+                                {/* Overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                
+                                {/* Featured badge */}
+                                <div className="absolute top-3 left-3 text-xs font-bold px-3 py-1.5 rounded-full bg-[rgb(var(--primary))] text-white shadow-lg">
+                                  Featured
+                                </div>
+                                
+                                {/* Info panel */}
+                                <div className="absolute bottom-3 left-3 right-3 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100">
+                                  <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
+                                    <p className="text-white text-sm font-semibold">
+                                      {file.name ? file.name.replace(/\.[^/.]+$/, "") : 'Image'}
+                                    </p>
+                                    <p className="text-white/80 text-xs">
+                                      Featured Image
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Upload Form */}
                 {files.length > 0 && (

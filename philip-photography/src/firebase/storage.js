@@ -47,7 +47,7 @@ export const uploadImage = async (file, path = 'gallery', newFileName = null, cu
 };
 
 // Upload multiple images
-export const uploadMultipleImages = async (files, path = 'gallery', seriesTitle = '', seriesDescription = '') => {
+export const uploadMultipleImages = async (files, path = 'gallery', seriesTitle = '', seriesDescription = '', scientificName = '', location = '', timeTaken = '', history = '') => {
   try {
     const uploadPromises = files.map((file, index) => {
       const originalExtension = file.name.split('.').pop();
@@ -60,6 +60,11 @@ export const uploadMultipleImages = async (files, path = 'gallery', seriesTitle 
       const customMetadata = {
         title: seriesTitle,
         description: seriesDescription,
+        scientificName: scientificName,
+        location: location,
+        timeTaken: timeTaken,
+        history: history,
+        likes: '0', // Initialize likes to 0
         isSeries: files.length > 1 ? 'true' : 'false', // Store as string
         seriesIndex: files.length > 1 ? String(index + 1) : '1', // Store as string
       };

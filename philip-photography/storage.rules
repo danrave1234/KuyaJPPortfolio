@@ -1,0 +1,22 @@
+rules_version = '2';
+
+// Craft rules based on data in your Firestore database
+// allow write: if firestore.get(
+//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      // Allow read access to all files
+      allow read: if true;
+      
+      // Allow write access for authenticated users or from localhost
+      allow write: if request.auth != null || 
+                      request.headers.origin == "http://localhost:5173" ||
+                      request.headers.origin == "http://localhost:3000" ||
+                      request.headers.origin == "http://localhost:4173" ||
+                      request.headers.origin == "https://localhost:5173" ||
+                      request.headers.origin == "https://localhost:3000" ||
+                      request.headers.origin == "https://localhost:4173";
+    }
+  }
+}
