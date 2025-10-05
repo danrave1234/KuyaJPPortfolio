@@ -426,7 +426,7 @@ export default function Home() {
         <div className="container-responsive w-full">
           {/* Magazine-style Editorial Header */}
           <div className="mb-4 sm:mb-6 md:mb-8 lg:mb-12">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-6 lg:gap-12 items-start">
               {/* Left Column - Editorial Content */}
               <div className="lg:col-span-6 space-y-6 lg:space-y-8">
                 {/* Issue Info */}
@@ -513,7 +513,7 @@ export default function Home() {
                         : 'aspect-[4/3] w-full' // Landscape: wider container
                       
                       return (
-                        <div className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${containerClass}`}>
+                        <div className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${containerClass} max-h-[35vh] sm:max-h-[45vh] md:max-h-[55vh] lg:max-h-[60vh] xl:max-h-[65vh] max-w-[92vw]`}>
                           <img
                             src={featuredImage.src}
                             alt={featuredImage.alt}
@@ -560,7 +560,7 @@ export default function Home() {
                     {loading || (allPhotographs.length > 0 && landscapeImages.length === 0) ? (
                       <div className="flex gap-3 sm:gap-6 md:gap-8 lg:gap-10 xl:gap-12 py-6 sm:py-8 md:py-12 lg:py-16 xl:py-20 justify-center">
                         {[1, 2, 3, 4, 5, 6].map((i) => (
-                          <div key={i} className="flex-shrink-0 w-32 h-24 sm:w-40 sm:h-30 md:w-48 md:h-36 lg:w-56 lg:h-42 xl:w-64 xl:h-48 2xl:w-72 2xl:h-54 rounded-xl lg:rounded-2xl overflow-hidden">
+                          <div key={i} className="flex-shrink-0 w-28 h-20 sm:w-40 sm:h-30 md:w-48 md:h-36 lg:w-56 lg:h-42 xl:w-64 xl:h-48 2xl:w-72 2xl:h-54 rounded-xl lg:rounded-2xl overflow-hidden">
                             <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 animate-pulse" />
                           </div>
                         ))}
@@ -573,8 +573,8 @@ export default function Home() {
                       <div 
                         className="flex gap-3 sm:gap-6 md:gap-8 lg:gap-10 xl:gap-12 infinite-scroll transition-all duration-500 ease-in-out justify-center"
                         style={{ 
-                          width: `calc(${displayImages.length * 3} * (clamp(180px, 10vw, 280px) + clamp(12px, 2.5vw, 40px)))`,
-                          minHeight: 'clamp(120px, 18vh, 280px)'
+                          width: `calc(${displayImages.length * 3} * (clamp(153px, 8.5vw, 238px) + clamp(12px, 2.5vw, 40px)))`,
+                          minHeight: 'clamp(100px, 15vh, 240px)'
                         }}
                       >
                       {/* First set of images with magazine styling */}
@@ -584,7 +584,7 @@ export default function Home() {
                           className="flex-shrink-0 group cursor-pointer"
                   onClick={() => setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })}
                         >
-                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(180px, 10vw, 280px)', height: 'clamp(135px, 15vw, 210px)'}}>
+                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(153px, 8.5vw, 238px)', height: 'clamp(115px, 12.75vw, 178px)'}}>
                             <img
                               src={photo.src}
                               alt={photo.alt}
@@ -623,7 +623,7 @@ export default function Home() {
                           className="flex-shrink-0 group cursor-pointer"
                   onClick={() => setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })}
                         >
-                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(180px, 10vw, 280px)', height: 'clamp(135px, 15vw, 210px)'}}>
+                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(153px, 8.5vw, 238px)', height: 'clamp(115px, 12.75vw, 178px)'}}>
                             <img
                               src={photo.src}
                               alt={photo.alt}
@@ -653,7 +653,7 @@ export default function Home() {
                           className="flex-shrink-0 group cursor-pointer"
                   onClick={() => setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })}
                         >
-                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(180px, 10vw, 280px)', height: 'clamp(135px, 15vw, 210px)'}}>
+                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(153px, 8.5vw, 238px)', height: 'clamp(115px, 12.75vw, 178px)'}}>
                             <img
                               src={photo.src}
                               alt={photo.alt}

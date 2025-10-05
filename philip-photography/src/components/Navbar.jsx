@@ -72,7 +72,7 @@ export default function Navbar() {
         ? 'bg-[rgb(var(--bg))]/95 shadow-sm backdrop-blur-md border-b border-gray-200 dark:border-gray-800' 
         : 'bg-transparent backdrop-blur-0 border-b border-transparent'
     }`}>
-      <nav className="container-responsive h-16 flex items-center justify-between">
+      <nav className="container-responsive h-14 md:h-16 flex items-center justify-between">
         {/* Logo */}
         <div>
           <Link to="/" className={`font-semibold transition-colors duration-300 ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'}`}>
@@ -135,7 +135,7 @@ export default function Navbar() {
 
       {/* Mobile Dropdown Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 bg-[rgb(var(--bg))]/98 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-2xl mobile-menu-enter rounded-b-3xl">
+        <div className="md:hidden absolute top-14 md:top-16 left-0 right-0 bg-[rgb(var(--bg))]/98 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-2xl mobile-menu-enter rounded-b-3xl">
           <div className="container-responsive py-4">
             {/* Menu Header */}
             <div className="px-6 py-3 mb-2 border-b border-gray-200/30 dark:border-gray-700/30">
