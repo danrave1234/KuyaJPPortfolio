@@ -40,8 +40,14 @@
     @apply bg-[rgb(var(--bg))] text-[rgb(var(--fg))] border border-gray-300 dark:border-gray-600 placeholder:text-[rgb(var(--muted))];
   }
   button { @apply transition-colors; }
-  html { scroll-behavior: smooth; scroll-padding-top: 0; scroll-snap-type: y mandatory; }
-  body { height: 100%; }
+  html {
+    scroll-behavior: smooth;
+    overflow: hidden; /* prevents the body/html from scrolling; the inner container handles scroll */
+  }
+  body { 
+    height: 100%;
+    overflow: hidden; /* prevents the body from scrolling */
+  }
   
   /* Bento Grid Specific Styles */
   .bento-grid {
@@ -453,6 +459,12 @@
     scroll-snap-align: center;
     scroll-snap-stop: always;
     overflow: hidden;
+  }
+
+  /* Mobile: softer snapping and align to start to prevent late recentering */
+  @media (max-width: 640px) {
+    html { scroll-snap-type: y mandatory; scroll-padding-top: 3.5rem; }
+    .snap-section { scroll-snap-align: start; scroll-snap-stop: always; }
   }
   
   /* Comprehensive responsive spacing for all screen sizes */

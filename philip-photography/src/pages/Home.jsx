@@ -236,16 +236,12 @@ export default function Home() {
     })
   }, [allPhotographs.length, landscapeImages.length, useAllImages, displayImages.length])
 
-  // Snapping functionality disabled - normal scrolling only
-  useEffect(() => {
-    // Ensure page starts at the top when component mounts
-    window.scrollTo({ top: 0, behavior: 'auto' })
-  }, [])
+  // Scroll snapping is now handled by the parent ScrollSnapContainer
 
   return (
-    <main>
+    <>
       {/* Full-width hero */}
-      <section className="relative w-full snap-section">
+      <section id="home" className="snap-start min-h-screen relative w-full">
         <div className="relative h-dvh">
           <img
             src="/Hero.jpg"
@@ -366,7 +362,7 @@ export default function Home() {
       </section>
 
       {/* Introduction section */}
-      <section className="snap-section bg-[rgb(var(--bg))] min-h-screen flex items-center py-8 sm:py-12 md:py-16 lg:py-20">
+      <section id="about" className="snap-start h-screen flex items-center bg-[rgb(var(--bg))] py-8 sm:py-12 md:py-16 lg:py-20">
         <div className="container-responsive w-full">
           <div className="text-center lg:text-left">
           {/* Editorial masthead - mobile optimized */}
@@ -422,7 +418,7 @@ export default function Home() {
       </section>
 
       {/* Section 3: Magazine Style Layout */}
-      <section className="snap-section bg-[rgb(var(--bg))] min-h-screen flex items-center py-8 sm:py-12 md:py-16 lg:py-20">
+      <section id="experience" className="snap-start min-h-screen flex flex-col items-center justify-center bg-[rgb(var(--bg))] py-8 sm:py-12 md:py-16 lg:py-20">
         <div className="container-responsive w-full">
           {/* Magazine-style Editorial Header */}
           <div className="mb-4 sm:mb-6 md:mb-8 lg:mb-12">
@@ -683,7 +679,7 @@ export default function Home() {
       </section>
 
       {/* Call to Action Section - 4th Section */}
-      <section className="snap-section bg-[rgb(var(--bg))] min-h-screen flex items-center py-8 sm:py-12 md:py-16 lg:py-20">
+      <section id="contact" className="snap-start h-screen flex items-center bg-[rgb(var(--bg))] py-8 sm:py-12 md:py-16 lg:py-20">
         <div className="container-responsive w-full">
             <div className="text-center">
             <div className="mb-8 sm:mb-12 md:mb-16 lg:mb-20 xl:mb-24">
@@ -714,7 +710,7 @@ export default function Home() {
       </section>
 
       {/* Footer section with comprehensive responsive spacing */}
-      <footer className="bg-[rgb(var(--bg))] border-t border-[rgb(var(--muted))]/10 responsive-bottom-spacing">
+      <footer className="text-center text-slate-400 py-8 snap-start bg-[rgb(var(--bg))] border-t border-[rgb(var(--muted))]/10 responsive-bottom-spacing">
         <div className="container-responsive">
           {/* Mobile: 432x874, 394x794, 412x891 - Compact spacing */}
           <div className="py-4 sm:py-6 md:py-8 lg:py-12 xl:py-16 2xl:py-20">
@@ -732,7 +728,7 @@ export default function Home() {
       {active && (
         <ModalViewer active={active} setActive={setActive} allArtworks={landscapeImages} />
       )}
-    </main>
+    </>
   )
 }
 
