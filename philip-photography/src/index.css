@@ -42,11 +42,9 @@
   button { @apply transition-colors; }
   html {
     scroll-behavior: smooth;
-    overflow: hidden; /* prevents the body/html from scrolling; the inner container handles scroll */
   }
   body { 
     height: 100%;
-    overflow: hidden; /* prevents the body from scrolling */
   }
   
   /* Bento Grid Specific Styles */

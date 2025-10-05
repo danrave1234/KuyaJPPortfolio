@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
@@ -27,7 +27,24 @@ function ScrollToTop() {
 }
 
 // Main scroll container component for scroll snapping
-function ScrollSnapContainer({ children, onActiveSectionChange }) {
+function ScrollSnapContainer({ children, onActiveSectionChange, onScroll }) {
+  const scrollContainerRef = useRef(null)
+
+  useEffect(() => {
+    // Prevent body scrolling when scroll snapping container is active
+    const originalOverflow = document.body.style.overflow
+    const originalHtmlOverflow = document.documentElement.style.overflow
+    
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+
+    return () => {
+      // Restore original overflow when component unmounts
+      document.body.style.overflow = originalOverflow
+      document.documentElement.style.overflow = originalHtmlOverflow
+    }
+  }, [])
+
   useEffect(() => {
     const observerOptions = {
       root: null,
@@ -50,9 +67,35 @@ function ScrollSnapContainer({ children, onActiveSectionChange }) {
     return () => observer.disconnect()
   }, [onActiveSectionChange])
 
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current
+    if (!scrollContainer) return
+
+    const handleScroll = (e) => {
+      // Emit scroll event to window for header detection
+      const scrollY = e.target.scrollTop
+      window.scrollY = scrollY
+      window.dispatchEvent(new Event('scroll'))
+      
+      // Call the onScroll callback if provided
+      if (onScroll) {
+        onScroll(scrollY)
+      }
+    }
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true })
+    
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleScroll)
+    }
+  }, [onScroll])
+
   return (
     <main className="">
-      <div className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth">
+      <div 
+        ref={scrollContainerRef}
+        className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth"
+      >
         {children}
       </div>
     </main>
@@ -61,15 +104,20 @@ function ScrollSnapContainer({ children, onActiveSectionChange }) {
 
 function App() {
   const [activeSection, setActiveSection] = useState('home')
+  const [scrolled, setScrolled] = useState(false)
+
+  const handleScroll = (scrollY) => {
+    setScrolled(scrollY > 10)
+  }
 
   return (
     <AuthProvider>
       <BrowserRouter>
         <ScrollToTop />
-        <Navbar activeSection={activeSection} />
+        <Navbar activeSection={activeSection} scrolled={scrolled} />
         <Routes>
           <Route path="/" element={
-            <ScrollSnapContainer onActiveSectionChange={setActiveSection}>
+            <ScrollSnapContainer onActiveSectionChange={setActiveSection} onScroll={handleScroll}>
               <Home />
             </ScrollSnapContainer>
           } />

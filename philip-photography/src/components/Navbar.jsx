@@ -3,18 +3,26 @@ import { useEffect, useState } from 'react'
 import { toggleTheme } from '../theme.js'
 import { Moon, Sun, Menu, X } from 'lucide-react'
 
-export default function Navbar({ activeSection = 'home' }) {
+export default function Navbar({ activeSection = 'home', scrolled = false }) {
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
-  const [scrolled, setScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [localScrolled, setLocalScrolled] = useState(false)
   const location = useLocation()
 
+  // Handle scroll detection for non-home pages
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+    if (location.pathname !== '/') {
+      const onScroll = () => setLocalScrolled(window.scrollY > 10)
+      onScroll()
+      window.addEventListener('scroll', onScroll, { passive: true })
+      return () => window.removeEventListener('scroll', onScroll)
+    } else {
+      setLocalScrolled(false)
+    }
+  }, [location.pathname])
+
+  // Use local scroll state for non-home pages, parent scroll state for home page
+  const isScrolled = location.pathname === '/' ? scrolled : localScrolled
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -40,18 +48,10 @@ export default function Navbar({ activeSection = 'home' }) {
     return () => document.removeEventListener('keydown', handleEscape)
   }, [])
 
-  // Handle navigation clicks with scrollIntoView
-  const handleNavClick = (e, href) => {
-    e.preventDefault()
-    const element = document.querySelector(href)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
-    }
-  }
   
   const isHomePage = location.pathname === '/'
-  const showBackground = scrolled || !isHomePage
-  const showBorder = scrolled || !isHomePage
+  const showBackground = isScrolled || !isHomePage
+  const showBorder = isScrolled || !isHomePage
 
   // Get current page name for mobile menu indicator
   const getCurrentPageName = () => {
@@ -91,46 +91,23 @@ export default function Navbar({ activeSection = 'home' }) {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-1">
-          {isHomePage ? (
-            <>
-              <button
-                onClick={(e) => handleNavClick(e, '#home')}
-                className={linkBase(activeSection === 'home')}
-              >Home</button>
-              <button
-                onClick={(e) => handleNavClick(e, '#about')}
-                className={linkBase(activeSection === 'about')}
-              >About</button>
-              <button
-                onClick={(e) => handleNavClick(e, '#experience')}
-                className={linkBase(activeSection === 'experience')}
-              >Experience</button>
-              <button
-                onClick={(e) => handleNavClick(e, '#contact')}
-                className={linkBase(activeSection === 'contact')}
-              >Contact</button>
-            </>
-          ) : (
-            <>
-              <NavLink
-                to="/"
-                end
-                className={({ isActive }) => linkBase(isActive)}
-              >Home</NavLink>
-              <NavLink
-                to="/gallery"
-                className={({ isActive }) => linkBase(isActive)}
-              >Gallery</NavLink>
-              <NavLink
-                to="/about"
-                className={({ isActive }) => linkBase(isActive)}
-              >About</NavLink>
-              <NavLink
-                to="/contact"
-                className={({ isActive }) => linkBase(isActive)}
-              >Contact</NavLink>
-            </>
-          )}
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) => linkBase(isActive)}
+          >Home</NavLink>
+          <NavLink
+            to="/gallery"
+            className={({ isActive }) => linkBase(isActive)}
+          >Gallery</NavLink>
+          <NavLink
+            to="/about"
+            className={({ isActive }) => linkBase(isActive)}
+          >About</NavLink>
+          <NavLink
+            to="/contact"
+            className={({ isActive }) => linkBase(isActive)}
+          >Contact</NavLink>
         </div>
 
         {/* Desktop Theme Toggle */}
@@ -179,110 +156,51 @@ export default function Navbar({ activeSection = 'home' }) {
             
             {/* Navigation Links */}
             <div className="space-y-1">
-              {isHomePage ? (
-                <>
-                  <button
-                    onClick={(e) => {
-                      handleNavClick(e, '#home')
-                      setIsMobileMenuOpen(false)
-                    }}
-                    className={mobileLinkBase(activeSection === 'home')}
-                  >
-                    <div className="flex items-center gap-3 mobile-link-enter">
-                      <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
-                      <span>Home</span>
-                      <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">🏠</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      handleNavClick(e, '#about')
-                      setIsMobileMenuOpen(false)
-                    }}
-                    className={mobileLinkBase(activeSection === 'about')}
-                  >
-                    <div className="flex items-center gap-3 mobile-link-enter">
-                      <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
-                      <span>About</span>
-                      <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">👤</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      handleNavClick(e, '#experience')
-                      setIsMobileMenuOpen(false)
-                    }}
-                    className={mobileLinkBase(activeSection === 'experience')}
-                  >
-                    <div className="flex items-center gap-3 mobile-link-enter">
-                      <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
-                      <span>Experience</span>
-                      <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">📸</div>
-                    </div>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      handleNavClick(e, '#contact')
-                      setIsMobileMenuOpen(false)
-                    }}
-                    className={mobileLinkBase(activeSection === 'contact')}
-                  >
-                    <div className="flex items-center gap-3 mobile-link-enter">
-                      <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
-                      <span>Contact</span>
-                      <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">📧</div>
-                    </div>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <NavLink
-                    to="/"
-                    end
-                    className={({ isActive }) => mobileLinkBase(isActive)}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <div className="flex items-center gap-3 mobile-link-enter">
-                      <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
-                      <span>Home</span>
-                      <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">🏠</div>
-                    </div>
-                  </NavLink>
-                  <NavLink
-                    to="/gallery"
-                    className={({ isActive }) => mobileLinkBase(isActive)}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <div className="flex items-center gap-3 mobile-link-enter">
-                      <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
-                      <span>Gallery</span>
-                      <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">📸</div>
-                    </div>
-                  </NavLink>
-                  <NavLink
-                    to="/about"
-                    className={({ isActive }) => mobileLinkBase(isActive)}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <div className="flex items-center gap-3 mobile-link-enter">
-                      <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
-                      <span>About</span>
-                      <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">👤</div>
-                    </div>
-                  </NavLink>
-                  <NavLink
-                    to="/contact"
-                    className={({ isActive }) => mobileLinkBase(isActive)}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <div className="flex items-center gap-3 mobile-link-enter">
-                      <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
-                      <span>Contact</span>
-                      <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">📧</div>
-                    </div>
-                  </NavLink>
-                </>
-              )}
+              <NavLink
+                to="/"
+                end
+                className={({ isActive }) => mobileLinkBase(isActive)}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <div className="flex items-center gap-3 mobile-link-enter">
+                  <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
+                  <span>Home</span>
+                  <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">🏠</div>
+                </div>
+              </NavLink>
+              <NavLink
+                to="/gallery"
+                className={({ isActive }) => mobileLinkBase(isActive)}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <div className="flex items-center gap-3 mobile-link-enter">
+                  <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
+                  <span>Gallery</span>
+                  <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">📸</div>
+                </div>
+              </NavLink>
+              <NavLink
+                to="/about"
+                className={({ isActive }) => mobileLinkBase(isActive)}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <div className="flex items-center gap-3 mobile-link-enter">
+                  <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
+                  <span>About</span>
+                  <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">👤</div>
+                </div>
+              </NavLink>
+              <NavLink
+                to="/contact"
+                className={({ isActive }) => mobileLinkBase(isActive)}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <div className="flex items-center gap-3 mobile-link-enter">
+                  <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
+                  <span>Contact</span>
+                  <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">📧</div>
+                </div>
+              </NavLink>
             </div>
             
             {/* Menu Footer */}
