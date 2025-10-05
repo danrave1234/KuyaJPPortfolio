@@ -95,6 +95,7 @@ function ScrollSnapContainer({ children, onActiveSectionChange, onScroll }) {
       <div 
         ref={scrollContainerRef}
         className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth"
+        style={{ height: '100vh' }}
       >
         {children}
       </div>

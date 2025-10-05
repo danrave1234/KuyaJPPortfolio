@@ -710,7 +710,7 @@ export default function Home() {
       </section>
 
       {/* Footer section with comprehensive responsive spacing */}
-      <footer className="text-center text-slate-400 py-8 snap-start bg-[rgb(var(--bg))] border-t border-[rgb(var(--muted))]/10 responsive-bottom-spacing">
+      <footer className="text-center text-slate-400 py-8 min-h-[20vh] bg-[rgb(var(--bg))] border-t border-[rgb(var(--muted))]/10 responsive-bottom-spacing">
         <div className="container-responsive">
           {/* Mobile: 432x874, 394x794, 412x891 - Compact spacing */}
           <div className="py-4 sm:py-6 md:py-8 lg:py-12 xl:py-16 2xl:py-20">
