@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useLayoutEffect, useState, useRef } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
@@ -11,16 +11,32 @@ import Contact from './pages/Contact.jsx'
 import Admin from './pages/Admin.jsx'
 
 // Component to scroll to top on route change
-function ScrollToTop() {
+function ScrollToTop({ onRouteChange }) {
   const { pathname } = useLocation()
 
+  // Ensure the browser doesn't try to restore scroll position automatically
   useEffect(() => {
-    // Scroll to top when pathname changes with smooth behavior
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: 'smooth'
-    })
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual'
+    }
+  }, [])
+
+  useLayoutEffect(() => {
+    // Force scroll position to the very top on every route change
+    const reset = () => {
+      // Reset all common scroll roots
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+      document.documentElement.scrollTop = 0
+      document.body.scrollTop = 0
+    }
+    // Run immediately and again on next frame to cover late paints
+    reset()
+    requestAnimationFrame(reset)
+
+    // Notify parent about route change
+    if (typeof onRouteChange === 'function') {
+      onRouteChange(pathname)
+    }
   }, [pathname])
 
   return null
@@ -91,11 +107,10 @@ function ScrollSnapContainer({ children, onActiveSectionChange, onScroll }) {
   }, [onScroll])
 
   return (
-    <main className="">
+    <main className="overflow-x-hidden">
       <div 
         ref={scrollContainerRef}
-        className="h-screen overflow-y-auto snap-y snap-mandatory scroll-smooth"
-        style={{ height: '100vh' }}
+        className="h-screen overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth"
       >
         {children}
       </div>
@@ -114,7 +129,12 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <ScrollToTop />
+        <ScrollToTop onRouteChange={(path) => {
+          // Ensure navbar returns to transparent state when landing on Home at top
+          if (path === '/') {
+            setScrolled(false)
+          }
+        }} />
         <Navbar activeSection={activeSection} scrolled={scrolled} />
         <Routes>
           <Route path="/" element={
@@ -122,9 +142,24 @@ function App() {
               <Home />
             </ScrollSnapContainer>
           } />
-          <Route path="/gallery" element={<Gallery />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
+          <Route path="/gallery" element={
+            <>
+              <Gallery />
+              <Footer />
+            </>
+          } />
+          <Route path="/about" element={
+            <>
+              <About />
+              <Footer />
+            </>
+          } />
+          <Route path="/contact" element={
+            <>
+              <Contact />
+              <Footer />
+            </>
+          } />
           <Route path="/admin" element={<Admin />} />
         </Routes>
         <BackToTop />

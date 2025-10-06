@@ -195,27 +195,21 @@ export default function Gallery() {
           seriesIndex: img.seriesIndex
         });
       } else {
-        // Individual image (not part of a series)
+        // Individual image (not part of a series) - store as flat artwork with src
         const individualName = `individual_${img.title || img.name}`;
         groups[individualName] = {
-          images: [{
-            id: img.id,
-            src: img.src,
-            title: img.title || img.name.replace(/\.[^/.]+$/, ""),
-            alt: img.alt || img.name,
-            description: img.description,
-            scientificName: img.scientificName,
-            location: img.location,
-            timeTaken: img.timeTaken,
-            history: img.history,
-            likes: img.likes,
-            path: img.path
-          }],
+          id: img.id,
+          src: img.src,
           title: img.title || img.name.replace(/\.[^/.]+$/, ""),
           alt: img.alt || img.name,
           isSeries: false,
           description: img.description || '',
-          scientificName: img.scientificName || ''
+          scientificName: img.scientificName || '',
+          location: img.location,
+          timeTaken: img.timeTaken,
+          history: img.history,
+          likes: img.likes,
+          path: img.path
         };
       }
     });
@@ -619,8 +613,18 @@ export default function Gallery() {
             <div className="lg:col-span-7">
               <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-2 sm:mb-3 transition-colors duration-300">Feature Portfolio</div>
               <h1 className="font-extrabold text-[rgb(var(--fg))] uppercase leading-[0.9] transition-colors duration-300">
-                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">Wildlife</span>
-                <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl opacity-90">Through My Lens</span>
+                {/* Primary title with emphasized accent */}
+                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">
+                  <span className="inline-block" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.25)' }}>
+                    Wildlife
+                    <span className="mt-2 block h-[4px] w-full bg-[rgb(var(--primary))] rounded-full" />
+                  </span>
+                </span>
+                {/* Secondary title with colored emphasis on LENS */}
+                <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl opacity-95 tracking-[0.06em]">
+                  Through My <span style={{ color: 'rgb(var(--primary))' }}>Lens</span>
+                </span>
+                <span className="mt-3 block h-[2px] bg-[rgb(var(--muted))]/25" />
               </h1>
               <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
                 <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">
@@ -1473,7 +1477,8 @@ function ModalViewer({ active, setActive, allArtworks }) {
                         e.target.style.transform = 'translateY(0px) scale(1)'
                         e.target.style.boxShadow = '0 4px 15px rgba(var(--primary), 0.15)'
                       }}
-                      title="Like this photo"
+                      title="Like this photo to show appreciation"
+                      aria-label="Like this photo to show appreciation"
                     >
                       {/* Animated background effect */}
                       <div 
@@ -1494,7 +1499,7 @@ function ModalViewer({ active, setActive, allArtworks }) {
                         />
                       </div>
                       
-                      {/* Like count with compact typography */}
+                      {/* Like count with compact typography and helper */}
                       <div className="relative z-10 flex flex-col items-start">
                         <span 
                           className="text-lg font-bold transition-all duration-300 group-hover:scale-105" 
@@ -1503,7 +1508,7 @@ function ModalViewer({ active, setActive, allArtworks }) {
                             textShadow: '0 1px 3px rgba(0,0,0,0.3)'
                           }}
                         >
-                          {currentImageData?.likes || 0}
+                          {(currentImageData?.likes || 0).toLocaleString?.() || (currentImageData?.likes || 0)}
                         </span>
                         <span 
                           className="text-xs font-medium transition-colors duration-300" 
@@ -1512,7 +1517,13 @@ function ModalViewer({ active, setActive, allArtworks }) {
                             letterSpacing: '0.5px'
                           }}
                         >
-                          {currentImageData?.likes === 1 ? 'LIKE' : 'LIKES'}
+                          {currentImageData?.likes === 1 ? 'Like' : 'Likes'}
+                        </span>
+                        <span 
+                          className="mt-0.5 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity duration-200" 
+                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
+                        >
+                          Click to add your appreciation
                         </span>
                       </div>
                       

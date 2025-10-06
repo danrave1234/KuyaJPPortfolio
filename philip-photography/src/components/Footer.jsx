@@ -16,7 +16,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {/* Brand section - always visible */}
           <div className="space-y-2 md:col-span-2 lg:col-span-1">
-            <div className="text-[10px] uppercase tracking-[0.25em]">Philip Photography</div>
+            <img
+              src={document.documentElement.classList.contains('dark') ? '/DarkmodeWithText.svg' : '/LightmodeWithText.svg'}
+              alt="Philip Photography"
+              className="h-8 w-auto"
+            />
             <p className="text-[rgb(var(--muted))] text-xs sm:text-sm">Wildlife and nature photography focused on patient observation and storytelling.</p>
           </div>
 

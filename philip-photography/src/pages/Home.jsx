@@ -241,7 +241,7 @@ export default function Home() {
   return (
     <>
       {/* Full-width hero */}
-      <section id="home" className="snap-start min-h-screen relative w-full">
+      <section id="home" className="snap-start min-h-screen relative w-full overflow-x-hidden">
         <div className="relative h-dvh">
           <img
             src="/Hero.jpg"
@@ -251,8 +251,8 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/30" />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <div className="text-center">
-              <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl font-bold text-white drop-shadow mb-4 sm:mb-6 md:mb-8 lg:mb-10">Philip Photography</h1>
-              <p className="text-white/90 max-w-2xl mx-auto text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl leading-relaxed lg:max-w-3xl">Capturing the beauty of wildlife, especially the magnificent diversity of bird species in their natural habitats.</p>
+              <h1 className="font-heading text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl font-bold text-white drop-shadow mb-4 sm:mb-6 md:mb-8 lg:mb-10">Philip Photography</h1>
+              <p className="font-body text-white/90 max-w-2xl mx-auto text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl leading-relaxed lg:max-w-3xl">Capturing the beauty of wildlife, especially the magnificent diversity of bird species in their natural habitats.</p>
               <Link to="/gallery" className="btn-outline border-white text-white hover:bg-white hover:text-black mt-6 sm:mt-8 md:mt-10 lg:mt-12 inline-block text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl px-4 sm:px-6 md:px-8 lg:px-10 py-2 sm:py-3 md:py-4 lg:py-5">VIEW GALLERY</Link>
             </div>
           </div>
@@ -368,7 +368,7 @@ export default function Home() {
           {/* Editorial masthead - mobile optimized */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 md:gap-6 lg:gap-8 xl:gap-12 items-center">
             <div className="lg:col-span-7 text-left">
-              <h2 className="font-extrabold leading-tight max-w-2xl">
+              <h2 className="font-heading font-extrabold leading-tight max-w-2xl">
                   <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl text-[rgb(var(--primary))]">John Philip Morada</span>
                   <span className="block text-sm sm:text-base md:text-lg lg:text-2xl xl:text-3xl 2xl:text-4xl text-[rgb(var(--fg))] mt-1">Wildlife & Bird Photography</span>
                 </h2>
@@ -430,7 +430,7 @@ export default function Home() {
                   <div className="text-[10px] sm:text-xs md:text-sm uppercase tracking-[0.2em] text-[rgb(var(--muted))] mb-1">
                     Featured Collection
                   </div>
-                  <div className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-[rgb(var(--fg))] leading-tight">
+                    <div className="font-heading text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-[rgb(var(--fg))] leading-tight">
                     Selected Works
                   </div>
                   <div className="text-xs sm:text-sm md:text-base lg:text-lg text-[rgb(var(--muted-fg))] mt-2">
@@ -530,7 +530,7 @@ export default function Home() {
                           {/* Info panel */}
                           <div className="absolute bottom-3 left-3 right-3 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100">
                             <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
-                              <p className="text-white text-sm font-semibold">
+                              <p className="font-heading text-white text-sm font-semibold">
                                 {featuredImage.title}
                               </p>
                               <p className="text-white/80 text-xs">
@@ -601,10 +601,10 @@ export default function Home() {
                             {/* Magazine info panel */}
                             <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 opacity-0 group-hover:opacity-100">
                               <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/10">
-                                <div className="text-white text-[10px] sm:text-xs font-mono tracking-widest opacity-90 mb-1">
+                              <div className="font-heading text-white text-[10px] sm:text-xs font-mono tracking-widest opacity-90 mb-1">
                                   Featured {String(index + 1).padStart(2, '0')}
                                 </div>
-                                <div className="text-white text-xs sm:text-sm font-semibold uppercase tracking-wide truncate">
+                                <div className="font-heading text-white text-xs sm:text-sm font-semibold uppercase tracking-wide truncate">
                                   {photo.title}
                                 </div>
                               </div>
@@ -710,15 +710,67 @@ export default function Home() {
       </section>
 
       {/* Footer section with comprehensive responsive spacing */}
-      <footer className="text-center text-slate-400 py-8 min-h-[20vh] bg-[rgb(var(--bg))] border-t border-[rgb(var(--muted))]/10 responsive-bottom-spacing">
-        <div className="container-responsive">
-          {/* Mobile: 432x874, 394x794, 412x891 - Compact spacing */}
-          <div className="py-4 sm:py-6 md:py-8 lg:py-12 xl:py-16 2xl:py-20">
-            <div className="text-center">
-              {/* Copyright moved here */}
-              <div className="text-center text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl text-[rgb(var(--muted))] tracking-widest uppercase">
-                © {new Date().getFullYear()} Philip Photography
+      <footer id="footer" className="snap-start bg-[rgb(var(--bg))] border-t border-[rgb(var(--muted))]/10 min-h-screen flex items-center">
+        <div className="container-responsive w-full">
+          <div className="py-6 sm:py-8 md:py-10 text-sm text-[rgb(var(--muted))]">
+            {/* Mobile: Single column, Desktop: Multi-column */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+              {/* Brand section - always visible */}
+              <div className="space-y-2 md:col-span-2 lg:col-span-1">
+                <div className="text-[10px] uppercase tracking-[0.25em]">Philip Photography</div>
+                <p className="text-[rgb(var(--muted))] text-xs sm:text-sm">Wildlife and nature photography focused on patient observation and storytelling.</p>
               </div>
+
+              {/* Navigation - hidden on mobile, visible on tablet+ */}
+              <nav className="space-y-2 hidden md:block">
+                <div className="text-[10px] uppercase tracking-[0.25em]">Navigate</div>
+                <ul className="space-y-1">
+                  <li><button onClick={() => document.querySelector('#home')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">Home</button></li>
+                  <li><button onClick={() => document.querySelector('#about')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">About</button></li>
+                  <li><button onClick={() => document.querySelector('#experience')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">Experience</button></li>
+                  <li><button onClick={() => document.querySelector('#contact')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">Contact</button></li>
+                </ul>
+              </nav>
+
+              {/* Contact - simplified for mobile */}
+              <div className="space-y-2">
+                <div className="text-[10px] uppercase tracking-[0.25em]">Contact</div>
+                <ul className="space-y-1">
+                  <li><a href="mailto:danravekeh123@gmail.com" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">danravekeh123@gmail.com</a></li>
+                  <li><span className="text-xs sm:text-sm hidden sm:block">Based in Philippines • Available worldwide</span>
+                      <span className="text-xs sm:hidden">Philippines • Worldwide</span></li>
+                </ul>
+              </div>
+
+              {/* Social - simplified for mobile */}
+              <div className="space-y-2">
+                <div className="text-[10px] uppercase tracking-[0.25em]">Social</div>
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <a href="https://instagram.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="Instagram">
+                    <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                    </svg>
+                    <span className="text-xs sm:text-sm hidden sm:inline">Instagram</span>
+                  </a>
+                  <a href="https://facebook.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="Facebook">
+                    <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    <span className="text-xs sm:text-sm hidden sm:inline">Facebook</span>
+                  </a>
+                  <a href="https://youtube.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="YouTube">
+                    <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                    <span className="text-xs sm:text-sm hidden sm:inline">YouTube</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer bottom - simplified for mobile */}
+            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
+              <span className="text-xs sm:text-sm text-center sm:text-left">© {new Date().getFullYear()} Philip Photography. All rights reserved.</span>
             </div>
           </div>
         </div>
@@ -741,6 +793,18 @@ function ModalViewer({ active, setActive, allArtworks }) {
   const activeRef = useRef(active)
   useEffect(() => { activeRef.current = active }, [active])
   
+  // Cache to maintain updated likes across navigation
+  const likesCache = useRef(new Map())
+  
+  // Helper function to get artwork with cached likes
+  const getArtworkWithCachedLikes = (artwork) => {
+    const cachedLikes = likesCache.current.get(artwork.id)
+    return {
+      ...artwork,
+      likes: cachedLikes !== undefined ? cachedLikes : artwork.likes
+    }
+  }
+
   // Simple navigation functions - move between artworks
   const navigateLeft = () => {
     const currentActive = activeRef.current
@@ -749,8 +813,8 @@ function ModalViewer({ active, setActive, allArtworks }) {
     const currentIndex = allArtworks.findIndex(art => art.id === currentActive.art.id)
     
     if (currentIndex > 0) {
-      // Navigate to previous artwork
-      const prevArt = allArtworks[currentIndex - 1]
+      // Navigate to previous artwork with cached likes
+      const prevArt = getArtworkWithCachedLikes(allArtworks[currentIndex - 1])
       setActive({ art: prevArt, idx: 0 })
     }
   }
@@ -762,8 +826,8 @@ function ModalViewer({ active, setActive, allArtworks }) {
     const currentIndex = allArtworks.findIndex(art => art.id === currentActive.art.id)
     
     if (currentIndex < allArtworks.length - 1) {
-      // Navigate to next artwork
-      const nextArt = allArtworks[currentIndex + 1]
+      // Navigate to next artwork with cached likes
+      const nextArt = getArtworkWithCachedLikes(allArtworks[currentIndex + 1])
       setActive({ art: nextArt, idx: 0 })
     }
   }
@@ -1010,6 +1074,9 @@ function ModalViewer({ active, setActive, allArtworks }) {
       const result = await response.json();
       
       if (result.success) {
+        // Store the updated likes count in cache
+        likesCache.current.set(art.id, result.newLikesCount)
+        
         // Update the active artwork's likes count
         setActive(prev => ({
           ...prev,

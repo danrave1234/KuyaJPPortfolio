@@ -91,62 +91,10 @@ exports.getGalleryImages = functions.region('asia-southeast1').https.onRequest(a
     // Wait for all images to be processed
     const images = (await Promise.all(imagePromises)).filter(img => img !== null);
 
-    // Group images by series with proper sorting
-    const groups = {};
-    
-    images.forEach(img => {
-      if (img.isSeries && img.title) {
-        if (!groups[img.title]) {
-          groups[img.title] = {
-            images: [],
-            seriesData: [], // Store full image data for sorting
-            title: img.title,
-            alt: `${img.title} images`,
-            isSeries: true,
-            description: img.description || ''
-          };
-        }
-        groups[img.title].seriesData.push({
-          src: img.src,
-          seriesIndex: img.seriesIndex,
-          name: img.name
-        });
-      } else {
-        const individualName = `individual_${img.title || img.name}`;
-        groups[individualName] = {
-          images: [img.src],
-          title: img.title || img.name,
-          alt: img.alt || img.name,
-          isSeries: false,
-          description: img.description || ''
-        };
-      }
-    });
-
-    // Sort series images by their index and extract src arrays
-    Object.values(groups).forEach(group => {
-      if (group.isSeries && group.seriesData) {
-        group.seriesData.sort((a, b) => a.seriesIndex - b.seriesIndex);
-        group.images = group.seriesData.map(item => item.src);
-        delete group.seriesData; // Clean up
-      }
-    });
-
-    const groupedImages = Object.values(groups);
-
-    // Convert to artwork format
-    const artworkArray = groupedImages.map((group, index) => ({
-      id: index + 1,
-      images: group.images,
-      title: group.title,
-      alt: group.alt,
-      isSeries: group.isSeries,
-      description: group.description || ''
-    }));
-
     res.json({
       success: true,
-      images: artworkArray,
+      // Return flat image objects; frontend will group as needed
+      images,
       pagination: {
         page,
         limit,
@@ -271,62 +219,10 @@ exports.searchGalleryImages = functions.region('asia-southeast1').https.onReques
     const paginatedImages = filteredImages.slice(offset, offset + limit);
     const hasMore = offset + limit < totalCount;
 
-    // Group images by series with proper sorting
-    const groups = {};
-    
-    paginatedImages.forEach(img => {
-      if (img.isSeries && img.title) {
-        if (!groups[img.title]) {
-          groups[img.title] = {
-            images: [],
-            seriesData: [], // Store full image data for sorting
-            title: img.title,
-            alt: `${img.title} images`,
-            isSeries: true,
-            description: img.description || ''
-          };
-        }
-        groups[img.title].seriesData.push({
-          src: img.src,
-          seriesIndex: img.seriesIndex,
-          name: img.name
-        });
-      } else {
-        const individualName = `individual_${img.title || img.name}`;
-        groups[individualName] = {
-          images: [img.src],
-          title: img.title || img.name,
-          alt: img.alt || img.name,
-          isSeries: false,
-          description: img.description || ''
-        };
-      }
-    });
-
-    // Sort series images by their index and extract src arrays
-    Object.values(groups).forEach(group => {
-      if (group.isSeries && group.seriesData) {
-        group.seriesData.sort((a, b) => a.seriesIndex - b.seriesIndex);
-        group.images = group.seriesData.map(item => item.src);
-        delete group.seriesData; // Clean up
-      }
-    });
-
-    const groupedImages = Object.values(groups);
-
-    // Convert to artwork format
-    const artworkArray = groupedImages.map((group, index) => ({
-      id: index + 1,
-      images: group.images,
-      title: group.title,
-      alt: group.alt,
-      isSeries: group.isSeries,
-      description: group.description || ''
-    }));
-
     res.json({
       success: true,
-      images: artworkArray,
+      // Return flat image objects; frontend will group as needed
+      images: paginatedImages,
       pagination: {
         page,
         limit,

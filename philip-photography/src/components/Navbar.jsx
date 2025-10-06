@@ -84,7 +84,7 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
       <nav className="container-responsive h-14 md:h-16 flex items-center justify-between">
         {/* Logo */}
         <div>
-          <Link to="/" className={`font-semibold transition-colors duration-300 ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'}`}>
+          <Link to="/" className={`font-semibold font-heading transition-colors duration-300 ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'}`}>
             Philip Photography
           </Link>
         </div>
