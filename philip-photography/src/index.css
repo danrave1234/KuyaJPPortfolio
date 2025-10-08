@@ -25,7 +25,7 @@ body {
   padding: 0;
 }
 
-/* Google-style scroll snap behavior */
+/* Mobile-friendly scroll snap behavior */
 .snap-y {
   /* Smooth scrolling like Google */
   -webkit-overflow-scrolling: touch;
@@ -34,6 +34,10 @@ body {
   /* Use dynamic viewport height */
   height: 100vh;
   height: 100dvh;
+  /* Allow URL bar hiding on mobile */
+  overflow-y: auto;
+  /* Better mobile touch handling */
+  touch-action: pan-y;
 }
 
 .snap-start {

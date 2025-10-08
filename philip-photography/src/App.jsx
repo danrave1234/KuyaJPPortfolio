@@ -49,15 +49,26 @@ function ScrollSnapContainer({ children, onActiveSectionChange, onScroll }) {
   const scrollContainerRef = useRef(null)
 
   useEffect(() => {
-    // Only prevent body scrolling when scroll snapping container is active
+    // Detect mobile devices
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    
+    // Store original styles
     const originalBodyOverflow = document.body.style.overflow
     const originalHtmlOverflow = document.documentElement.style.overflow
     
-    document.body.style.overflow = 'hidden'
-    document.documentElement.style.overflow = 'hidden'
+    if (isMobile) {
+      // On mobile, don't block body scroll to allow URL bar hiding
+      // The scroll snap container will handle the snapping behavior
+      document.body.style.overflow = 'auto'
+      document.documentElement.style.overflow = 'auto'
+    } else {
+      // On desktop, maintain the original behavior
+      document.body.style.overflow = 'hidden'
+      document.documentElement.style.overflow = 'hidden'
+    }
 
     return () => {
-      // Restore original overflow when component unmounts
+      // Restore original styles when component unmounts
       document.body.style.overflow = originalBodyOverflow
       document.documentElement.style.overflow = originalHtmlOverflow
     }
@@ -139,11 +150,21 @@ function ScrollSnapContainer({ children, onActiveSectionChange, onScroll }) {
     }
   }, [onScroll])
 
+  // Detect mobile devices for better URL bar handling
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  
   return (
     <main className="overflow-x-hidden">
       <div 
         ref={scrollContainerRef}
-        className="h-screen overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth"
+        className={`overflow-x-hidden snap-y snap-mandatory scroll-smooth ${
+          isMobile ? 'h-screen overflow-y-auto' : 'h-screen overflow-y-auto'
+        }`}
+        style={{
+          // Mobile-specific viewport handling
+          height: isMobile ? '100vh' : '100vh',
+          minHeight: isMobile ? '100vh' : '100vh'
+        }}
       >
         {children}
       </div>
