@@ -10,16 +10,23 @@ html {
   /* Handle viewport changes better */
   height: 100%;
   height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  /* Force URL bar to hide */
+  height: 100vh;
+  height: -webkit-fill-available;
 }
 
 body {
   /* Ensure proper height handling */
   min-height: 100vh;
   min-height: 100dvh;
+  min-height: -webkit-fill-available;
   /* Prevent overscroll bounce on iOS */
   overscroll-behavior: none;
   /* Better touch handling */
   touch-action: pan-y;
+  /* Force full viewport height */
+  height: 100vh;
+  height: -webkit-fill-available;
 }
 
 /* Improve scroll snap behavior on mobile */
@@ -28,17 +35,25 @@ body {
   -webkit-overflow-scrolling: touch;
   /* Ensure proper snap behavior */
   scroll-snap-type: y mandatory;
-  /* Handle viewport changes */
+  /* Handle viewport changes - force full height */
   height: 100vh;
   height: 100dvh;
+  height: -webkit-fill-available;
+  /* Force URL bar to hide */
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
 }
 
 .snap-start {
   /* Ensure sections snap properly */
   scroll-snap-align: start;
-  /* Better mobile handling */
+  /* Better mobile handling - force full height */
   min-height: 100vh;
   min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  /* Force URL bar hiding */
+  height: 100vh;
+  height: -webkit-fill-available;
 }
 
 @layer base {
