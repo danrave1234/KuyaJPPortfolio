@@ -612,17 +612,17 @@ export default function Gallery() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
             <div className="lg:col-span-7">
               <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-2 sm:mb-3 transition-colors duration-300">Feature Portfolio</div>
-              <h1 className="font-extrabold text-[rgb(var(--fg))] uppercase leading-[0.9] transition-colors duration-300">
+              <h1 className="font-extrabold text-[rgb(var(--fg))] uppercase leading-[0.9] transition-colors duration-300" style={{ letterSpacing: '0.20em', fontKerning: 'none', fontVariantLigatures: 'none' }}>
                 {/* Primary title with emphasized accent */}
-                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">
+                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl" style={{ letterSpacing: '0.18em', fontKerning: 'none', fontVariantLigatures: 'none' }}>
                   <span className="inline-block" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.25)' }}>
                     Wildlife
                     <span className="mt-2 block h-[4px] w-full bg-[rgb(var(--primary))] rounded-full" />
                   </span>
                 </span>
                 {/* Secondary title with colored emphasis on LENS */}
-                <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl opacity-95 tracking-[0.06em]">
-                  Through My <span style={{ color: 'rgb(var(--primary))' }}>Lens</span>
+                <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl opacity-95" style={{ letterSpacing: '0.16em', fontKerning: 'none', fontVariantLigatures: 'none' }}>
+                  Through My <span style={{ color: 'rgb(var(--primary))', letterSpacing: '0.18em', fontKerning: 'none', fontVariantLigatures: 'none' }}>Lens</span>
                 </span>
                 <span className="mt-3 block h-[2px] bg-[rgb(var(--muted))]/25" />
               </h1>

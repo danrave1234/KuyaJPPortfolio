@@ -53,11 +53,18 @@ function ScrollSnapContainer({ children, onActiveSectionChange, onScroll }) {
     
     document.body.style.overflow = 'hidden'
     document.documentElement.style.overflow = 'hidden'
+    
+    // Also set position fixed to prevent mobile browser URL bar issues
+    const originalBodyPosition = document.body.style.position
+    document.body.style.position = 'fixed'
+    document.body.style.width = '100%'
 
     return () => {
-      // Restore original overflow when component unmounts
+      // Restore original styles when component unmounts
       document.body.style.overflow = originalOverflow
       document.documentElement.style.overflow = originalHtmlOverflow
+      document.body.style.position = originalBodyPosition
+      document.body.style.width = ''
     }
   }, [])
 
@@ -87,22 +94,54 @@ function ScrollSnapContainer({ children, onActiveSectionChange, onScroll }) {
     const scrollContainer = scrollContainerRef.current
     if (!scrollContainer) return
 
+    let ticking = false
+    
     const handleScroll = (e) => {
-      // Emit scroll event to window for header detection
-      const scrollY = e.target.scrollTop
-      window.scrollY = scrollY
-      window.dispatchEvent(new Event('scroll'))
-      
-      // Call the onScroll callback if provided
-      if (onScroll) {
-        onScroll(scrollY)
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          // Emit scroll event to window for header detection
+          const scrollY = e.target.scrollTop
+          window.scrollY = scrollY
+          window.dispatchEvent(new Event('scroll'))
+          
+          // Call the onScroll callback if provided
+          if (onScroll) {
+            onScroll(scrollY)
+          }
+          
+          ticking = false
+        })
+        ticking = true
       }
     }
 
+    // Also listen for window resize events to handle URL bar changes
+    const handleResize = () => {
+      if (onScroll) {
+        // Use requestAnimationFrame to ensure proper timing
+        requestAnimationFrame(() => {
+          onScroll(scrollContainer.scrollTop)
+        })
+      }
+    }
+
+    // Initial scroll state check
+    const initialScrollCheck = () => {
+      if (onScroll) {
+        onScroll(scrollContainer.scrollTop)
+      }
+    }
+    
+    // Run initial check after a short delay to ensure proper initialization
+    const initialTimeout = setTimeout(initialScrollCheck, 100)
+
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', handleResize, { passive: true })
     
     return () => {
+      clearTimeout(initialTimeout)
       scrollContainer.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', handleResize)
     }
   }, [onScroll])
 
@@ -123,7 +162,8 @@ function App() {
   const [scrolled, setScrolled] = useState(false)
 
   const handleScroll = (scrollY) => {
-    setScrolled(scrollY > 10)
+    // Use a smaller threshold and add some tolerance for mobile browser quirks
+    setScrolled(scrollY > 5)
   }
 
   return (
@@ -133,6 +173,8 @@ function App() {
           // Ensure navbar returns to transparent state when landing on Home at top
           if (path === '/') {
             setScrolled(false)
+            // Also reset scroll position to ensure clean state
+            setTimeout(() => setScrolled(false), 100)
           }
         }} />
         <Navbar activeSection={activeSection} scrolled={scrolled} />

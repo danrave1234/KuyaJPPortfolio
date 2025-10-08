@@ -1,9 +1,51 @@
 @import "tailwindcss";
+
+/* Improve mobile viewport handling for browser URL bar behavior */
+html {
+  /* Prevent zoom on input focus on iOS */
+  -webkit-text-size-adjust: 100%;
+  /* Improve scroll behavior */
+  scroll-behavior: smooth;
+  /* Handle viewport changes better */
+  height: 100%;
+  height: 100dvh; /* Dynamic viewport height for mobile browsers */
+}
+
+body {
+  /* Ensure proper height handling */
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* Prevent overscroll bounce on iOS */
+  overscroll-behavior: none;
+  /* Better touch handling */
+  touch-action: pan-y;
+}
+
+/* Improve scroll snap behavior on mobile */
+.snap-y {
+  /* Better scroll snap on mobile browsers */
+  -webkit-overflow-scrolling: touch;
+  /* Ensure proper snap behavior */
+  scroll-snap-type: y mandatory;
+  /* Handle viewport changes */
+  height: 100vh;
+  height: 100dvh;
+}
+
+.snap-start {
+  /* Ensure sections snap properly */
+  scroll-snap-align: start;
+  /* Better mobile handling */
+  min-height: 100vh;
+  min-height: 100dvh;
+}
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@300;400;500;600;700;800&display=swap');
 
 @layer base {
   html, body, #root {
-    height: 100%;
+    /* Allow mobile browsers to collapse the URL bar on scroll */
+    min-height: 100dvh;
+    height: auto;
   }
   html, body {
     margin: 0;
@@ -14,6 +56,10 @@
   :root {
     --font-body: 'Manrope', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
     --font-heading: 'DM Serif Display', ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --track-heading: 0.04em;
+    --track-body: 0.01em;
+    --track-paragraph: 0.008em;
+    --track-small: 0.02em;
   }
   :root {
     /* Dawn Mist (warm, photo-friendly light theme) */
@@ -43,25 +89,30 @@
                       radial-gradient(900px 600px at 108% 118%, rgba(var(--bg-accent), 0.45) 0%, rgba(var(--bg), 0) 60%);
   }
   /* Headings use premium serif */
-  h1, h2, h3, h4, h5, h6 {
+  h1, h2, h3, h4, h5, h6, .font-heading {
     font-family: var(--font-heading);
     font-weight: 400;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    letter-spacing: var(--track-heading) !important;
   }
 
   /* Refined, editorial rhythm for headings */
-  h1 { letter-spacing: -0.01em; line-height: 1.1; }
-  h2 { letter-spacing: -0.005em; line-height: 1.15; }
-  h3 { letter-spacing: 0; line-height: 1.2; }
-  h4 { letter-spacing: 0; line-height: 1.25; }
-  h5 { letter-spacing: 0.005em; line-height: 1.3; }
-  h6 { letter-spacing: 0.01em; line-height: 1.35; }
+  h1 { line-height: 1.1; }
+  h2 { line-height: 1.15; }
+  h3 { line-height: 1.2; }
+  h4 { line-height: 1.25; }
+  h5 { line-height: 1.3; }
+  h6 { line-height: 1.35; }
 
   /* Body copy refinements */
-  body { font-weight: 400; letter-spacing: 0; }
+  body { font-weight: 400; letter-spacing: var(--track-body) !important; }
+  /* Default tracking for common text elements (excluding headings) */
+  body :where(p, li, span, div, a, label, input, textarea, button, small, figcaption) {
+    letter-spacing: var(--track-paragraph) !important;
+  }
   p { line-height: 1.7; }
-  small, .caption { line-height: 1.6; opacity: 0.9; }
+  small, .caption { line-height: 1.6; opacity: 0.9; letter-spacing: var(--track-small) !important; }
 
   /* Premium default: rely on component/tailwind sizes without extra tracking tweaks */
   body { font-weight: 400; }
@@ -89,7 +140,8 @@
     width: 100%;
   }
   body {
-    height: 100%;
+    min-height: 100dvh;
+    height: auto;
     overflow-y: auto; /* Avoid forcing extra gutter on both sides */
   }
 
@@ -102,6 +154,12 @@
       radial-gradient(700px 600px at -10% 110%, rgba(var(--bg-accent), 0.18) 0%, rgba(var(--bg), 0) 70%);
     background-color: rgb(var(--bg));
     background-attachment: fixed;
+  }
+  /* On mobile, avoid fixed backgrounds which prevents URL bar collapse */
+  @media (max-width: 768px) {
+    :root.dark body, .dark body {
+      background-attachment: scroll;
+    }
   }
   
   /* Bento Grid Specific Styles */

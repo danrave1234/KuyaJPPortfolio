@@ -251,7 +251,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/30" />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <div className="text-center">
-              <h1 className="font-heading text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl font-bold text-white drop-shadow mb-4 sm:mb-6 md:mb-8 lg:mb-10">Philip Photography</h1>
+              <h1 className="font-heading text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl font-bold text-white drop-shadow mb-4 sm:mb-6 md:mb-8 lg:mb-10" style={{ letterSpacing: '0.12em', fontKerning: 'none' }}>Philip Photography</h1>
               <p className="font-body text-white/90 max-w-2xl mx-auto text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl leading-relaxed lg:max-w-3xl">Capturing the beauty of wildlife, especially the magnificent diversity of bird species in their natural habitats.</p>
               <Link to="/gallery" className="btn-outline border-white text-white hover:bg-white hover:text-black mt-6 sm:mt-8 md:mt-10 lg:mt-12 inline-block text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl px-4 sm:px-6 md:px-8 lg:px-10 py-2 sm:py-3 md:py-4 lg:py-5">VIEW GALLERY</Link>
             </div>
@@ -318,7 +318,7 @@ export default function Home() {
                   </div>
                 </div>
                 
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 hidden xl:block">
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 hidden 2xl:block">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden">
                       <img 
@@ -337,7 +337,7 @@ export default function Home() {
                   </div>
                 </div>
                 
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 hidden xl:block">
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 hidden 2xl:block">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden">
                       <img 
@@ -368,14 +368,51 @@ export default function Home() {
           {/* Editorial masthead - mobile optimized */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 md:gap-6 lg:gap-8 xl:gap-12 items-center">
             <div className="lg:col-span-7 text-left">
-              <h2 className="font-heading font-extrabold leading-tight max-w-2xl">
-                  <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl text-[rgb(var(--primary))]">John Philip Morada</span>
-                  <span className="block text-sm sm:text-base md:text-lg lg:text-2xl xl:text-3xl 2xl:text-4xl text-[rgb(var(--fg))] mt-1">Wildlife & Bird Photography</span>
+              <h2 className="font-heading font-extrabold leading-tight max-w-2xl" style={{ letterSpacing: '0.10em', fontKerning: 'none' }}>
+                  <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl text-[rgb(var(--primary))]" style={{ letterSpacing: '0.12em', fontKerning: 'none' }}>John Philip Morada</span>
+                  <span className="block text-sm sm:text-base md:text-lg lg:text-2xl xl:text-3xl 2xl:text-4xl text-[rgb(var(--fg))] mt-1" style={{ letterSpacing: '0.10em', fontKerning: 'none' }}>Wildlife & Bird Photography</span>
                 </h2>
                 <div className="mt-1 sm:mt-2 md:mt-3 lg:mt-3 h-[2px] sm:h-[3px] md:h-[4px] lg:h-[4px] w-12 sm:w-16 md:w-20 lg:w-20 xl:w-24 2xl:w-28 bg-[rgb(var(--primary))]" />
               <p className="mt-1 sm:mt-2 md:mt-3 lg:mt-3 text-[rgb(var(--muted-fg))] text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl leading-relaxed max-w-2xl">
                   Based in the Philippines. Field-driven work focused on light, timing, and honest stories from the wild.
                 </p>
+                
+                {/* Personal Philosophy - Mobile visible */}
+                <div className="mt-4 sm:mt-5 md:mt-6 lg:mt-6 xl:mt-7 space-y-3 sm:space-y-4">
+                  <div className="bg-[rgb(var(--muted))]/5 rounded-lg p-3 sm:p-4 border border-[rgb(var(--muted))]/20">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-[rgb(var(--primary))]/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg className="w-3 h-3 text-[rgb(var(--primary))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="text-xs sm:text-sm font-semibold text-[rgb(var(--fg))] mb-1">Photography Philosophy</h4>
+                        <p className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] leading-relaxed">
+                          Every image tells a story of <span className="font-semibold text-[rgb(var(--primary))]">coexistence</span> between humanity and nature, 
+                          capturing moments that inspire <span className="font-semibold text-[rgb(var(--primary))]">conservation</span> and wonder.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-[rgb(var(--muted))]/5 rounded-lg p-3 sm:p-4 border border-[rgb(var(--muted))]/20">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-[rgb(var(--primary))]/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg className="w-3 h-3 text-[rgb(var(--primary))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="text-xs sm:text-sm font-semibold text-[rgb(var(--fg))] mb-1">Field Approach</h4>
+                        <p className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] leading-relaxed">
+                          Combining <span className="font-semibold text-[rgb(var(--primary))]">scientific precision</span> with artistic vision, 
+                          each expedition is a journey of <span className="font-semibold text-[rgb(var(--primary))]">discovery</span> and respect.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 {/* Portfolio badge - hidden on mobile */}
                 <div className="mt-3 sm:mt-4 md:mt-5 lg:mt-6 flex items-center gap-2 sm:gap-3 md:gap-4 hidden sm:flex">
                   <div className="inline-block rounded-full px-2 sm:px-3 md:px-4 lg:px-5 py-1 sm:py-2 md:py-3 text-[9px] sm:text-[10px] md:text-xs lg:text-base xl:text-lg uppercase tracking-[0.25em] bg-[rgb(var(--muted))]/10 text-[rgb(var(--muted))]">Portfolio</div>
@@ -397,6 +434,26 @@ export default function Home() {
                     <div className="text-[9px] sm:text-[10px] md:text-xs lg:text-[8px] xl:text-[9px] 2xl:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-0.5 lg:mt-0.5">Available</div>
                   </div>
                 </div>
+                
+                {/* Personal Journey - Desktop only */}
+                
+                {/* Call to Action - Mobile visible */}
+                <div className="mt-4 sm:mt-5 md:mt-6 lg:mt-6 xl:mt-7 lg:hidden">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    <button 
+                      onClick={() => document.querySelector('#contact')?.scrollIntoView({ behavior: 'smooth' })}
+                      className="inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium rounded-lg bg-[rgb(var(--primary))] text-white hover:bg-[rgb(var(--primary))]/90 transition-colors duration-300"
+                    >
+                      Get In Touch
+                    </button>
+                    <button 
+                      onClick={() => document.querySelector('#experience')?.scrollIntoView({ behavior: 'smooth' })}
+                      className="inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium rounded-lg border border-[rgb(var(--muted))]/30 text-[rgb(var(--fg))] hover:border-[rgb(var(--primary))]/50 transition-colors duration-300"
+                    >
+                      View Work
+                    </button>
+                  </div>
+                </div>
               </div>
               {/* Hero image - always visible but responsive sizing */}
             <div className="lg:col-span-5 lg:justify-self-end mt-4 sm:mt-6 lg:mt-0">
@@ -407,7 +464,8 @@ export default function Home() {
                     className="w-full aspect-square object-cover rounded-xl sm:rounded-2xl md:rounded-3xl lg:rounded-3xl xl:rounded-3xl shadow-xl border border-black/10 dark:border-white/10 hover:shadow-2xl transition-shadow duration-300"
                   />
                   <figcaption className="absolute bottom-2 sm:bottom-3 md:bottom-4 lg:bottom-5 left-2 sm:left-3 md:left-4 lg:left-5 right-2 sm:right-3 md:right-4 lg:right-5 px-3 sm:px-4 md:px-5 lg:px-6 py-1.5 sm:py-2 md:py-3 lg:py-4 rounded-lg text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl backdrop-blur-md bg-black/30 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    In the field: patience, light, and timing.
+                    <div className="font-semibold mb-1">In the Field</div>
+                    <div className="text-xs sm:text-sm opacity-90">Where patience meets passion, and light reveals truth</div>
                   </figcaption>
                   <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl md:rounded-3xl lg:rounded-3xl xl:rounded-3xl ring-1 ring-inset ring-black/10 dark:ring-white/10" />
                 </figure>
@@ -758,11 +816,11 @@ export default function Home() {
                     </svg>
                     <span className="text-xs sm:text-sm hidden sm:inline">Facebook</span>
                   </a>
-                  <a href="https://youtube.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="YouTube">
+                  <a href="https://x.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="X (formerly Twitter)">
                     <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                     </svg>
-                    <span className="text-xs sm:text-sm hidden sm:inline">YouTube</span>
+                    <span className="text-xs sm:text-sm hidden sm:inline">X</span>
                   </a>
                 </div>
               </div>

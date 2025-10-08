@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Instagram, Facebook, Youtube } from 'lucide-react'
+import { Instagram, Facebook } from 'lucide-react'
 
 export default function Footer() {
   const navigate = useNavigate()
@@ -57,9 +57,11 @@ export default function Footer() {
                 <Facebook size={16} className="sm:w-[18px] sm:h-[18px]" />
                 <span className="text-xs sm:text-sm hidden sm:inline">Facebook</span>
               </a>
-              <a href="https://youtube.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="YouTube">
-                <Youtube size={16} className="sm:w-[18px] sm:h-[18px]" />
-                <span className="text-xs sm:text-sm hidden sm:inline">YouTube</span>
+              <a href="https://x.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="X (formerly Twitter)">
+                <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+                <span className="text-xs sm:text-sm hidden sm:inline">X</span>
               </a>
             </div>
           </div>
