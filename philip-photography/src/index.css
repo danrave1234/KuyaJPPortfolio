@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@300;400;500;600;700;800&display=swap');
 
 /* Improve mobile viewport handling for browser URL bar behavior */
 html {
@@ -39,7 +40,6 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
 }
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@300;400;500;600;700;800&display=swap');
 
 @layer base {
   html, body, #root {
