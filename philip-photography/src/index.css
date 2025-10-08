@@ -1,59 +1,47 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@300;400;500;600;700;800&display=swap');
 
-/* Improve mobile viewport handling for browser URL bar behavior */
+/* Google-style mobile viewport handling */
 html {
   /* Prevent zoom on input focus on iOS */
   -webkit-text-size-adjust: 100%;
-  /* Improve scroll behavior */
+  /* Smooth scroll behavior */
   scroll-behavior: smooth;
-  /* Handle viewport changes better */
+  /* Use dynamic viewport height like Google */
   height: 100%;
-  height: 100dvh; /* Dynamic viewport height for mobile browsers */
-  /* Force URL bar to hide */
-  height: 100vh;
-  height: -webkit-fill-available;
+  height: 100dvh;
 }
 
 body {
-  /* Ensure proper height handling */
+  /* Standard height handling */
   min-height: 100vh;
   min-height: 100dvh;
-  min-height: -webkit-fill-available;
   /* Prevent overscroll bounce on iOS */
   overscroll-behavior: none;
   /* Better touch handling */
   touch-action: pan-y;
-  /* Force full viewport height */
-  height: 100vh;
-  height: -webkit-fill-available;
+  /* Allow normal scrolling */
+  margin: 0;
+  padding: 0;
 }
 
-/* Improve scroll snap behavior on mobile */
+/* Google-style scroll snap behavior */
 .snap-y {
-  /* Better scroll snap on mobile browsers */
+  /* Smooth scrolling like Google */
   -webkit-overflow-scrolling: touch;
-  /* Ensure proper snap behavior */
+  /* Proper snap behavior */
   scroll-snap-type: y mandatory;
-  /* Handle viewport changes - force full height */
+  /* Use dynamic viewport height */
   height: 100vh;
   height: 100dvh;
-  height: -webkit-fill-available;
-  /* Force URL bar to hide */
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
 }
 
 .snap-start {
   /* Ensure sections snap properly */
   scroll-snap-align: start;
-  /* Better mobile handling - force full height */
+  /* Use dynamic viewport height */
   min-height: 100vh;
   min-height: 100dvh;
-  min-height: -webkit-fill-available;
-  /* Force URL bar hiding */
-  height: 100vh;
-  height: -webkit-fill-available;
 }
 
 @layer base {

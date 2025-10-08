@@ -34,17 +34,6 @@ function ScrollToTop({ onRouteChange }) {
     reset()
     requestAnimationFrame(reset)
     
-    // Force URL bar to hide on mobile browsers
-    const forceUrlBarHide = () => {
-      // Create a temporary scroll down and up to trigger URL bar hiding
-      window.scrollTo({ top: 1, behavior: 'auto' })
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'auto' })
-      }, 10)
-    }
-    
-    // Trigger URL bar hiding after route change
-    setTimeout(forceUrlBarHide, 100)
 
     // Notify parent about route change
     if (typeof onRouteChange === 'function') {
@@ -60,45 +49,17 @@ function ScrollSnapContainer({ children, onActiveSectionChange, onScroll }) {
   const scrollContainerRef = useRef(null)
 
   useEffect(() => {
-    // Store original styles
+    // Only prevent body scrolling when scroll snapping container is active
     const originalBodyOverflow = document.body.style.overflow
     const originalHtmlOverflow = document.documentElement.style.overflow
-    const originalBodyPosition = document.body.style.position
-    const originalBodyWidth = document.body.style.width
-    const originalBodyHeight = document.body.style.height
     
-    // Force URL bar to hide by manipulating viewport
     document.body.style.overflow = 'hidden'
     document.documentElement.style.overflow = 'hidden'
-    document.body.style.position = 'fixed'
-    document.body.style.width = '100%'
-    document.body.style.height = '100%'
-    
-    // Force URL bar hiding on mobile browsers
-    const forceUrlBarHide = () => {
-      // Create a temporary scroll event to trigger URL bar hiding
-      const scrollContainer = scrollContainerRef.current
-      if (scrollContainer) {
-        // Temporarily scroll down to trigger URL bar hiding
-        scrollContainer.scrollTop = 1
-        // Then immediately scroll back to top
-        setTimeout(() => {
-          scrollContainer.scrollTop = 0
-        }, 10)
-      }
-    }
-    
-    // Trigger URL bar hiding after a short delay
-    const urlBarTimeout = setTimeout(forceUrlBarHide, 100)
 
     return () => {
-      clearTimeout(urlBarTimeout)
-      // Restore original styles when component unmounts
+      // Restore original overflow when component unmounts
       document.body.style.overflow = originalBodyOverflow
       document.documentElement.style.overflow = originalHtmlOverflow
-      document.body.style.position = originalBodyPosition
-      document.body.style.width = originalBodyWidth
-      document.body.style.height = originalBodyHeight
     }
   }, [])
 
@@ -149,10 +110,9 @@ function ScrollSnapContainer({ children, onActiveSectionChange, onScroll }) {
       }
     }
 
-    // Also listen for window resize events to handle URL bar changes
+    // Handle viewport changes (like Google does)
     const handleResize = () => {
       if (onScroll) {
-        // Use requestAnimationFrame to ensure proper timing
         requestAnimationFrame(() => {
           onScroll(scrollContainer.scrollTop)
         })
