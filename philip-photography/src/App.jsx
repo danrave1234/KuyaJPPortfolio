@@ -45,60 +45,21 @@ function ScrollToTop({ onRouteChange }) {
 // Main scroll container component for scroll snapping
 function ScrollSnapContainer({ children, onActiveSectionChange, onScroll }) {
   const scrollContainerRef = useRef(null)
-  const [isMobile, setIsMobile] = useState(false)
 
-  // Detect mobile devices and set viewport height
   useEffect(() => {
-    const checkMobile = () => {
-      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                            window.innerWidth <= 768 ||
-                            ('ontouchstart' in window) ||
-                            (navigator.maxTouchPoints > 0)
-      setIsMobile(isMobileDevice)
-    }
-
-    const setViewportHeight = () => {
-      if (isMobile) {
-        const vh = window.innerHeight * 0.01
-        document.documentElement.style.setProperty('--vh', `${vh}px`)
-      }
-    }
-
-    checkMobile()
-    setViewportHeight()
+    // Prevent body scrolling when scroll snapping container is active
+    const originalOverflow = document.body.style.overflow
+    const originalHtmlOverflow = document.documentElement.style.overflow
     
-    window.addEventListener('resize', () => {
-      checkMobile()
-      setViewportHeight()
-    })
-    
-    // Handle orientation change on mobile
-    window.addEventListener('orientationchange', () => {
-      setTimeout(setViewportHeight, 100)
-    })
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
 
     return () => {
-      window.removeEventListener('resize', checkMobile)
-      window.removeEventListener('orientationchange', setViewportHeight)
+      // Restore original overflow when component unmounts
+      document.body.style.overflow = originalOverflow
+      document.documentElement.style.overflow = originalHtmlOverflow
     }
-  }, [isMobile])
-
-  useEffect(() => {
-    // Only prevent body scrolling on desktop
-    if (!isMobile) {
-      const originalOverflow = document.body.style.overflow
-      const originalHtmlOverflow = document.documentElement.style.overflow
-      
-      document.body.style.overflow = 'hidden'
-      document.documentElement.style.overflow = 'hidden'
-
-      return () => {
-        // Restore original overflow when component unmounts
-        document.body.style.overflow = originalOverflow
-        document.documentElement.style.overflow = originalHtmlOverflow
-      }
-    }
-  }, [isMobile])
+  }, [])
 
   useEffect(() => {
     const observerOptions = {
@@ -126,9 +87,6 @@ function ScrollSnapContainer({ children, onActiveSectionChange, onScroll }) {
     const scrollContainer = scrollContainerRef.current
     if (!scrollContainer) return
 
-    let scrollTimeout
-    let isScrolling = false
-
     const handleScroll = (e) => {
       // Emit scroll event to window for header detection
       const scrollY = e.target.scrollTop
@@ -139,84 +97,20 @@ function ScrollSnapContainer({ children, onActiveSectionChange, onScroll }) {
       if (onScroll) {
         onScroll(scrollY)
       }
-
-      // On mobile, add more aggressive snapping behavior after scroll stops
-      if (isMobile) {
-        isScrolling = true
-        clearTimeout(scrollTimeout)
-        
-        scrollTimeout = setTimeout(() => {
-          isScrolling = false
-          const containerHeight = scrollContainer.clientHeight
-          const scrollTop = scrollContainer.scrollTop
-          const currentSection = Math.round(scrollTop / containerHeight)
-          const targetScrollTop = currentSection * containerHeight
-          
-          // More aggressive snapping - snap if within 40% of section height
-          const threshold = containerHeight * 0.4
-          if (Math.abs(scrollTop - targetScrollTop) < threshold) {
-            scrollContainer.scrollTo({
-              top: targetScrollTop,
-              behavior: 'smooth'
-            })
-          }
-        }, 100) // Faster response - wait only 100ms after scroll stops
-      }
     }
 
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true })
     
-    // Add touch event listeners for more immediate snapping on mobile
-    if (isMobile) {
-      const handleTouchEnd = () => {
-        // Immediate snap check on touch end
-        setTimeout(() => {
-          const containerHeight = scrollContainer.clientHeight
-          const scrollTop = scrollContainer.scrollTop
-          const currentSection = Math.round(scrollTop / containerHeight)
-          const targetScrollTop = currentSection * containerHeight
-          
-          // Very aggressive snapping - snap if within 50% of section height
-          const threshold = containerHeight * 0.5
-          if (Math.abs(scrollTop - targetScrollTop) < threshold) {
-            scrollContainer.scrollTo({
-              top: targetScrollTop,
-              behavior: 'smooth'
-            })
-          }
-        }, 50) // Very fast response
-      }
-      
-      scrollContainer.addEventListener('touchend', handleTouchEnd, { passive: true })
-      
-      return () => {
-        scrollContainer.removeEventListener('scroll', handleScroll)
-        scrollContainer.removeEventListener('touchend', handleTouchEnd)
-        clearTimeout(scrollTimeout)
-      }
-    }
-    
     return () => {
       scrollContainer.removeEventListener('scroll', handleScroll)
-      clearTimeout(scrollTimeout)
     }
-  }, [onScroll, isMobile])
+  }, [onScroll])
 
   return (
     <main className="overflow-x-hidden">
       <div 
         ref={scrollContainerRef}
-        className={`h-screen overflow-y-auto overflow-x-hidden ${
-          isMobile 
-            ? 'scroll-container-mobile' 
-            : 'scroll-container-desktop'
-        }`}
-        style={{
-          // Allow natural scroll behavior on mobile for URL bar hiding
-          ...(isMobile && {
-            height: 'calc(var(--vh, 1vh) * 100)', // Use CSS custom property for better mobile support
-          })
-        }}
+        className="h-screen overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth"
       >
         {children}
       </div>

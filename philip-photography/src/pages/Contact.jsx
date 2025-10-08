@@ -29,7 +29,7 @@ export default function Contact() {
             </div>
             <div className="lg:col-span-5 lg:self-end">
               <p className="text-[rgb(var(--muted))] text-sm sm:text-base md:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-5 transition-colors duration-300">
-                For commissions, talks, workshops, or print inquiries, send a message. I typically reply within 48 hours.
+                Need photos for something? Want me to give a talk or run a workshop? Looking for prints? Just send me a message. I usually get back to people within a day or two.
               </p>
             </div>
           </div>
@@ -45,7 +45,7 @@ export default function Contact() {
             <div>
               <label htmlFor="email" className="block text-xs uppercase tracking-wider text-[rgb(var(--muted))] mb-2 transition-colors duration-300">Email</label>
               <input id="email" name="email" value={form.email} onChange={onChange} required type="email" className="card p-3 w-full transition-colors duration-300" placeholder="you@example.com"/>
-              <p className="mt-1 text-xs text-[rgb(var(--muted))] transition-colors duration-300">I'll use this only to reply to your message.</p>
+              <p className="mt-1 text-xs text-[rgb(var(--muted))] transition-colors duration-300">I'll only use this to reply to you.</p>
             </div>
             <div>
               <label htmlFor="message" className="block text-xs uppercase tracking-wider text-[rgb(var(--muted))] mb-2 transition-colors duration-300">Message</label>

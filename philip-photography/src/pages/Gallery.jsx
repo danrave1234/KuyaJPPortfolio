@@ -634,7 +634,7 @@ export default function Gallery() {
             </div>
             <div className="lg:col-span-5 lg:self-end">
               <p className="text-[rgb(var(--muted))] text-sm sm:text-base md:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-5 transition-colors duration-300">
-                A curated collection of wildlife and nature photography capturing the beauty and essence of the natural world through patient observation and artistic vision.
+                A collection of my wildlife and nature photos that show the beauty of the natural world. I spent a lot of time waiting and watching to get these shots.
               </p>
             </div>
           </div>

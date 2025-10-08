@@ -4,34 +4,12 @@ import { ChevronRight, User, X, ChevronLeft, ChevronRight as ChevronRightIcon, M
 import { getImagesFromFolder } from '../firebase/storage'
 import { getFeaturedImages } from '../firebase/admin-api'
 
-// Mobile detection hook
-function useMobileDetection() {
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const checkMobile = () => {
-      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                            window.innerWidth <= 768 ||
-                            ('ontouchstart' in window) ||
-                            (navigator.maxTouchPoints > 0)
-      setIsMobile(isMobileDevice)
-    }
-
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-
-  return isMobile
-}
-
 export default function Home() {
   const [active, setActive] = useState(null)
   const [imageDimensions, setImageDimensions] = useState({})
   const [landscapeImages, setLandscapeImages] = useState([])
   const [firebaseImages, setFirebaseImages] = useState([])
   const [loading, setLoading] = useState(true)
-  const isMobile = useMobileDetection()
   
   // Featured images state
   const [featuredImages, setFeaturedImages] = useState([])
@@ -273,7 +251,13 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/30" />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <div className="text-center">
-              <h1 className="font-heading text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl font-bold text-white drop-shadow mb-4 sm:mb-6 md:mb-8 lg:mb-10" style={{ letterSpacing: '0.12em', fontKerning: 'none' }}>Philip Photography</h1>
+              <div className="mb-4 sm:mb-6 md:mb-8 lg:mb-10">
+                <img 
+                  src={document.documentElement.classList.contains('dark') ? '/DarkmodeLogo.svg' : '/LightmodeLogo.svg'} 
+                  alt="Philip Photography Logo" 
+                  className="h-16 sm:h-20 md:h-24 lg:h-28 xl:h-32 2xl:h-36 w-auto mx-auto drop-shadow"
+                />
+              </div>
               <p className="font-body text-white/90 max-w-2xl mx-auto text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl leading-relaxed lg:max-w-3xl">Capturing the beauty of wildlife, especially the magnificent diversity of bird species in their natural habitats.</p>
               <Link to="/gallery" className="btn-outline border-white text-white hover:bg-white hover:text-black mt-6 sm:mt-8 md:mt-10 lg:mt-12 inline-block text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl px-4 sm:px-6 md:px-8 lg:px-10 py-2 sm:py-3 md:py-4 lg:py-5">VIEW GALLERY</Link>
             </div>
@@ -396,11 +380,12 @@ export default function Home() {
                 </h2>
                 <div className="mt-1 sm:mt-2 md:mt-3 lg:mt-3 h-[2px] sm:h-[3px] md:h-[4px] lg:h-[4px] w-12 sm:w-16 md:w-20 lg:w-20 xl:w-24 2xl:w-28 bg-[rgb(var(--primary))]" />
               <p className="mt-1 sm:mt-2 md:mt-3 lg:mt-3 text-[rgb(var(--muted-fg))] text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl leading-relaxed max-w-2xl">
-                  Based in the Philippines. Field-driven work focused on light, timing, and honest stories from the wild.
+                  I'm based in the Philippines and love capturing real wildlife moments. 
+                  My work focuses on good light, perfect timing, and telling nature's true stories.
                 </p>
                 
-                {/* Personal Philosophy - Mobile visible */}
-                <div className="mt-4 sm:mt-5 md:mt-6 lg:mt-6 xl:mt-7 space-y-3 sm:space-y-4">
+                {/* Personal Philosophy - Desktop only */}
+                <div className="mt-4 sm:mt-5 md:mt-6 lg:mt-6 xl:mt-7 space-y-3 sm:space-y-4 hidden md:block">
                   <div className="bg-[rgb(var(--muted))]/5 rounded-lg p-3 sm:p-4 border border-[rgb(var(--muted))]/20">
                     <div className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-[rgb(var(--primary))]/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -409,10 +394,10 @@ export default function Home() {
                         </svg>
                       </div>
                       <div>
-                        <h4 className="text-xs sm:text-sm font-semibold text-[rgb(var(--fg))] mb-1">Photography Philosophy</h4>
+                        <h4 className="text-xs sm:text-sm font-semibold text-[rgb(var(--fg))] mb-1">My Photography</h4>
                         <p className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] leading-relaxed">
-                          Every image tells a story of <span className="font-semibold text-[rgb(var(--primary))]">coexistence</span> between humanity and nature, 
-                          capturing moments that inspire <span className="font-semibold text-[rgb(var(--primary))]">conservation</span> and wonder.
+                          Every photo I take shows how people and nature can live together. 
+                          I want my images to make people care about <span className="font-semibold text-[rgb(var(--primary))]">protecting</span> our wildlife and feel amazed by what I see.
                         </p>
                       </div>
                     </div>
@@ -426,10 +411,10 @@ export default function Home() {
                         </svg>
                       </div>
                       <div>
-                        <h4 className="text-xs sm:text-sm font-semibold text-[rgb(var(--fg))] mb-1">Field Approach</h4>
+                        <h4 className="text-xs sm:text-sm font-semibold text-[rgb(var(--fg))] mb-1">How I Work</h4>
                         <p className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] leading-relaxed">
-                          Combining <span className="font-semibold text-[rgb(var(--primary))]">scientific precision</span> with artistic vision, 
-                          each expedition is a journey of <span className="font-semibold text-[rgb(var(--primary))]">discovery</span> and respect.
+                          I mix careful planning with creative vision when I go out shooting. 
+                          Every trip is a chance to learn something new and show respect for the animals I photograph.
                         </p>
                       </div>
                     </div>
@@ -522,9 +507,9 @@ export default function Home() {
                 <div className="space-y-3 sm:space-y-4 md:space-y-6">
                   <div className="prose prose-sm sm:prose-base lg:prose-lg max-w-none">
                     <p className="text-[rgb(var(--muted-fg))] leading-relaxed text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl">
-                      Each photograph represents hours of patient observation and perfect timing. 
-                      From the elusive Philippine Eagle to the vibrant sunbirds of Mindanao, 
-                      these images capture the essence of wildlife in its purest form.
+                      Every photo takes hours of waiting and watching for the right moment. 
+                      From rare Philippine Eagles to colorful sunbirds, 
+                      I try to show wildlife exactly as it really is in nature.
                     </p>
                   </div>
 
@@ -589,7 +574,7 @@ export default function Home() {
                         : 'aspect-[4/3] w-full' // Landscape: wider container
                       
                       return (
-                        <div className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${containerClass} max-h-[35vh] sm:max-h-[45vh] md:max-h-[55vh] lg:max-h-[60vh] xl:max-h-[65vh] max-w-[92vw]`}>
+                        <div className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${containerClass} max-h-[25vh] sm:max-h-[35vh] md:max-h-[45vh] lg:max-h-[55vh] xl:max-h-[60vh] max-w-[80vw] sm:max-w-[92vw] mx-auto`}>
                           <img
                             src={featuredImage.src}
                             alt={featuredImage.alt}
@@ -797,7 +782,11 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
               {/* Brand section - always visible */}
               <div className="space-y-2 md:col-span-2 lg:col-span-1">
-                <div className="text-[10px] uppercase tracking-[0.25em]">Philip Photography</div>
+                <img 
+                  src={document.documentElement.classList.contains('dark') ? '/DarkmodeLogo.svg' : '/LightmodeLogo.svg'} 
+                  alt="Philip Photography Logo" 
+                  className="h-6 w-auto mb-2"
+                />
                 <p className="text-[rgb(var(--muted))] text-xs sm:text-sm">Wildlife and nature photography focused on patient observation and storytelling.</p>
               </div>
 
@@ -850,7 +839,7 @@ export default function Home() {
 
             {/* Footer bottom - simplified for mobile */}
             <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
-              <span className="text-xs sm:text-sm text-center sm:text-left">© {new Date().getFullYear()} Philip Photography. All rights reserved.</span>
+              <span className="text-xs sm:text-sm text-center sm:text-left">© {new Date().getFullYear()} All rights reserved.</span>
             </div>
           </div>
         </div>

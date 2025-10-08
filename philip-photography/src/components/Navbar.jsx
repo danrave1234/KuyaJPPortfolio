@@ -84,8 +84,15 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
       <nav className="container-responsive h-14 md:h-16 flex items-center justify-between">
         {/* Logo */}
         <div>
-          <Link to="/" className={`font-semibold font-heading transition-colors duration-300 ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'}`}>
-            Philip Photography
+          <Link to="/" className="flex items-center gap-3">
+            <img 
+              src={isDark ? "/DarkmodeLogo.svg" : "/LightmodeLogo.svg"} 
+              alt="Philip Photography Logo" 
+              className="h-8 md:h-10 w-auto"
+            />
+            <span className={`font-semibold font-heading transition-colors duration-300 ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'}`}>
+              Wing Focus
+            </span>
           </Link>
         </div>
 
@@ -208,7 +215,7 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
               <div className="flex items-center justify-center gap-2">
                 <div className="w-1 h-1 rounded-full bg-[rgb(var(--primary))] opacity-40"></div>
                 <p className="text-xs text-[rgb(var(--muted))] text-center">
-                  Philip Photography © 2024
+                  © 2024
                 </p>
                 <div className="w-1 h-1 rounded-full bg-[rgb(var(--primary))] opacity-40"></div>
               </div>

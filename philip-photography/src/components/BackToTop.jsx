@@ -18,10 +18,22 @@ export default function BackToTop() {
   }, [])
 
   const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    })
+    // First try to find the custom scroll container
+    const scrollContainer = document.querySelector('.snap-y.snap-mandatory')
+    
+    if (scrollContainer) {
+      // Scroll the custom container
+      scrollContainer.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      })
+    } else {
+      // Fallback to window scroll for other pages
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      })
+    }
   }
 
   if (!isVisible) return null

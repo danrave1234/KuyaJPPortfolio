@@ -17,8 +17,8 @@ export default function Footer() {
           {/* Brand section - always visible */}
           <div className="space-y-2 md:col-span-2 lg:col-span-1">
             <img
-              src={document.documentElement.classList.contains('dark') ? '/DarkmodeWithText.svg' : '/LightmodeWithText.svg'}
-              alt="Philip Photography"
+              src={document.documentElement.classList.contains('dark') ? '/DarkmodeLogo.svg' : '/LightmodeLogo.svg'}
+              alt="Philip Photography Logo"
               className="h-8 w-auto"
             />
             <p className="text-[rgb(var(--muted))] text-xs sm:text-sm">Wildlife and nature photography focused on patient observation and storytelling.</p>
@@ -69,7 +69,7 @@ export default function Footer() {
 
         {/* Footer bottom - simplified for mobile */}
         <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
-          <span className="text-xs sm:text-sm text-center sm:text-left">© {new Date().getFullYear()} Philip Photography. All rights reserved.</span>
+          <span className="text-xs sm:text-sm text-center sm:text-left">© {new Date().getFullYear()} All rights reserved.</span>
           {/* Hidden admin access - invisible button */}
           <button 
             onClick={handleAdminAccess}
