@@ -12,31 +12,10 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
   // Handle scroll detection for non-home pages
   useEffect(() => {
     if (location.pathname !== '/') {
-      let ticking = false
-      
-      const onScroll = () => {
-        if (!ticking) {
-          requestAnimationFrame(() => {
-            setLocalScrolled(window.scrollY > 5)
-            ticking = false
-          })
-          ticking = true
-        }
-      }
-      
-      // Also handle resize events for mobile browser URL bar changes
-      const onResize = () => {
-        setLocalScrolled(window.scrollY > 5)
-      }
-      
-      onScroll() // Initial check
+      const onScroll = () => setLocalScrolled(window.scrollY > 10)
+      onScroll()
       window.addEventListener('scroll', onScroll, { passive: true })
-      window.addEventListener('resize', onResize, { passive: true })
-      
-      return () => {
-        window.removeEventListener('scroll', onScroll)
-        window.removeEventListener('resize', onResize)
-      }
+      return () => window.removeEventListener('scroll', onScroll)
     } else {
       setLocalScrolled(false)
     }

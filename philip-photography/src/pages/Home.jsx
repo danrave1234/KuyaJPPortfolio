@@ -4,12 +4,34 @@ import { ChevronRight, User, X, ChevronLeft, ChevronRight as ChevronRightIcon, M
 import { getImagesFromFolder } from '../firebase/storage'
 import { getFeaturedImages } from '../firebase/admin-api'
 
+// Mobile detection hook
+function useMobileDetection() {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                            window.innerWidth <= 768 ||
+                            ('ontouchstart' in window) ||
+                            (navigator.maxTouchPoints > 0)
+      setIsMobile(isMobileDevice)
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  return isMobile
+}
+
 export default function Home() {
   const [active, setActive] = useState(null)
   const [imageDimensions, setImageDimensions] = useState({})
   const [landscapeImages, setLandscapeImages] = useState([])
   const [firebaseImages, setFirebaseImages] = useState([])
   const [loading, setLoading] = useState(true)
+  const isMobile = useMobileDetection()
   
   // Featured images state
   const [featuredImages, setFeaturedImages] = useState([])
