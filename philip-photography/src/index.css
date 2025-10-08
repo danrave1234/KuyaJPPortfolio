@@ -25,18 +25,15 @@ body {
   padding: 0;
 }
 
-/* Mobile-friendly scroll snap behavior */
+/* Natural scroll snap behavior */
 .snap-y {
-  /* Smooth scrolling like Google */
+  /* Smooth scrolling */
   -webkit-overflow-scrolling: touch;
   /* Proper snap behavior */
   scroll-snap-type: y mandatory;
-  /* Use dynamic viewport height */
-  height: 100vh;
-  height: 100dvh;
-  /* Allow URL bar hiding on mobile */
+  /* Let browser handle scrolling naturally */
   overflow-y: auto;
-  /* Better mobile touch handling */
+  /* Better touch handling */
   touch-action: pan-y;
 }
 
