@@ -251,15 +251,9 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/30" />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <div className="text-center">
-              <div className="mb-4 sm:mb-6 md:mb-8 lg:mb-10">
-                <img 
-                  src={document.documentElement.classList.contains('dark') ? '/DarkmodeLogo.svg' : '/LightmodeLogo.svg'} 
-                  alt="Philip Photography Logo" 
-                  className="h-16 sm:h-20 md:h-24 lg:h-28 xl:h-32 2xl:h-36 w-auto mx-auto drop-shadow"
-                />
-              </div>
-              <p className="font-body text-white/90 max-w-2xl mx-auto text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl leading-relaxed lg:max-w-3xl">Capturing the beauty of wildlife, especially the magnificent diversity of bird species in their natural habitats.</p>
-              <Link to="/gallery" className="btn-outline border-white text-white hover:bg-white hover:text-black mt-6 sm:mt-8 md:mt-10 lg:mt-12 inline-block text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl px-4 sm:px-6 md:px-8 lg:px-10 py-2 sm:py-3 md:py-4 lg:py-5">VIEW GALLERY</Link>
+              <h1 className="font-heading text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold text-white drop-shadow mb-4 sm:mb-6 md:mb-8 lg:mb-10" style={{ letterSpacing: '0.12em', fontKerning: 'none' }}>Wing Focus</h1>
+              <p className="font-body text-white/90 max-w-2xl mx-auto text-sm sm:text-base md:text-base lg:text-lg xl:text-xl 2xl:text-2xl leading-relaxed lg:max-w-3xl">Capturing the beauty of wildlife, especially the magnificent diversity of bird species in their natural habitats.</p>
+              <Link to="/gallery" className="btn-outline border-white text-white hover:bg-white hover:text-black mt-6 sm:mt-8 md:mt-10 lg:mt-12 inline-block text-sm sm:text-base md:text-base lg:text-lg xl:text-xl px-4 sm:px-6 md:px-8 lg:px-8 py-2 sm:py-3 md:py-3 lg:py-4">VIEW GALLERY</Link>
             </div>
           </div>
           
@@ -375,11 +369,11 @@ export default function Home() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 md:gap-6 lg:gap-8 xl:gap-12 items-center">
             <div className="lg:col-span-7 text-left">
               <h2 className="font-heading font-extrabold leading-tight max-w-2xl" style={{ letterSpacing: '0.10em', fontKerning: 'none' }}>
-                  <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl text-[rgb(var(--primary))]" style={{ letterSpacing: '0.12em', fontKerning: 'none' }}>John Philip Morada</span>
-                  <span className="block text-sm sm:text-base md:text-lg lg:text-2xl xl:text-3xl 2xl:text-4xl text-[rgb(var(--fg))] mt-1" style={{ letterSpacing: '0.10em', fontKerning: 'none' }}>Wildlife & Bird Photography</span>
+                  <span className="block text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl text-[rgb(var(--primary))]" style={{ letterSpacing: '0.12em', fontKerning: 'none' }}>John Philip Morada</span>
+                  <span className="block text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl text-[rgb(var(--fg))] mt-1" style={{ letterSpacing: '0.10em', fontKerning: 'none' }}>Wildlife & Bird Photography</span>
                 </h2>
                 <div className="mt-1 sm:mt-2 md:mt-3 lg:mt-3 h-[2px] sm:h-[3px] md:h-[4px] lg:h-[4px] w-12 sm:w-16 md:w-20 lg:w-20 xl:w-24 2xl:w-28 bg-[rgb(var(--primary))]" />
-              <p className="mt-1 sm:mt-2 md:mt-3 lg:mt-3 text-[rgb(var(--muted-fg))] text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl leading-relaxed max-w-2xl">
+              <p className="mt-1 sm:mt-2 md:mt-3 lg:mt-3 text-[rgb(var(--muted-fg))] text-xs sm:text-sm md:text-base lg:text-base xl:text-lg 2xl:text-xl leading-relaxed max-w-2xl">
                   I'm based in the Philippines and love capturing real wildlife moments. 
                   My work focuses on good light, perfect timing, and telling nature's true stories.
                 </p>
@@ -422,23 +416,23 @@ export default function Home() {
                 </div>
                 {/* Portfolio badge - hidden on mobile */}
                 <div className="mt-3 sm:mt-4 md:mt-5 lg:mt-6 flex items-center gap-2 sm:gap-3 md:gap-4 hidden sm:flex">
-                  <div className="inline-block rounded-full px-2 sm:px-3 md:px-4 lg:px-5 py-1 sm:py-2 md:py-3 text-[9px] sm:text-[10px] md:text-xs lg:text-base xl:text-lg uppercase tracking-[0.25em] bg-[rgb(var(--muted))]/10 text-[rgb(var(--muted))]">Portfolio</div>
-                  <div className="text-xs sm:text-sm md:text-base lg:text-xl xl:text-2xl text-[rgb(var(--muted))]">{new Date().getFullYear()} Edition</div>
+                  <div className="inline-block rounded-full px-2 sm:px-3 md:px-4 lg:px-4 py-1 sm:py-2 md:py-2 text-[9px] sm:text-[10px] md:text-xs lg:text-sm xl:text-base uppercase tracking-[0.25em] bg-[rgb(var(--muted))]/10 text-[rgb(var(--muted))]">Portfolio</div>
+                  <div className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg text-[rgb(var(--muted))]">{new Date().getFullYear()} Edition</div>
                 </div>
                 
                 {/* Category cards - Desktop only, below Portfolio section */}
               <div className="mt-3 sm:mt-4 md:mt-5 lg:mt-5 xl:mt-6 grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 lg:gap-4 xl:gap-6 2xl:gap-8 hidden md:grid max-w-md">
-                  <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-1.5 sm:p-2 md:p-3 lg:p-2 xl:p-3 2xl:p-4 text-center hover:border-[rgb(var(--primary))]/30 transition-colors duration-300">
-                    <div className="text-sm sm:text-base md:text-lg lg:text-xs xl:text-sm 2xl:text-base font-semibold text-[rgb(var(--fg))]">Birdlife</div>
-                    <div className="text-[9px] sm:text-[10px] md:text-xs lg:text-[8px] xl:text-[9px] 2xl:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-0.5 lg:mt-0.5">Focus</div>
+                  <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-1.5 sm:p-2 md:p-2 lg:p-2 xl:p-3 2xl:p-4 text-center hover:border-[rgb(var(--primary))]/30 transition-colors duration-300">
+                    <div className="text-xs sm:text-sm md:text-base lg:text-xs xl:text-sm 2xl:text-base font-semibold text-[rgb(var(--fg))]">Birdlife</div>
+                    <div className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[8px] xl:text-[9px] 2xl:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-0.5 lg:mt-0.5">Focus</div>
                   </div>
-                  <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-1.5 sm:p-2 md:p-3 lg:p-2 xl:p-3 2xl:p-4 text-center hover:border-[rgb(var(--primary))]/30 transition-colors duration-300">
-                    <div className="text-sm sm:text-base md:text-lg lg:text-xs xl:text-sm 2xl:text-base font-semibold text-[rgb(var(--fg))]">Philippines</div>
-                    <div className="text-[9px] sm:text-[10px] md:text-xs lg:text-[8px] xl:text-[9px] 2xl:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-0.5 lg:mt-0.5">Base</div>
+                  <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-1.5 sm:p-2 md:p-2 lg:p-2 xl:p-3 2xl:p-4 text-center hover:border-[rgb(var(--primary))]/30 transition-colors duration-300">
+                    <div className="text-xs sm:text-sm md:text-base lg:text-xs xl:text-sm 2xl:text-base font-semibold text-[rgb(var(--fg))]">Philippines</div>
+                    <div className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[8px] xl:text-[9px] 2xl:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-0.5 lg:mt-0.5">Base</div>
                   </div>
-                  <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-1.5 sm:p-2 md:p-3 lg:p-2 xl:p-3 2xl:p-4 text-center hover:border-[rgb(var(--primary))]/30 transition-colors duration-300">
-                    <div className="text-sm sm:text-base md:text-lg lg:text-xs xl:text-sm 2xl:text-base font-semibold text-[rgb(var(--fg))]">Worldwide</div>
-                    <div className="text-[9px] sm:text-[10px] md:text-xs lg:text-[8px] xl:text-[9px] 2xl:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-0.5 lg:mt-0.5">Available</div>
+                  <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-1.5 sm:p-2 md:p-2 lg:p-2 xl:p-3 2xl:p-4 text-center hover:border-[rgb(var(--primary))]/30 transition-colors duration-300">
+                    <div className="text-xs sm:text-sm md:text-base lg:text-xs xl:text-sm 2xl:text-base font-semibold text-[rgb(var(--fg))]">Worldwide</div>
+                    <div className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[8px] xl:text-[9px] 2xl:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-0.5 lg:mt-0.5">Available</div>
                   </div>
                 </div>
                 
@@ -483,11 +477,11 @@ export default function Home() {
       </section>
 
       {/* Section 3: Magazine Style Layout */}
-      <section id="experience" className="snap-start min-h-screen flex flex-col items-center justify-center bg-[rgb(var(--bg))] py-8 sm:py-12 md:py-16 lg:py-20">
+      <section id="experience" className="snap-start h-screen flex flex-col items-center justify-center bg-[rgb(var(--bg))] pt-16 sm:pt-20 md:pt-24 lg:pt-28 pb-8 sm:pb-12 md:pb-16 lg:pb-20">
         <div className="container-responsive w-full">
           {/* Magazine-style Editorial Header */}
           <div className="mb-4 sm:mb-6 md:mb-8 lg:mb-12">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-6 lg:gap-12 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-6 lg:gap-12 items-center">
               {/* Left Column - Editorial Content */}
               <div className="lg:col-span-6 space-y-6 lg:space-y-8">
                 {/* Issue Info */}
@@ -495,10 +489,10 @@ export default function Home() {
                   <div className="text-[10px] sm:text-xs md:text-sm uppercase tracking-[0.2em] text-[rgb(var(--muted))] mb-1">
                     Featured Collection
                   </div>
-                    <div className="font-heading text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-bold text-[rgb(var(--fg))] leading-tight">
+                    <div className="font-heading text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-[rgb(var(--fg))] leading-tight">
                     Selected Works
                   </div>
-                  <div className="text-xs sm:text-sm md:text-base lg:text-lg text-[rgb(var(--muted-fg))] mt-2">
+                  <div className="text-xs sm:text-sm md:text-sm lg:text-base text-[rgb(var(--muted-fg))] mt-2">
                     Issue {new Date().getFullYear()} • Wildlife Photography
                   </div>
                 </div>
@@ -506,7 +500,7 @@ export default function Home() {
                 {/* Editorial Content - More compact on mobile */}
                 <div className="space-y-3 sm:space-y-4 md:space-y-6">
                   <div className="prose prose-sm sm:prose-base lg:prose-lg max-w-none">
-                    <p className="text-[rgb(var(--muted-fg))] leading-relaxed text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl">
+                    <p className="text-[rgb(var(--muted-fg))] leading-relaxed text-xs sm:text-sm md:text-base lg:text-base xl:text-lg">
                       Every photo takes hours of waiting and watching for the right moment. 
                       From rare Philippine Eagles to colorful sunbirds, 
                       I try to show wildlife exactly as it really is in nature.
@@ -514,23 +508,23 @@ export default function Home() {
                   </div>
 
                   {/* Stats - More compact on mobile */}
-                  <div className="grid grid-cols-2 gap-2 sm:gap-4 md:gap-6 pt-3 sm:pt-4 md:pt-6 border-t border-[rgb(var(--muted))]/20">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 pt-3 sm:pt-4 md:pt-5 border-t border-[rgb(var(--muted))]/20">
                     <div className="text-center">
-                      <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-[rgb(var(--primary))]">0</div>
-                      <div className="text-[10px] sm:text-xs md:text-sm lg:text-base text-[rgb(var(--muted-fg))] uppercase tracking-wide">Years Experience</div>
+                      <div className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-[rgb(var(--primary))]">0</div>
+                      <div className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs text-[rgb(var(--muted-fg))] uppercase tracking-wide">Years Experience</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-[rgb(var(--primary))]">0</div>
-                      <div className="text-[10px] sm:text-xs md:text-sm lg:text-base text-[rgb(var(--muted-fg))] uppercase tracking-wide">Species Captured</div>
+                      <div className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-[rgb(var(--primary))]">0</div>
+                      <div className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs text-[rgb(var(--muted-fg))] uppercase tracking-wide">Species Captured</div>
                     </div>
                   </div>
 
                   {/* Equipment Note - Hidden on mobile and small screens */}
-                  <div className="bg-[rgb(var(--muted))]/5 rounded-lg p-4 sm:p-6 border border-[rgb(var(--muted))]/10 hidden sm:block">
-                    <div className="text-xs sm:text-sm font-semibold text-[rgb(var(--primary))] uppercase tracking-wide mb-2">
+                  <div className="bg-[rgb(var(--muted))]/5 rounded-lg p-3 sm:p-4 border border-[rgb(var(--muted))]/10 hidden sm:block">
+                    <div className="text-[10px] sm:text-xs font-semibold text-[rgb(var(--primary))] uppercase tracking-wide mb-1">
                       Field Notes
                     </div>
-                    <p className="text-xs sm:text-sm md:text-base text-[rgb(var(--muted-fg))] leading-relaxed">
+                    <p className="text-[10px] sm:text-xs md:text-sm text-[rgb(var(--muted-fg))] leading-relaxed">
                       "The key to wildlife photography is understanding behavior patterns and 
                       being ready for that split-second moment when everything aligns perfectly."
                     </p>
@@ -634,7 +628,7 @@ export default function Home() {
                       <div 
                         className="flex gap-3 sm:gap-6 md:gap-8 lg:gap-10 xl:gap-12 infinite-scroll transition-all duration-500 ease-in-out justify-center"
                         style={{ 
-                          width: `calc(${displayImages.length * 3} * (clamp(153px, 8.5vw, 238px) + clamp(12px, 2.5vw, 40px)))`,
+                          width: `calc(${displayImages.length * 3} * (clamp(180px, 12vw, 280px) + clamp(12px, 2.5vw, 40px)))`,
                           minHeight: 'clamp(100px, 15vh, 240px)'
                         }}
                       >
@@ -645,7 +639,7 @@ export default function Home() {
                           className="flex-shrink-0 group cursor-pointer"
                   onClick={() => setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })}
                         >
-                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(153px, 8.5vw, 238px)', height: 'clamp(115px, 12.75vw, 178px)'}}>
+                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(180px, 12vw, 280px)', height: 'clamp(100px, 8vw, 160px)'}}>
                             <img
                               src={photo.src}
                               alt={photo.alt}
@@ -684,7 +678,7 @@ export default function Home() {
                           className="flex-shrink-0 group cursor-pointer"
                   onClick={() => setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })}
                         >
-                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(153px, 8.5vw, 238px)', height: 'clamp(115px, 12.75vw, 178px)'}}>
+                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(180px, 12vw, 280px)', height: 'clamp(100px, 8vw, 160px)'}}>
                             <img
                               src={photo.src}
                               alt={photo.alt}
@@ -714,7 +708,7 @@ export default function Home() {
                           className="flex-shrink-0 group cursor-pointer"
                   onClick={() => setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })}
                         >
-                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(153px, 8.5vw, 238px)', height: 'clamp(115px, 12.75vw, 178px)'}}>
+                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(180px, 12vw, 280px)', height: 'clamp(100px, 8vw, 160px)'}}>
                             <img
                               src={photo.src}
                               alt={photo.alt}

@@ -853,11 +853,32 @@ export default function Gallery() {
           </div>
         )}
 
-        {/* Loading more indicator */}
+        {/* Loading more skeleton */}
         {loadingMore && (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgb(var(--primary))]"></div>
-            <span className="ml-3 text-[rgb(var(--muted-fg))] transition-colors duration-300">Loading more images...</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 py-8">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={`loading-${i}`} className="relative group">
+                <div className="relative overflow-hidden rounded-lg shadow-lg bg-[rgb(var(--muted))]/5 border border-[rgb(var(--muted))]/10">
+                  {/* Image skeleton */}
+                  <div className="aspect-[4/3] bg-gradient-to-br from-[rgb(var(--muted))]/20 to-[rgb(var(--muted))]/10 animate-pulse" />
+                  
+                  {/* Content skeleton */}
+                  <div className="p-4 sm:p-6">
+                    <div className="h-4 bg-gradient-to-r from-[rgb(var(--muted))]/20 to-[rgb(var(--muted))]/10 rounded animate-pulse mb-2" />
+                    <div className="h-3 bg-gradient-to-r from-[rgb(var(--muted))]/15 to-[rgb(var(--muted))]/8 rounded animate-pulse w-3/4" />
+                    
+                    {/* Stats skeleton */}
+                    <div className="flex items-center justify-between mt-4">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-5 h-5 bg-gradient-to-r from-[rgb(var(--muted))]/20 to-[rgb(var(--muted))]/10 rounded animate-pulse" />
+                        <div className="h-3 w-8 bg-gradient-to-r from-[rgb(var(--muted))]/15 to-[rgb(var(--muted))]/8 rounded animate-pulse" />
+                      </div>
+                      <div className="w-8 h-8 bg-gradient-to-r from-[rgb(var(--muted))]/20 to-[rgb(var(--muted))]/10 rounded-full animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
         
