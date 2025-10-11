@@ -362,7 +362,7 @@ export default function Home() {
       </section>
 
       {/* Introduction section */}
-      <section id="about" className="snap-start h-screen flex items-center bg-[rgb(var(--bg))] py-8 sm:py-12 md:py-16 lg:py-20">
+      <section id="about" className="snap-start h-screen flex items-center bg-[rgb(var(--bg))] pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-12 sm:pb-16 md:pb-20 lg:pb-24">
         <div className="container-responsive w-full">
           <div className="text-center lg:text-left">
           {/* Editorial masthead - mobile optimized */}
@@ -438,23 +438,6 @@ export default function Home() {
                 
                 {/* Personal Journey - Desktop only */}
                 
-                {/* Call to Action - Mobile visible */}
-                <div className="mt-4 sm:mt-5 md:mt-6 lg:mt-6 xl:mt-7 lg:hidden">
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                    <button 
-                      onClick={() => document.querySelector('#contact')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium rounded-lg bg-[rgb(var(--primary))] text-white hover:bg-[rgb(var(--primary))]/90 transition-colors duration-300"
-                    >
-                      Get In Touch
-                    </button>
-                    <button 
-                      onClick={() => document.querySelector('#experience')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 text-xs sm:text-sm font-medium rounded-lg border border-[rgb(var(--muted))]/30 text-[rgb(var(--fg))] hover:border-[rgb(var(--primary))]/50 transition-colors duration-300"
-                    >
-                      View Work
-                    </button>
-                  </div>
-                </div>
               </div>
               {/* Hero image - always visible but responsive sizing */}
             <div className="lg:col-span-5 lg:justify-self-end mt-4 sm:mt-6 lg:mt-0">
@@ -477,7 +460,7 @@ export default function Home() {
       </section>
 
       {/* Section 3: Magazine Style Layout */}
-      <section id="experience" className="snap-start h-screen flex flex-col items-center justify-center bg-[rgb(var(--bg))] pt-16 sm:pt-20 md:pt-24 lg:pt-28 pb-8 sm:pb-12 md:pb-16 lg:pb-20">
+      <section id="experience" className="snap-start h-screen flex flex-col items-center justify-center bg-[rgb(var(--bg))] pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-16 sm:pb-20 md:pb-24 lg:pb-28">
         <div className="container-responsive w-full">
           {/* Magazine-style Editorial Header */}
           <div className="mb-4 sm:mb-6 md:mb-8 lg:mb-12">
@@ -738,7 +721,7 @@ export default function Home() {
       </section>
 
       {/* Call to Action Section - 4th Section */}
-      <section id="contact" className="snap-start h-screen flex items-center bg-[rgb(var(--bg))] py-8 sm:py-12 md:py-16 lg:py-20">
+      <section id="contact" className="snap-start h-screen flex items-center bg-[rgb(var(--bg))] pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-16 sm:pb-20 md:pb-24 lg:pb-28">
         <div className="container-responsive w-full">
             <div className="text-center">
             <div className="mb-8 sm:mb-12 md:mb-16 lg:mb-20 xl:mb-24">
@@ -750,20 +733,6 @@ export default function Home() {
                 </p>
               </div>
               
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 md:gap-8 lg:gap-10 xl:gap-12">
-                <Link 
-                  to="/contact" 
-                  className="btn-primary text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl px-6 sm:px-8 md:px-10 lg:px-12 py-3 sm:py-4 md:py-5 lg:py-6"
-                >
-                  Get In Touch
-                </Link>
-                <Link 
-                  to="/gallery" 
-                  className="btn-outline text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl px-6 sm:px-8 md:px-10 lg:px-12 py-3 sm:py-4 md:py-5 lg:py-6"
-                >
-                  View Portfolio
-                </Link>
-              </div>
           </div>
         </div>
       </section>
