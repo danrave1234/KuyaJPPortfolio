@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Not Found - Kuya JP Photography</title>
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 600px;
+    }
+    
+    h1 {
+      font-size: 120px;
+      font-weight: 900;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    h2 {
+      font-size: 32px;
+      margin-bottom: 20px;
+      font-weight: 600;
+    }
+    
+    p {
+      font-size: 18px;
+      margin-bottom: 30px;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+    
+    .btn {
+      display: inline-block;
+      background: white;
+      color: #667eea;
+      padding: 15px 40px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    
+    .links {
+      margin-top: 30px;
+    }
+    
+    .links a {
+      color: white;
+      text-decoration: none;
+      margin: 0 15px;
+      opacity: 0.8;
+      transition: opacity 0.3s ease;
+    }
+    
+    .links a:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>404</h1>
+    <h2>Page Not Found</h2>
+    <p>
+      Oops! The page you're looking for seems to have wandered off into the wilderness. 
+      Let's get you back to exploring beautiful wildlife photography.
+    </p>
+    <a href="/" class="btn">Return Home</a>
+    
+    <div class="links">
+      <a href="/gallery">Gallery</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </div>
+  </div>
+  
+  <script>
+    // Automatically redirect to home page after 10 seconds
+    setTimeout(function() {
+      window.location.href = '/';
+    }, 10000);
+  </script>
+</body>
+</html>
+

@@ -4,6 +4,7 @@ import { uploadMultipleImages, deleteImage, getImagesFromFolder } from '../fireb
 import { getAdminGalleryImages, searchAdminGalleryImages, clearAdminCache, cleanupAdminCache, uploadWithProgress, deleteImageWithCache, updateImageMetadataWithCache, getAdminFeaturedImages, uploadFeaturedWithProgress, deleteFeaturedImageWithCache, clearFeaturedCache } from '../firebase/admin-api'
 import { signInUser, signOutUser } from '../firebase/auth'
 import { initTheme } from '../theme.js'
+import SEO from '../components/SEO'
 import { 
   Upload, 
   Settings, 
@@ -748,9 +749,26 @@ export default function Admin() {
   }
 
   // Show loading state while checking authentication
+  useEffect(() => {
+    // Add noindex meta tag for admin page
+    const metaRobots = document.createElement('meta')
+    metaRobots.name = 'robots'
+    metaRobots.content = 'noindex, nofollow'
+    document.head.appendChild(metaRobots)
+    
+    return () => {
+      document.head.removeChild(metaRobots)
+    }
+  }, [])
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[rgb(var(--bg))] flex items-center justify-center p-4">
+      <>
+        <SEO 
+          title="Admin Portal - Kuya JP Photography"
+          description="Admin portal for managing Kuya JP Photography website"
+        />
+        <div className="min-h-screen bg-[rgb(var(--bg))] flex items-center justify-center p-4">
         <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl max-w-md w-full border border-[rgb(var(--muted))]/20">
           <div className="text-center">
             <div className="w-16 h-16 bg-[rgb(var(--primary))] rounded-2xl mx-auto mb-4 flex items-center justify-center">
@@ -763,12 +781,18 @@ export default function Admin() {
           </div>
         </div>
       </div>
+      </>
     )
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[rgb(var(--bg))] flex items-center justify-center p-4">
+      <>
+        <SEO 
+          title="Admin Login - Kuya JP Photography"
+          description="Admin login for Kuya JP Photography website"
+        />
+        <div className="min-h-screen bg-[rgb(var(--bg))] flex items-center justify-center p-4">
         <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl max-w-md w-full border border-[rgb(var(--muted))]/20">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-[rgb(var(--primary))] rounded-2xl mx-auto mb-4 flex items-center justify-center">
@@ -840,6 +864,7 @@ export default function Admin() {
           )}
         </div>
       </div>
+      </>
     )
   }
 
@@ -851,7 +876,12 @@ export default function Admin() {
   ]
 
   return (
-    <div className="min-h-screen bg-[rgb(var(--bg))] flex">
+    <>
+      <SEO 
+        title="Admin Dashboard - Kuya JP Photography"
+        description="Admin dashboard for managing Kuya JP Photography website"
+      />
+      <div className="min-h-screen bg-[rgb(var(--bg))] flex">
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div 
@@ -2306,5 +2336,6 @@ export default function Admin() {
         </main>
       </div>
     </div>
+    </>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Instagram, Facebook, Youtube } from 'lucide-react'
+import SEO from '../components/SEO'
 
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', message: '' })
@@ -13,7 +14,13 @@ export default function Contact() {
     window.location.href = mailto
   }
   return (
-    <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
+    <>
+      <SEO 
+        title="Contact Kuya JP - Wildlife Photography Booking & Inquiries"
+        description="Get in touch with Kuya JP for wildlife photography inquiries, collaborations, print requests, and booking information. Available for photography projects and conservation initiatives."
+        keywords="contact Kuya JP, wildlife photography booking, photography inquiry, print requests, photography collaboration, hire wildlife photographer"
+      />
+      <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
       <div className="container-responsive pt-20 sm:pt-24 md:pt-20 lg:pt-24 pb-8 sm:pb-10 md:pb-12">
         <div className="mb-6 sm:mb-8 md:mb-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
@@ -100,6 +107,7 @@ export default function Contact() {
         </div>
       </div>
     </main>
+    </>
   )
 }
 

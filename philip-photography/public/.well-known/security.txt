@@ -1,0 +1,6 @@
+Contact: mailto:danravekeh123@gmail.com
+Preferred-Languages: en
+Canonical: https://kuyajp-portfolio.web.app/.well-known/security.txt
+Expires: 2026-12-31T23:59:59.000Z
+Acknowledgments: https://kuyajp-portfolio.web.app/
+

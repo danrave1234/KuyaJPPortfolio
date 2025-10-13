@@ -3,6 +3,7 @@ import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ArrowRight, Search,
 import { getGalleryImages, searchGalleryImages } from '../firebase/api'
 import { analytics } from '../firebase/config'
 import { logEvent } from 'firebase/analytics'
+import SEO from '../components/SEO'
 
 export default function Gallery() {
   const [active, setActive] = useState(null) // { art, idx }
@@ -617,7 +618,13 @@ export default function Gallery() {
 
 
   return (
-    <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
+    <>
+      <SEO 
+        title="Gallery - Wildlife & Nature Photography Collection | Kuya JP"
+        description="Explore the complete wildlife and nature photography gallery by Kuya JP. Browse stunning images of Philippine birds, wildlife, and nature captured with dedication and artistic vision."
+        keywords="wildlife gallery, nature photography collection, bird photos, Philippine wildlife images, photography portfolio, Kuya JP gallery"
+      />
+      <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
       <div className="container-responsive pt-20 sm:pt-24 md:pt-20 lg:pt-24 pb-6 sm:pb-8">
         <div className="mb-6 sm:mb-8 md:mb-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
@@ -951,6 +958,7 @@ export default function Gallery() {
       )}
       </div>
     </main>
+    </>
   )
 }
 

@@ -1,6 +1,14 @@
+import SEO from '../components/SEO'
+
 export default function About() {
   return (
-    <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
+    <>
+      <SEO 
+        title="About Kuya JP - Wildlife Photographer | Philippine Nature Photography"
+        description="Learn about John Philip Morada (Kuya JP), a passionate wildlife photographer specializing in bird photography and Philippine nature. Discover the story behind the lens and dedication to wildlife conservation."
+        keywords="John Philip Morada, Kuya JP, wildlife photographer, bird photography, Philippine wildlife, nature photographer, conservation photography"
+      />
+      <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
       <div className="container-responsive pt-20 sm:pt-24 md:pt-20 lg:pt-24 pb-8 sm:pb-10 md:pb-12">
         <div className="mb-8 sm:mb-10 md:mb-12">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
@@ -119,5 +127,6 @@ export default function About() {
         </div>
       </div>
     </main>
+    </>
   )
 }

@@ -1,0 +1,17 @@
+/* TEAM */
+Photographer & Owner: John Philip Morada (Kuya JP)
+Site: https://kuyajp-portfolio.web.app
+Location: Philippines
+
+/* THANKS */
+Wildlife subjects and their natural habitats
+Conservation organizations supporting Philippine biodiversity
+
+/* SITE */
+Last update: 2025/10/13
+Language: English
+Doctype: HTML5
+IDE: Visual Studio Code
+Components: React, Vite, Firebase, Tailwind CSS
+Standards: HTML5, CSS3, ES6+
+

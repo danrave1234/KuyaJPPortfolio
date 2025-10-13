@@ -2,9 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    
+    <!-- Preconnect to external domains for better performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />
+    
     <link rel="icon" type="image/svg+xml" href="/LightmodeLogo.svg" media="(prefers-color-scheme: light)" />
     <link rel="icon" type="image/svg+xml" href="/DarkmodeLogo.svg" media="(prefers-color-scheme: dark)" />
+    <link rel="apple-touch-icon" href="/Hero.jpg" />
+    <link rel="manifest" href="/manifest.json" />
+    <link type="text/plain" rel="author" href="/humans.txt" />
     <meta name="viewport" content="width=device-width, initial-scale=1, height=device-height, viewport-fit=cover" />
+    
+    <!-- Geo Tags -->
+    <meta name="geo.region" content="PH" />
+    <meta name="geo.placename" content="Philippines" />
+    <meta name="geo.position" content="12.8797;121.7740" />
+    <meta name="ICBM" content="12.8797, 121.7740" />
     
     <!-- Primary Meta Tags -->
     <title>Kuya JP Photography - Wildlife & Nature Photography Portfolio</title>
@@ -42,7 +58,26 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Kuya JP Photography" />
     
-    <!-- Structured Data -->
+    <!-- Language and Content Type -->
+    <meta http-equiv="Content-Language" content="en" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Referrer Policy for better privacy and SEO -->
+    <meta name="referrer" content="origin-when-cross-origin" />
+    
+    <!-- Format Detection -->
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Search Engine Verification (Add your verification codes here) -->
+    <!-- <meta name="google-site-verification" content="YOUR_GOOGLE_VERIFICATION_CODE" /> -->
+    <!-- <meta name="msvalidate.01" content="YOUR_BING_VERIFICATION_CODE" /> -->
+    <!-- <meta name="yandex-verification" content="YOUR_YANDEX_VERIFICATION_CODE" /> -->
+    
+    <!-- Social Media Profiles -->
+    <link rel="me" href="https://instagram.com/kuyajp" />
+    <link rel="me" href="https://facebook.com/kuyajp" />
+    
+    <!-- Structured Data - Person -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -69,6 +104,93 @@
         "name": "Wildlife Photographer",
         "description": "Professional photographer specializing in wildlife and nature photography"
       }
+    }
+    </script>
+    
+    <!-- Structured Data - Professional Service -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ProfessionalService",
+      "name": "Kuya JP Photography",
+      "description": "Professional wildlife and nature photography services specializing in Philippine wildlife, birds, and nature conservation.",
+      "url": "https://kuyajp-portfolio.web.app",
+      "logo": "https://kuyajp-portfolio.web.app/LightmodeLogo.svg",
+      "image": "https://kuyajp-portfolio.web.app/Hero.jpg",
+      "priceRange": "$$",
+      "telephone": "",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "Philippines"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "12.8797",
+        "longitude": "121.7740"
+      },
+      "sameAs": [
+        "https://instagram.com/kuyajp",
+        "https://facebook.com/kuyajp"
+      ],
+      "serviceType": [
+        "Wildlife Photography",
+        "Nature Photography",
+        "Bird Photography"
+      ]
+    }
+    </script>
+    
+    <!-- Structured Data - Website -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Kuya JP Photography",
+      "url": "https://kuyajp-portfolio.web.app",
+      "description": "Professional wildlife and nature photography portfolio by John Philip Morada",
+      "publisher": {
+        "@type": "Person",
+        "name": "John Philip Morada"
+      },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://kuyajp-portfolio.web.app/gallery?search={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    
+    <!-- Structured Data - Breadcrumb List -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://kuyajp-portfolio.web.app/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Gallery",
+          "item": "https://kuyajp-portfolio.web.app/gallery"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "About",
+          "item": "https://kuyajp-portfolio.web.app/about"
+        },
+        {
+          "@type": "ListItem",
+          "position": 4,
+          "name": "Contact",
+          "item": "https://kuyajp-portfolio.web.app/contact"
+        }
+      ]
     }
     </script>
     

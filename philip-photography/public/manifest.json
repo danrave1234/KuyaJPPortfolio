@@ -1,0 +1,36 @@
+{
+  "name": "Kuya JP Photography - Wildlife & Nature Photography Portfolio",
+  "short_name": "Kuya JP",
+  "description": "Professional wildlife and nature photography by John Philip Morada. Capturing the beauty of Philippine wildlife, birds, and nature through patient observation and storytelling.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3B82F6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/LightmodeLogo.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Hero.jpg",
+      "type": "image/jpeg",
+      "sizes": "512x512",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["photography", "lifestyle", "entertainment"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "scope": "/",
+  "screenshots": [
+    {
+      "src": "/Hero.jpg",
+      "type": "image/jpeg",
+      "sizes": "1920x1080"
+    }
+  ]
+}
+
