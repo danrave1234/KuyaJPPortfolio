@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect, useLayoutEffect, useState, useRef } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
+import { analytics } from './firebase/config'
+import { logEvent } from 'firebase/analytics'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
 import BackToTop from './components/BackToTop.jsx'
@@ -32,6 +34,15 @@ function ScrollToTop({ onRouteChange }) {
     // Run immediately and again on next frame to cover late paints
     reset()
     requestAnimationFrame(reset)
+
+    // Track page views with Google Analytics
+    if (analytics) {
+      logEvent(analytics, 'page_view', {
+        page_title: document.title,
+        page_location: window.location.href,
+        page_path: pathname
+      })
+    }
 
     // Notify parent about route change
     if (typeof onRouteChange === 'function') {

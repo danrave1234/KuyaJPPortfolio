@@ -460,10 +460,10 @@ export default function Home() {
       </section>
 
       {/* Section 3: Magazine Style Layout */}
-      <section id="experience" className="snap-start h-screen flex flex-col items-center justify-center bg-[rgb(var(--bg))] pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-16 sm:pb-20 md:pb-24 lg:pb-28">
+      <section id="experience" className="snap-start h-screen flex flex-col items-center justify-center bg-[rgb(var(--bg))] pt-32 sm:pt-36 md:pt-40 lg:pt-44 xl:pt-48 pb-16 sm:pb-20 md:pb-24 lg:pb-28">
         <div className="container-responsive w-full">
           {/* Magazine-style Editorial Header */}
-          <div className="mb-4 sm:mb-6 md:mb-8 lg:mb-12">
+          <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-6">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-6 lg:gap-12 items-center">
               {/* Left Column - Editorial Content */}
               <div className="lg:col-span-6 space-y-6 lg:space-y-8">
@@ -502,16 +502,24 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Equipment Note - Hidden on mobile and small screens */}
-                  <div className="bg-[rgb(var(--muted))]/5 rounded-lg p-3 sm:p-4 border border-[rgb(var(--muted))]/10 hidden sm:block">
-                    <div className="text-[10px] sm:text-xs font-semibold text-[rgb(var(--primary))] uppercase tracking-wide mb-1">
-                      Field Notes
+                  {/* Photography Philosophy - Small detail to fill space */}
+                  <div className="mt-4 sm:mt-5 md:mt-6 hidden sm:block">
+                    <div className="bg-[rgb(var(--muted))]/5 rounded-lg p-3 sm:p-4 border border-[rgb(var(--muted))]/10">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-4 h-4 bg-[rgb(var(--primary))]/20 rounded-full flex items-center justify-center">
+                          <svg className="w-2.5 h-2.5 text-[rgb(var(--primary))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </div>
+                        <span className="text-xs font-semibold text-[rgb(var(--primary))] uppercase tracking-wide">Approach</span>
+                      </div>
+                      <p className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] leading-relaxed">
+                        Patience, respect, and understanding of animal behavior guide every shot.
+                      </p>
                     </div>
-                    <p className="text-[10px] sm:text-xs md:text-sm text-[rgb(var(--muted-fg))] leading-relaxed">
-                      "The key to wildlife photography is understanding behavior patterns and 
-                      being ready for that split-second moment when everything aligns perfectly."
-                    </p>
                   </div>
+
                 </div>
               </div>
 
@@ -551,7 +559,7 @@ export default function Home() {
                         : 'aspect-[4/3] w-full' // Landscape: wider container
                       
                       return (
-                        <div className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${containerClass} max-h-[25vh] sm:max-h-[35vh] md:max-h-[45vh] lg:max-h-[55vh] xl:max-h-[60vh] max-w-[80vw] sm:max-w-[92vw] mx-auto`}>
+                        <div className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${containerClass} max-h-[25vh] sm:max-h-[35vh] md:max-h-[35vh] lg:max-h-[40vh] xl:max-h-[60vh] max-w-[80vw] sm:max-w-[92vw] mx-auto`}>
                           <img
                             src={featuredImage.src}
                             alt={featuredImage.alt}
@@ -609,10 +617,10 @@ export default function Home() {
                       </div>
                     ) : (
                       <div 
-                        className="flex gap-3 sm:gap-6 md:gap-8 lg:gap-10 xl:gap-12 infinite-scroll transition-all duration-500 ease-in-out justify-center"
+                        className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-5 xl:gap-6 infinite-scroll transition-all duration-500 ease-in-out justify-center"
                         style={{ 
-                          width: `calc(${displayImages.length * 3} * (clamp(180px, 12vw, 280px) + clamp(12px, 2.5vw, 40px)))`,
-                          minHeight: 'clamp(100px, 15vh, 240px)'
+                          width: `calc(${displayImages.length * 3} * (clamp(200px, 14vw, 320px) + clamp(8px, 1.5vw, 24px)))`,
+                          minHeight: 'clamp(120px, 18vh, 260px)'
                         }}
                       >
                       {/* First set of images with magazine styling */}
@@ -622,7 +630,7 @@ export default function Home() {
                           className="flex-shrink-0 group cursor-pointer"
                   onClick={() => setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })}
                         >
-                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(180px, 12vw, 280px)', height: 'clamp(100px, 8vw, 160px)'}}>
+                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(200px, 14vw, 320px)', height: 'clamp(120px, 10vw, 180px)'}}>
                             <img
                               src={photo.src}
                               alt={photo.alt}
@@ -635,18 +643,11 @@ export default function Home() {
                             {/* Magazine-style overlay */}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                             
-                            {/* Magazine badge */}
-                            <div className="absolute top-2 sm:top-3 left-2 sm:left-3 text-[9px] sm:text-[10px] md:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[rgb(var(--primary))] text-white shadow-lg">
-                              {String(index + 1).padStart(2, '0')}
-                            </div>
                             
                             {/* Magazine info panel */}
                             <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 opacity-0 group-hover:opacity-100">
                               <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/10">
-                              <div className="font-heading text-white text-[10px] sm:text-xs font-mono tracking-widest opacity-90 mb-1">
-                                  Featured {String(index + 1).padStart(2, '0')}
-                                </div>
-                                <div className="font-heading text-white text-xs sm:text-sm font-semibold uppercase tracking-wide truncate">
+                                <div className="font-heading text-white text-[8px] sm:text-[9px] md:text-xs lg:text-sm font-semibold uppercase tracking-wide break-words leading-tight">
                                   {photo.title}
                                 </div>
                               </div>
@@ -661,22 +662,16 @@ export default function Home() {
                           className="flex-shrink-0 group cursor-pointer"
                   onClick={() => setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })}
                         >
-                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(180px, 12vw, 280px)', height: 'clamp(100px, 8vw, 160px)'}}>
+                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(200px, 14vw, 320px)', height: 'clamp(120px, 10vw, 180px)'}}>
                             <img
                               src={photo.src}
                               alt={photo.alt}
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <div className="absolute top-2 sm:top-3 left-2 sm:left-3 text-[9px] sm:text-[10px] md:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[rgb(var(--primary))] text-white shadow-lg">
-                              {String(index + 1).padStart(2, '0')}
-                            </div>
                             <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 opacity-0 group-hover:opacity-100">
                               <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/10">
-                                <div className="text-white text-[10px] sm:text-xs font-mono tracking-widest opacity-90 mb-1">
-                                  Featured {String(index + 1).padStart(2, '0')}
-                                </div>
-                                <div className="text-white text-xs sm:text-sm font-semibold uppercase tracking-wide truncate">
+                                <div className="text-white text-[8px] sm:text-[9px] md:text-xs lg:text-sm font-semibold uppercase tracking-wide break-words leading-tight">
                                   {photo.title}
                                 </div>
                               </div>
@@ -691,22 +686,16 @@ export default function Home() {
                           className="flex-shrink-0 group cursor-pointer"
                   onClick={() => setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })}
                         >
-                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(180px, 12vw, 280px)', height: 'clamp(100px, 8vw, 160px)'}}>
+                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(200px, 14vw, 320px)', height: 'clamp(120px, 10vw, 180px)'}}>
                             <img
                               src={photo.src}
                               alt={photo.alt}
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <div className="absolute top-2 sm:top-3 left-2 sm:left-3 text-[9px] sm:text-[10px] md:text-xs font-bold px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[rgb(var(--primary))] text-white shadow-lg">
-                              {String(index + 1).padStart(2, '0')}
-                            </div>
                             <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 opacity-0 group-hover:opacity-100">
                               <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/10">
-                                <div className="text-white text-[10px] sm:text-xs font-mono tracking-widest opacity-90 mb-1">
-                                  Featured {String(index + 1).padStart(2, '0')}
-                                </div>
-                                <div className="text-white text-xs sm:text-sm font-semibold uppercase tracking-wide truncate">
+                                <div className="text-white text-[8px] sm:text-[9px] md:text-xs lg:text-sm font-semibold uppercase tracking-wide break-words leading-tight">
                                   {photo.title}
                                 </div>
                               </div>

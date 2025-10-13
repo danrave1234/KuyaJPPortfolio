@@ -318,7 +318,7 @@ export const uploadFeaturedWithProgress = async (files, onProgress, seriesTitle 
 };
 
 // Update image metadata with cache invalidation
-export const updateImageMetadataWithCache = async (imagePath, title, description) => {
+export const updateImageMetadataWithCache = async (imagePath, title, description, scientificName, location, dateTaken, history) => {
   try {
     // Clear relevant caches when updating
     clearAdminCache();
@@ -328,6 +328,10 @@ export const updateImageMetadataWithCache = async (imagePath, title, description
     const result = await updateImageMetadata(imagePath, {
       title: title,
       description: description,
+      scientificName: scientificName,
+      location: location,
+      dateTaken: dateTaken,
+      history: history,
       updatedAt: new Date().toISOString()
     });
     

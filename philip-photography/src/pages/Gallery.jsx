@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ArrowRight, Search, Heart, Filter } from 'lucide-react'
 import { getGalleryImages, searchGalleryImages } from '../firebase/api'
+import { analytics } from '../firebase/config'
+import { logEvent } from 'firebase/analytics'
 
 export default function Gallery() {
   const [active, setActive] = useState(null) // { art, idx }
@@ -109,6 +111,15 @@ export default function Gallery() {
   // Search function with caching
   const performSearch = async (searchQuery, page = 1) => {
     setIsSearching(true);
+    
+    // Track search in analytics
+    if (analytics && searchQuery.trim()) {
+      logEvent(analytics, 'search', {
+        search_term: searchQuery,
+        page_number: page
+      })
+    }
+    
     try {
       // Check cache for search results
       const cacheKey = `search-${searchQuery}-${page}`;
@@ -760,6 +771,16 @@ export default function Gallery() {
                 key={uniqueKey} 
                 className={`group cursor-pointer ${gridClasses} rounded-lg overflow-hidden relative transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] border border-[rgb(var(--muted))]/10 hover:border-[rgb(var(--primary))]/30`}
                 onClick={() => {
+                  // Track image view in analytics
+                  if (analytics) {
+                    logEvent(analytics, 'view_item', {
+                      item_id: art.id,
+                      item_name: art.title,
+                      item_category: 'photography',
+                      item_variant: art.isSeries ? 'series' : 'single'
+                    })
+                  }
+
                   // If this is a separated series item, use the complete series data
                   if (art.completeSeriesData) {
                     console.log('Opening series modal with complete data:', art.completeSeriesData);
@@ -831,12 +852,12 @@ export default function Gallery() {
                     />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="absolute bottom-3 left-3 right-3 transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300">
-                    <div className="inline-flex items-center gap-2 bg-black/35 backdrop-blur-[2px] rounded-md px-2 py-1 max-w-[90%]">
-                      <div className="text-[10px] font-mono tracking-widest text-white/80">
-                        {String(i + 1).padStart(2, '0')}/
+                  <div className="absolute bottom-2 left-2 right-2 transform translate-y-3 group-hover:translate-y-0 transition-transform duration-300">
+                    <div className="inline-flex items-center gap-1.5 bg-black/40 backdrop-blur-[2px] rounded-md px-2 py-1.5 max-w-[95%]">
+                      <div className="text-[8px] sm:text-[9px] md:text-[10px] font-mono tracking-widest text-white/80 flex-shrink-0">
+                        {String(i + 1).padStart(2, '0')}
                       </div>
-                      <div className="text-xs font-medium leading-snug uppercase tracking-wide text-white truncate">
+                      <div className="text-[8px] sm:text-[9px] md:text-xs font-medium leading-tight uppercase tracking-wide text-white break-words min-w-0">
                         {art.title}
                       </div>
                     </div>
@@ -855,30 +876,35 @@ export default function Gallery() {
 
         {/* Loading more skeleton */}
         {loadingMore && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 py-8">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={`loading-${i}`} className="relative group">
-                <div className="relative overflow-hidden rounded-lg shadow-lg bg-[rgb(var(--muted))]/5 border border-[rgb(var(--muted))]/10">
-                  {/* Image skeleton */}
-                  <div className="aspect-[4/3] bg-gradient-to-br from-[rgb(var(--muted))]/20 to-[rgb(var(--muted))]/10 animate-pulse" />
+          <div className="grid grid-cols-3 gap-3 auto-rows-[80px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense">
+            {[
+              'large','small','medium','wide','small','large','small','medium','small','wide','small','medium'
+            ].map((size, i) => {
+              const gridClasses = size === 'large' ? 'col-span-2 row-span-2' :
+                                   size === 'wide' ? 'col-span-2 row-span-1' :
+                                   size === 'medium' ? 'col-span-1 row-span-2' : 
+                                   'col-span-1 row-span-1'
+              return (
+                <div key={`loading-more-${i}`} className={`${gridClasses} rounded-lg overflow-hidden relative border border-[rgb(var(--muted))]/10`}>
+                  <div className="absolute inset-0 animate-pulse bg-[rgb(var(--muted))]/20" />
                   
-                  {/* Content skeleton */}
-                  <div className="p-4 sm:p-6">
-                    <div className="h-4 bg-gradient-to-r from-[rgb(var(--muted))]/20 to-[rgb(var(--muted))]/10 rounded animate-pulse mb-2" />
-                    <div className="h-3 bg-gradient-to-r from-[rgb(var(--muted))]/15 to-[rgb(var(--muted))]/8 rounded animate-pulse w-3/4" />
-                    
-                    {/* Stats skeleton */}
-                    <div className="flex items-center justify-between mt-4">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-5 h-5 bg-gradient-to-r from-[rgb(var(--muted))]/20 to-[rgb(var(--muted))]/10 rounded animate-pulse" />
-                        <div className="h-3 w-8 bg-gradient-to-r from-[rgb(var(--muted))]/15 to-[rgb(var(--muted))]/8 rounded animate-pulse" />
+                  {/* Image overlay skeleton */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0" />
+                  
+                  {/* Bottom info skeleton */}
+                  <div className="absolute bottom-2 left-2 right-2 transform translate-y-3 opacity-0">
+                    <div className="inline-flex items-center gap-1.5 bg-black/40 backdrop-blur-[2px] rounded-md px-2 py-1.5 max-w-[95%]">
+                      <div className="text-[8px] sm:text-[9px] md:text-[10px] font-mono tracking-widest text-white/80 flex-shrink-0">
+                        {String(i + 1).padStart(2, '0')}
                       </div>
-                      <div className="w-8 h-8 bg-gradient-to-r from-[rgb(var(--muted))]/20 to-[rgb(var(--muted))]/10 rounded-full animate-pulse" />
+                      <div className="text-[8px] sm:text-[9px] md:text-xs font-medium leading-tight uppercase tracking-wide text-white break-words min-w-0">
+                        Loading...
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
         
@@ -1238,6 +1264,16 @@ function ModalViewer({ active, setActive, allArtworks }) {
       const result = await response.json();
       
       if (result.success) {
+        // Track like in analytics
+        if (analytics) {
+          logEvent(analytics, 'like', {
+            item_id: art.id,
+            item_name: art.title,
+            item_category: 'photography',
+            item_variant: art.isSeries ? 'series' : 'single'
+          })
+        }
+        
         // Update the likes count - handle both series and single images
         setActive(prev => {
           if (prev.art.isSeries && prev.art.images && prev.art.images.length > 0) {
