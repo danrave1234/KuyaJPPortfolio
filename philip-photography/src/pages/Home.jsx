@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { ChevronRight, User, X, ChevronLeft, ChevronRight as ChevronRightIcon, Maximize2, Minimize2, Heart } from 'lucide-react'
 import { getImagesFromFolder } from '../firebase/storage'
 import { getFeaturedImages } from '../firebase/admin-api'
+import { trackImageView, trackGalleryNavigation } from '../services/analytics'
 import SEO from '../components/SEO'
 
 export default function Home() {
@@ -259,7 +260,13 @@ export default function Home() {
             <div className="text-center">
               <h1 className="font-heading text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold text-white drop-shadow mb-4 sm:mb-6 md:mb-8 lg:mb-10" style={{ letterSpacing: '0.12em', fontKerning: 'none' }}>JP Morada</h1>
               <p className="font-body text-white/90 max-w-2xl mx-auto text-sm sm:text-base md:text-base lg:text-lg xl:text-xl 2xl:text-2xl leading-relaxed lg:max-w-3xl">Capturing the beauty of wildlife, especially the magnificent diversity of bird species in their natural habitats.</p>
-              <Link to="/gallery" className="btn-outline border-white text-white hover:bg-white hover:text-black mt-6 sm:mt-8 md:mt-10 lg:mt-12 inline-block text-sm sm:text-base md:text-base lg:text-lg xl:text-xl px-4 sm:px-6 md:px-8 lg:px-8 py-2 sm:py-3 md:py-3 lg:py-4">VIEW GALLERY</Link>
+              <Link 
+                to="/gallery" 
+                className="btn-outline border-white text-white hover:bg-white hover:text-black mt-6 sm:mt-8 md:mt-10 lg:mt-12 inline-block text-sm sm:text-base md:text-base lg:text-lg xl:text-xl px-4 sm:px-6 md:px-8 lg:px-8 py-2 sm:py-3 md:py-3 lg:py-4"
+                onClick={() => trackGalleryNavigation('main', 'view_gallery_link')}
+              >
+                VIEW GALLERY
+              </Link>
             </div>
           </div>
           
@@ -551,6 +558,18 @@ export default function Home() {
                     onClick={() => {
                       const featuredImage = getFeaturedImage()
                       if (featuredImage) {
+                        // Track featured image view with custom analytics
+                        trackImageView({
+                          id: featuredImage.id,
+                          title: featuredImage.title,
+                          path: featuredImage.src,
+                          isFeatured: true
+                        }, {
+                          isSeries: false,
+                          seriesIndex: 0,
+                          galleryType: 'featured'
+                        });
+                        
                         setActive({ art: { id: featuredImage.id, src: featuredImage.src, title: featuredImage.title, alt: featuredImage.alt, description: featuredImage.description }, idx: 0 })
                       }
                     }}
@@ -634,7 +653,21 @@ export default function Home() {
                         <div 
                           key={photo.id} 
                           className="flex-shrink-0 group cursor-pointer"
-                  onClick={() => setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })}
+                  onClick={() => {
+                    // Track image view with custom analytics
+                    trackImageView({
+                      id: photo.id,
+                      title: photo.title,
+                      path: photo.src,
+                      isFeatured: false
+                    }, {
+                      isSeries: false,
+                      seriesIndex: 0,
+                      galleryType: 'home'
+                    });
+                    
+                    setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })
+                  }}
                         >
                           <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(200px, 14vw, 320px)', height: 'clamp(120px, 10vw, 180px)'}}>
                             <img
@@ -666,7 +699,21 @@ export default function Home() {
                         <div 
                           key={`duplicate-${photo.id}`} 
                           className="flex-shrink-0 group cursor-pointer"
-                  onClick={() => setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })}
+                  onClick={() => {
+                    // Track image view with custom analytics
+                    trackImageView({
+                      id: photo.id,
+                      title: photo.title,
+                      path: photo.src,
+                      isFeatured: false
+                    }, {
+                      isSeries: false,
+                      seriesIndex: 0,
+                      galleryType: 'home'
+                    });
+                    
+                    setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })
+                  }}
                         >
                           <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(200px, 14vw, 320px)', height: 'clamp(120px, 10vw, 180px)'}}>
                             <img
@@ -690,7 +737,21 @@ export default function Home() {
                         <div 
                           key={`triple-${photo.id}`} 
                           className="flex-shrink-0 group cursor-pointer"
-                  onClick={() => setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })}
+                  onClick={() => {
+                    // Track image view with custom analytics
+                    trackImageView({
+                      id: photo.id,
+                      title: photo.title,
+                      path: photo.src,
+                      isFeatured: false
+                    }, {
+                      isSeries: false,
+                      seriesIndex: 0,
+                      galleryType: 'home'
+                    });
+                    
+                    setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })
+                  }}
                         >
                           <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(200px, 14vw, 320px)', height: 'clamp(120px, 10vw, 180px)'}}>
                             <img

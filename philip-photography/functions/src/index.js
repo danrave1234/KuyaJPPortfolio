@@ -797,3 +797,478 @@ exports.likePhoto = functions.region('asia-southeast1').https.onRequest(async (r
     });
   }
 });
+
+// Analytics Functions
+const db = admin.firestore();
+
+// Get analytics dashboard data
+exports.getAnalyticsData = functions.region('asia-southeast1').https.onRequest(async (req, res) => {
+  // Enable CORS for your frontend domain
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const timeRange = req.query.timeRange || '7d';
+    const now = new Date();
+    let startDate;
+    
+    switch (timeRange) {
+      case '1d':
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '90d':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    }
+
+    // Get page views
+    let pageViews = [];
+    try {
+      const pageViewsSnapshot = await db.collection('analytics_visits')
+        .where('timestamp', '>=', startDate)
+        .orderBy('timestamp', 'desc')
+        .limit(1000)
+        .get();
+
+      pageViews = pageViewsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.warn('No page views data found:', error.message);
+      pageViews = [];
+    }
+
+    // Get image views
+    let imageViews = [];
+    try {
+      const imageViewsSnapshot = await db.collection('analytics_image_views')
+        .where('timestamp', '>=', startDate)
+        .orderBy('timestamp', 'desc')
+        .limit(1000)
+        .get();
+
+      imageViews = imageViewsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.warn('No image views data found:', error.message);
+      imageViews = [];
+    }
+
+    // Get interactions
+    let interactions = [];
+    try {
+      const interactionsSnapshot = await db.collection('analytics_interactions')
+        .where('timestamp', '>=', startDate)
+        .orderBy('timestamp', 'desc')
+        .limit(1000)
+        .get();
+
+      interactions = interactionsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.warn('No interactions data found:', error.message);
+      interactions = [];
+    }
+
+    // Filter out admin page views before processing
+    const nonAdminPageViews = pageViews.filter(pv => 
+      pv.pageName && pv.pageName.toLowerCase() !== 'admin'
+    );
+
+    // Calculate metrics (using non-admin data only)
+    const metrics = {
+      totalPageViews: nonAdminPageViews.length,
+      totalImageViews: imageViews.length,
+      totalInteractions: interactions.length,
+      uniqueVisitors: new Set(nonAdminPageViews.map(pv => pv.visitorId)).size,
+      uniqueSessions: new Set(nonAdminPageViews.map(pv => pv.sessionId)).size,
+      popularPages: {},
+      popularImages: {},
+      trafficSources: {},
+      deviceTypes: {},
+      interactionsByType: {}
+    };
+
+    // Process page views (excluding admin)
+    nonAdminPageViews.forEach(pv => {
+      // Popular pages
+      metrics.popularPages[pv.pageName] = (metrics.popularPages[pv.pageName] || 0) + 1;
+      
+      // Traffic sources
+      const source = pv.referrer === 'direct' ? 'direct' : 'referral';
+      metrics.trafficSources[source] = (metrics.trafficSources[source] || 0) + 1;
+      
+      // Device types
+      const isMobile = pv.userAgent && /Mobile|Android|iPhone|iPad/.test(pv.userAgent);
+      const deviceType = isMobile ? 'mobile' : 'desktop';
+      metrics.deviceTypes[deviceType] = (metrics.deviceTypes[deviceType] || 0) + 1;
+    });
+
+    // Process image views
+    imageViews.forEach(iv => {
+      metrics.popularImages[iv.imageTitle] = (metrics.popularImages[iv.imageTitle] || 0) + 1;
+    });
+
+    // Process interactions
+    interactions.forEach(interaction => {
+      const type = interaction.interactionType;
+      metrics.interactionsByType[type] = (metrics.interactionsByType[type] || 0) + 1;
+    });
+
+    // Sort popular pages and images
+    metrics.popularPages = Object.entries(metrics.popularPages)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10)
+      .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+
+    metrics.popularImages = Object.entries(metrics.popularImages)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10)
+      .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {});
+
+    res.json({
+      success: true,
+      data: {
+        metrics,
+        pageViews: nonAdminPageViews, // Only return non-admin page views
+        imageViews,
+        interactions,
+        timeRange,
+        startDate: startDate.toISOString(),
+        endDate: now.toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting analytics data:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      data: null
+    });
+  }
+});
+
+// Get image statistics
+exports.getImageStats = functions.region('asia-southeast1').https.onRequest(async (req, res) => {
+  // Enable CORS for your frontend domain
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    
+    let imageStats = [];
+    try {
+      const imageStatsSnapshot = await db.collection('analytics_image_stats')
+        .orderBy('views', 'desc')
+        .limit(limit)
+        .get();
+
+      imageStats = imageStatsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.warn('No image stats data found:', error.message);
+      imageStats = [];
+    }
+
+    res.json({
+      success: true,
+      data: imageStats
+    });
+
+  } catch (error) {
+    console.error('Error getting image stats:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      data: []
+    });
+  }
+});
+
+// Get daily statistics
+exports.getDailyStats = functions.region('asia-southeast1').https.onRequest(async (req, res) => {
+  // Enable CORS for your frontend domain
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    let dailyStats = [];
+    try {
+      const dailyStatsSnapshot = await db.collection('analytics_daily_stats')
+        .where('date', '>=', startDate.toISOString().split('T')[0])
+        .orderBy('date', 'desc')
+        .get();
+
+      dailyStats = dailyStatsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (error) {
+      console.warn('No daily stats data found:', error.message);
+      dailyStats = [];
+    }
+
+    res.json({
+      success: true,
+      data: dailyStats
+    });
+
+  } catch (error) {
+    console.error('Error getting daily stats:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      data: []
+    });
+  }
+});
+
+// Get real-time analytics summary
+exports.getAnalyticsSummary = functions.region('asia-southeast1').https.onRequest(async (req, res) => {
+  // Enable CORS for your frontend domain
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+    const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // Today's stats
+    let todayPageViewsSnapshot, todayImageViewsSnapshot, todayInteractionsSnapshot;
+    let yesterdayPageViewsSnapshot, yesterdayImageViewsSnapshot, yesterdayInteractionsSnapshot;
+    let lastWeekPageViewsSnapshot;
+
+    try {
+      todayPageViewsSnapshot = await db.collection('analytics_visits')
+        .where('timestamp', '>=', today)
+        .get();
+    } catch (error) {
+      console.warn('No today page views data found:', error.message);
+      todayPageViewsSnapshot = { size: 0, docs: [] };
+    }
+
+    try {
+      todayImageViewsSnapshot = await db.collection('analytics_image_views')
+        .where('timestamp', '>=', today)
+        .get();
+    } catch (error) {
+      console.warn('No today image views data found:', error.message);
+      todayImageViewsSnapshot = { size: 0, docs: [] };
+    }
+
+    try {
+      todayInteractionsSnapshot = await db.collection('analytics_interactions')
+        .where('timestamp', '>=', today)
+        .get();
+    } catch (error) {
+      console.warn('No today interactions data found:', error.message);
+      todayInteractionsSnapshot = { size: 0, docs: [] };
+    }
+
+    // Yesterday's stats for comparison
+    try {
+      yesterdayPageViewsSnapshot = await db.collection('analytics_visits')
+        .where('timestamp', '>=', yesterday)
+        .where('timestamp', '<', today)
+        .get();
+    } catch (error) {
+      console.warn('No yesterday page views data found:', error.message);
+      yesterdayPageViewsSnapshot = { size: 0, docs: [] };
+    }
+
+    try {
+      yesterdayImageViewsSnapshot = await db.collection('analytics_image_views')
+        .where('timestamp', '>=', yesterday)
+        .where('timestamp', '<', today)
+        .get();
+    } catch (error) {
+      console.warn('No yesterday image views data found:', error.message);
+      yesterdayImageViewsSnapshot = { size: 0, docs: [] };
+    }
+
+    try {
+      yesterdayInteractionsSnapshot = await db.collection('analytics_interactions')
+        .where('timestamp', '>=', yesterday)
+        .where('timestamp', '<', today)
+        .get();
+    } catch (error) {
+      console.warn('No yesterday interactions data found:', error.message);
+      yesterdayInteractionsSnapshot = { size: 0, docs: [] };
+    }
+
+    // Last week's stats
+    try {
+      lastWeekPageViewsSnapshot = await db.collection('analytics_visits')
+        .where('timestamp', '>=', lastWeek)
+        .get();
+    } catch (error) {
+      console.warn('No last week page views data found:', error.message);
+      lastWeekPageViewsSnapshot = { size: 0, docs: [] };
+    }
+
+    // Filter out admin page views
+    const todayNonAdmin = todayPageViewsSnapshot.docs.filter(doc => 
+      doc.data().pageName && doc.data().pageName.toLowerCase() !== 'admin'
+    );
+    const yesterdayNonAdmin = yesterdayPageViewsSnapshot.docs.filter(doc => 
+      doc.data().pageName && doc.data().pageName.toLowerCase() !== 'admin'
+    );
+    const lastWeekNonAdmin = lastWeekPageViewsSnapshot.docs.filter(doc => 
+      doc.data().pageName && doc.data().pageName.toLowerCase() !== 'admin'
+    );
+
+    const summary = {
+      today: {
+        pageViews: todayNonAdmin.length,
+        imageViews: todayImageViewsSnapshot.size,
+        interactions: todayInteractionsSnapshot.size,
+        uniqueVisitors: new Set(todayNonAdmin.map(doc => doc.data().visitorId)).size
+      },
+      yesterday: {
+        pageViews: yesterdayNonAdmin.length,
+        imageViews: yesterdayImageViewsSnapshot.size,
+        interactions: yesterdayInteractionsSnapshot.size,
+        uniqueVisitors: new Set(yesterdayNonAdmin.map(doc => doc.data().visitorId)).size
+      },
+      lastWeek: {
+        pageViews: lastWeekNonAdmin.length,
+        uniqueVisitors: new Set(lastWeekNonAdmin.map(doc => doc.data().visitorId)).size
+      }
+    };
+
+    // Calculate growth percentages
+    summary.today.pageViewsGrowth = calculateGrowth(summary.today.pageViews, summary.yesterday.pageViews);
+    summary.today.imageViewsGrowth = calculateGrowth(summary.today.imageViews, summary.yesterday.imageViews);
+    summary.today.interactionsGrowth = calculateGrowth(summary.today.interactions, summary.yesterday.interactions);
+    summary.today.visitorsGrowth = calculateGrowth(summary.today.uniqueVisitors, summary.yesterday.uniqueVisitors);
+
+    res.json({
+      success: true,
+      data: summary
+    });
+
+  } catch (error) {
+    console.error('Error getting analytics summary:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      data: null
+    });
+  }
+});
+
+// Helper function to calculate growth percentage
+function calculateGrowth(current, previous) {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
+// Clear all analytics data (admin only)
+exports.clearAnalyticsData = functions.region('asia-southeast1').https.onRequest(async (req, res) => {
+  // Enable CORS for your frontend domain
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const collectionsToDelete = [
+      'analytics_visits',
+      'analytics_image_views',
+      'analytics_interactions',
+      'analytics_sessions',
+      'analytics_image_stats',
+      'analytics_daily_stats'
+    ];
+
+    let totalDeleted = 0;
+    const results = {};
+
+    // Delete all documents from each collection
+    for (const collectionName of collectionsToDelete) {
+      try {
+        const snapshot = await db.collection(collectionName).get();
+        const deletePromises = [];
+        
+        snapshot.docs.forEach(doc => {
+          deletePromises.push(doc.ref.delete());
+        });
+
+        await Promise.all(deletePromises);
+        
+        results[collectionName] = snapshot.size;
+        totalDeleted += snapshot.size;
+        
+        console.log(`Deleted ${snapshot.size} documents from ${collectionName}`);
+      } catch (error) {
+        console.warn(`Error deleting from ${collectionName}:`, error.message);
+        results[collectionName] = 0;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Analytics data cleared successfully',
+      totalDeleted,
+      results
+    });
+
+  } catch (error) {
+    console.error('Error clearing analytics data:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});

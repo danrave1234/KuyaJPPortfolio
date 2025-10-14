@@ -3,6 +3,7 @@ import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ArrowRight, Search,
 import { getGalleryImages, searchGalleryImages } from '../firebase/api'
 import { analytics } from '../firebase/config'
 import { logEvent } from 'firebase/analytics'
+import { trackImageView, trackGalleryNavigation } from '../services/analytics'
 import SEO from '../components/SEO'
 
 export default function Gallery() {
@@ -787,6 +788,18 @@ export default function Gallery() {
                       item_variant: art.isSeries ? 'series' : 'single'
                     })
                   }
+
+                  // Track image view with custom analytics
+                  trackImageView({
+                    id: art.id,
+                    title: art.title,
+                    path: art.src,
+                    isFeatured: false
+                  }, {
+                    isSeries: art.isSeries,
+                    seriesIndex: i,
+                    galleryType: 'main'
+                  });
 
                   // If this is a separated series item, use the complete series data
                   if (art.completeSeriesData) {

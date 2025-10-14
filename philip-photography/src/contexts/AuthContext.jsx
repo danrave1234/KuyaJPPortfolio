@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChange, getCurrentUser } from '../firebase/auth';
+import { onAuthStateChange, getCurrentUser, signOutUser } from '../firebase/auth';
 
 const AuthContext = createContext();
 
@@ -28,7 +28,17 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     isAuthenticated: !!user,
-    currentUser: getCurrentUser
+    currentUser: getCurrentUser,
+    // Helper functions
+    isAdmin: user && user.email === 'jpmoradanaturegram@gmail.com', // Replace with your admin email
+    signOut: async () => {
+      try {
+        await signOutUser();
+        setUser(null);
+      } catch (error) {
+        console.error('Error signing out:', error);
+      }
+    }
   };
 
   return (

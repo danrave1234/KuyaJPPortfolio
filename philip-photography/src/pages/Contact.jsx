@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Instagram, Facebook, Youtube } from 'lucide-react'
+import { trackContactForm, trackEmailClick } from '../services/analytics'
 import SEO from '../components/SEO'
 
 export default function Contact() {
@@ -7,10 +8,22 @@ export default function Contact() {
   const onChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   const onSubmit = (e) => {
     e.preventDefault()
+
+    // Track contact form submission (important for analytics)
+    trackContactForm({
+      name: form.name,
+      email: form.email,
+      message: form.message
+    })
+
     const to = 'jpmoradanaturegram@gmail.com'
     const subject = `Inquiry from ${form.name || 'Website Visitor'}`
     const body = `Name: ${form.name}\nEmail: ${form.email}\n\n${form.message}`
     const mailto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+
+    // Don't track email click separately (already tracked with form submission)
+    // trackEmailClick(to)
+
     window.location.href = mailto
   }
   return (
@@ -77,7 +90,12 @@ export default function Contact() {
         <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="card p-4 transition-colors duration-300">
             <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-1 transition-colors duration-300">Email</div>
-            <a href="mailto:jpmoradanaturegram@gmail.com" className="text-[rgb(var(--fg))] hover:underline transition-colors duration-300">jpmoradanaturegram@gmail.com</a>
+                          <a
+                            href="mailto:jpmoradanaturegram@gmail.com"
+                            className="text-[rgb(var(--fg))] hover:underline transition-colors duration-300"
+                          >
+                            jpmoradanaturegram@gmail.com
+                          </a>
           </div>
           <div className="card p-4 transition-colors duration-300">
             <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-1 transition-colors duration-300">Location</div>

@@ -5,6 +5,7 @@ import { getAdminGalleryImages, searchAdminGalleryImages, clearAdminCache, clean
 import { signInUser, signOutUser } from '../firebase/auth'
 import { initTheme } from '../theme.js'
 import SEO from '../components/SEO'
+import AnalyticsDashboard from '../components/AnalyticsDashboard'
 import { 
   Upload, 
   Settings, 
@@ -871,6 +872,7 @@ export default function Admin() {
   // Navigation items
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'gallery', label: 'Main Gallery', icon: Grid3X3 },
     { id: 'featured', label: 'Featured', icon: Star }
   ]
@@ -1002,6 +1004,7 @@ export default function Admin() {
                 </h1>
                 <p className="text-sm text-[rgb(var(--muted))]">
                   {activeTab === 'dashboard' && 'Overview and analytics'}
+                  {activeTab === 'analytics' && 'Monitor your portfolio performance'}
                   {activeTab === 'gallery' && 'Manage your photo collection'}
                   {activeTab === 'featured' && 'Curate featured images'}
                 </p>
@@ -2333,6 +2336,13 @@ export default function Admin() {
           </div>
         </div>
       )}
+
+          {activeTab === 'analytics' && (
+            <div className="space-y-6">
+              <AnalyticsDashboard />
+            </div>
+          )}
+
         </main>
       </div>
     </div>

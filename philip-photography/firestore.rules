@@ -1,0 +1,57 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow public read access to gallery images
+    match /gallery/{document} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'jpmoradanaturegram@gmail.com';
+    }
+    
+    // Allow public read access to featured images
+    match /featured/{document} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'jpmoradanaturegram@gmail.com';
+    }
+    
+    // Analytics collections - allow public writes for tracking
+    match /analytics_visits/{document} {
+      allow read, write: if true; // Allow anonymous analytics tracking
+    }
+    
+    match /analytics_image_views/{document} {
+      allow read, write: if true; // Allow anonymous analytics tracking
+    }
+    
+    match /analytics_interactions/{document} {
+      allow read, write: if true; // Allow anonymous analytics tracking
+    }
+    
+    match /analytics_sessions/{document} {
+      allow read, write: if true; // Allow anonymous analytics tracking
+    }
+    
+    match /analytics_image_stats/{document} {
+      allow read, write: if true; // Allow anonymous analytics tracking
+    }
+    
+    match /analytics_daily_stats/{document} {
+      allow read, write: if true; // Allow anonymous analytics tracking
+    }
+    
+    // Admin-only collections
+    match /admin/{document} {
+      allow read, write: if request.auth != null && request.auth.token.email == 'jpmoradanaturegram@gmail.com';
+    }
+    
+    // Users collection (for authentication)
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Default deny rule for any other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

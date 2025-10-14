@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useState, useRef } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import { analytics } from './firebase/config'
 import { logEvent } from 'firebase/analytics'
+import { initializeAnalytics, trackPageView } from './services/analytics'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
 import BackToTop from './components/BackToTop.jsx'
@@ -11,6 +12,9 @@ import Gallery from './pages/Gallery.jsx'
 import About from './pages/About.jsx'
 import Contact from './pages/Contact.jsx'
 import Admin from './pages/Admin.jsx'
+import NotFound from './pages/NotFound.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
 
 // Component to scroll to top on route change
 function ScrollToTop({ onRouteChange }) {
@@ -43,6 +47,12 @@ function ScrollToTop({ onRouteChange }) {
         page_path: pathname
       })
     }
+
+    // Track page views with custom analytics
+    const pageName = pathname === '/' ? 'Home' : 
+                    pathname.replace('/', '').charAt(0).toUpperCase() + 
+                    pathname.slice(2);
+    trackPageView(pageName, { path: pathname });
 
     // Notify parent about route change
     if (typeof onRouteChange === 'function') {
@@ -133,6 +143,11 @@ function App() {
   const [activeSection, setActiveSection] = useState('home')
   const [scrolled, setScrolled] = useState(false)
 
+  // Initialize analytics on app start
+  useEffect(() => {
+    initializeAnalytics()
+  }, [])
+
   const handleScroll = (scrollY) => {
     setScrolled(scrollY > 10)
   }
@@ -140,14 +155,15 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <ScrollToTop onRouteChange={(path) => {
-          // Ensure navbar returns to transparent state when landing on Home at top
-          if (path === '/') {
-            setScrolled(false)
-          }
-        }} />
-        <Navbar activeSection={activeSection} scrolled={scrolled} />
-        <Routes>
+        <ErrorBoundary>
+          <ScrollToTop onRouteChange={(path) => {
+            // Ensure navbar returns to transparent state when landing on Home at top
+            if (path === '/') {
+              setScrolled(false)
+            }
+          }} />
+          <Navbar activeSection={activeSection} scrolled={scrolled} />
+          <Routes>
           <Route path="/" element={
             <ScrollSnapContainer onActiveSectionChange={setActiveSection} onScroll={handleScroll}>
               <Home />
@@ -171,9 +187,15 @@ function App() {
               <Footer />
             </>
           } />
-          <Route path="/admin" element={<Admin />} />
-        </Routes>
-        <BackToTop />
+          <Route path="/admin" element={
+            <ProtectedRoute>
+              <Admin />
+            </ProtectedRoute>
+          } />
+          <Route path="*" element={<NotFound />} />
+          </Routes>
+          <BackToTop />
+        </ErrorBoundary>
       </BrowserRouter>
     </AuthProvider>
   )
