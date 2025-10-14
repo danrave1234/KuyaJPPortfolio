@@ -1,4 +1,6 @@
 // Admin API service for gallery management with caching
+
+// Admin API service for gallery management with caching
 const functionsURL = 'https://asia-southeast1-kuyajp-portfolio.cloudfunctions.net';
 
 // Featured Gallery Functions

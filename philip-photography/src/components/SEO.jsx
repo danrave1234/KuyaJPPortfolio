@@ -5,11 +5,11 @@ const SEO = ({
   title = "Kuya JP Photography - Wildlife & Nature Photography Portfolio",
   description = "Professional wildlife and nature photography by John Philip Morada. Capturing the beauty of Philippine wildlife, birds, and nature through patient observation and storytelling.",
   keywords = "wildlife photography, nature photography, bird photography, Philippine wildlife, John Philip Morada, Kuya JP",
-  image = "https://kuyajp-portfolio.web.app/Hero.jpg",
+  image = "https://jpmorada.photography/Hero.jpg",
   type = "website"
 }) => {
   const location = useLocation()
-  const url = `https://kuyajp-portfolio.web.app${location.pathname}`
+  const url = `https://jpmorada.photography${location.pathname}`
 
   useEffect(() => {
     // Update document title

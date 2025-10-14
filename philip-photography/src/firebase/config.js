@@ -4,7 +4,7 @@ import { getAnalytics } from 'firebase/analytics';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
-// Firebase configuration
+// Firebase configuration - using existing project with custom domain
 const firebaseConfig = {
   apiKey: "AIzaSyDgjs70B_RlYrwV1PSq0nwEJJ2RippzP9A",
   authDomain: "kuyajp-portfolio.firebaseapp.com",

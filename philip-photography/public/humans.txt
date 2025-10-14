@@ -1,6 +1,6 @@
 /* TEAM */
 Photographer & Owner: John Philip Morada (Kuya JP)
-Site: https://kuyajp-portfolio.web.app
+Site: https://jpmorada.photography
 Location: Philippines
 
 /* THANKS */

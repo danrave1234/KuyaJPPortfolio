@@ -31,13 +31,13 @@ export default defineConfig({
   },
   // Server configuration
   server: {
-    port: 3000,
+    port: 5173,
     strictPort: false,
     host: true,
   },
   // Preview configuration
   preview: {
-    port: 3000,
+    port: 5173,
     strictPort: false,
     host: true,
   },

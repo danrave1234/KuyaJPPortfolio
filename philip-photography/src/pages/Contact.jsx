@@ -7,7 +7,7 @@ export default function Contact() {
   const onChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
   const onSubmit = (e) => {
     e.preventDefault()
-    const to = 'danravekeh123@gmail.com'
+    const to = 'jpmoradanaturegram@gmail.com'
     const subject = `Inquiry from ${form.name || 'Website Visitor'}`
     const body = `Name: ${form.name}\nEmail: ${form.email}\n\n${form.message}`
     const mailto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
@@ -77,15 +77,15 @@ export default function Contact() {
         <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="card p-4 transition-colors duration-300">
             <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-1 transition-colors duration-300">Email</div>
-            <a href="mailto:danravekeh123@gmail.com" className="text-[rgb(var(--fg))] hover:underline transition-colors duration-300">danravekeh123@gmail.com</a>
+            <a href="mailto:jpmoradanaturegram@gmail.com" className="text-[rgb(var(--fg))] hover:underline transition-colors duration-300">jpmoradanaturegram@gmail.com</a>
           </div>
           <div className="card p-4 transition-colors duration-300">
             <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-1 transition-colors duration-300">Location</div>
             <div className="text-[rgb(var(--fg))] transition-colors duration-300">Philippines • Available worldwide</div>
           </div>
           <div className="card p-4 transition-colors duration-300">
-            <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-1 transition-colors duration-300">Services</div>
-            <div className="text-[rgb(var(--fg))] transition-colors duration-300">Photography commissions</div>
+            <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-1 transition-colors duration-300">Phone</div>
+            <a href="tel:+639453859776" className="text-[rgb(var(--fg))] hover:underline transition-colors duration-300">+63 945 385 9776</a>
           </div>
           <div className="card p-4 transition-colors duration-300">
             <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-1 transition-colors duration-300">Follow</div>
@@ -94,7 +94,7 @@ export default function Contact() {
                 <Instagram size={18} />
                 <span>Instagram</span>
               </a>
-              <a href="https://facebook.com" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-[rgb(var(--primary))] transition-colors duration-300" aria-label="Facebook">
+              <a href="https://www.facebook.com/john.morada.red" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-[rgb(var(--primary))] transition-colors duration-300" aria-label="Facebook">
                 <Facebook size={18} />
                 <span>Facebook</span>
               </a>

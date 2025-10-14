@@ -8,7 +8,7 @@ const functions = getFunctions(app, 'asia-southeast1');
 // Method 1: HTTP Request (simpler, less secure)
 export const getGalleryImagesHTTP = async (folder = 'gallery', page = 1, limit = 20) => {
   try {
-    // Replace with your actual Firebase project's functions URL
+    // Use existing Firebase project functions URL
     const functionsURL = 'https://asia-southeast1-kuyajp-portfolio.cloudfunctions.net';
     const response = await fetch(`${functionsURL}/getGalleryImages?folder=${folder}&page=${page}&limit=${limit}`);
     

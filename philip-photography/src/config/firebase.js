@@ -1,6 +1,7 @@
 // Firebase Storage Configuration
 // Your actual Firebase project configuration
 
+// Firebase Storage Configuration - using existing project with custom domain
 export const FIREBASE_CONFIG = {
   // Firebase Storage bucket URL
   STORAGE_URL: 'https://firebasestorage.googleapis.com/v0/b/kuyajp-portfolio.firebasestorage.app/o',

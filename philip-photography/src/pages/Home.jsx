@@ -257,7 +257,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/30" />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <div className="text-center">
-              <h1 className="font-heading text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold text-white drop-shadow mb-4 sm:mb-6 md:mb-8 lg:mb-10" style={{ letterSpacing: '0.12em', fontKerning: 'none' }}>Wing Focus</h1>
+              <h1 className="font-heading text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold text-white drop-shadow mb-4 sm:mb-6 md:mb-8 lg:mb-10" style={{ letterSpacing: '0.12em', fontKerning: 'none' }}>JP Morada</h1>
               <p className="font-body text-white/90 max-w-2xl mx-auto text-sm sm:text-base md:text-base lg:text-lg xl:text-xl 2xl:text-2xl leading-relaxed lg:max-w-3xl">Capturing the beauty of wildlife, especially the magnificent diversity of bird species in their natural habitats.</p>
               <Link to="/gallery" className="btn-outline border-white text-white hover:bg-white hover:text-black mt-6 sm:mt-8 md:mt-10 lg:mt-12 inline-block text-sm sm:text-base md:text-base lg:text-lg xl:text-xl px-4 sm:px-6 md:px-8 lg:px-8 py-2 sm:py-3 md:py-3 lg:py-4">VIEW GALLERY</Link>
             </div>
@@ -763,7 +763,8 @@ export default function Home() {
               <div className="space-y-2">
                 <div className="text-[10px] uppercase tracking-[0.25em]">Contact</div>
                 <ul className="space-y-1">
-                  <li><a href="mailto:danravekeh123@gmail.com" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">danravekeh123@gmail.com</a></li>
+                  <li><a href="mailto:jpmoradanaturegram@gmail.com" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">jpmoradanaturegram@gmail.com</a></li>
+                  <li><a href="tel:+639453859776" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">+63 945 385 9776</a></li>
                   <li><span className="text-xs sm:text-sm hidden sm:block">Based in Philippines • Available worldwide</span>
                       <span className="text-xs sm:hidden">Philippines • Worldwide</span></li>
                 </ul>
@@ -779,7 +780,7 @@ export default function Home() {
                     </svg>
                     <span className="text-xs sm:text-sm hidden sm:inline">Instagram</span>
                   </a>
-                  <a href="https://facebook.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="Facebook">
+                  <a href="https://www.facebook.com/john.morada.red" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="Facebook">
                     <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
