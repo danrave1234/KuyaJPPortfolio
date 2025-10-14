@@ -5,7 +5,7 @@
   <!-- Homepage -->
   <url>
     <loc>https://jpmorada.photography/</loc>
-    <lastmod>2025-10-13</lastmod>
+    <lastmod>2025-10-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
@@ -18,7 +18,7 @@
   <!-- Gallery Page -->
   <url>
     <loc>https://jpmorada.photography/gallery</loc>
-    <lastmod>2025-10-13</lastmod>
+    <lastmod>2025-10-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -26,7 +26,7 @@
   <!-- About Page -->
   <url>
     <loc>https://jpmorada.photography/about</loc>
-    <lastmod>2025-10-13</lastmod>
+    <lastmod>2025-10-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -34,10 +34,48 @@
   <!-- Contact Page -->
   <url>
     <loc>https://jpmorada.photography/contact</loc>
-    <lastmod>2025-10-13</lastmod>
+    <lastmod>2025-10-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   
+  <!-- Individual Gallery Images -->
+  <!-- Generated automatically from Firebase Storage gallery images -->
+  
+  <url>
+    <loc>https://jpmorada.photography/gallery/philippine-eagle-pithecophaga-jefferyi-philippine-eagle-001</loc>
+    <lastmod>2025-10-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://jpmorada.photography/gallery/philippine-eagle-pithecophaga-jefferyi-philippine-eagle-001</image:loc>
+      <image:title>Philippine Eagle (Pithecophaga jefferyi) - Wildlife Photography</image:title>
+      <image:caption>Stunning photograph of the Philippine Eagle, one of the rarest and most powerful birds of prey in the world</image:caption>
+    </image:image>
+  </url>
+  
+  <url>
+    <loc>https://jpmorada.photography/gallery/common-kingfisher-alcedo-atthis-kingfisher-001</loc>
+    <lastmod>2025-10-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://jpmorada.photography/gallery/common-kingfisher-alcedo-atthis-kingfisher-001</image:loc>
+      <image:title>Common Kingfisher (Alcedo atthis) - Wildlife Photography</image:title>
+      <image:caption>Beautiful close-up of a Common Kingfisher in its natural habitat</image:caption>
+    </image:image>
+  </url>
+  
+  <url>
+    <loc>https://jpmorada.photography/gallery/visayan-hornbill-penelopides-panini-hornbill-001</loc>
+    <lastmod>2025-10-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://jpmorada.photography/gallery/visayan-hornbill-penelopides-panini-hornbill-001</image:loc>
+      <image:title>Visayan Hornbill (Penelopides panini) - Wildlife Photography</image:title>
+      <image:caption>Rare Visayan Hornbill captured in its natural forest habitat</image:caption>
+    </image:image>
+  </url>
+  
 </urlset>
-

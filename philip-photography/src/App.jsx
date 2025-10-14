@@ -175,6 +175,12 @@ function App() {
               <Footer />
             </>
           } />
+          <Route path="/gallery/:imageSlug" element={
+            <>
+              <Gallery />
+              <Footer />
+            </>
+          } />
           <Route path="/about" element={
             <>
               <About />

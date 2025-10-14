@@ -1,12 +1,16 @@
 import { useEffect, useState, useRef } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ArrowRight, Search, Heart, Filter } from 'lucide-react'
 import { getGalleryImages, searchGalleryImages } from '../firebase/api'
 import { analytics } from '../firebase/config'
 import { logEvent } from 'firebase/analytics'
 import { trackImageView, trackGalleryNavigation } from '../services/analytics'
 import SEO from '../components/SEO'
+import { generateSlug, extractIdFromSlug } from '../utils/slugify'
 
 export default function Gallery() {
+  const { imageSlug } = useParams()
+  const navigate = useNavigate()
   const [active, setActive] = useState(null) // { art, idx }
   const [imageDimensions, setImageDimensions] = useState({})
   const [loadedImages, setLoadedImages] = useState(new Set())
@@ -31,6 +35,51 @@ export default function Gallery() {
   const [searchResults, setSearchResults] = useState([])
   const [searchPage, setSearchPage] = useState(1)
   const [searchHasMore, setSearchHasMore] = useState(false)
+
+  // Image lookup function to find image by slug
+  const findImageBySlug = (slug, images) => {
+    if (!slug || !images) return null;
+    
+    return images.find(img => {
+      const imgSlug = generateSlug(img.title, img.scientificName, img.id);
+      return imgSlug === slug;
+    });
+  };
+
+  // Handle image click with URL routing
+  const handleImageClick = (art, idx = 0) => {
+    const slug = generateSlug(art.title, art.scientificName, art.id);
+    navigate(`/gallery/${slug}`, { replace: false, state: { scrollPosition: window.scrollY } });
+    setActive({ art, idx });
+  };
+
+  // Handle modal close with URL routing
+  const handleModalClose = () => {
+    setActive(null);
+    navigate('/gallery', { replace: false });
+  };
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      if (!imageSlug) {
+        setActive(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [imageSlug]);
+
+  // Open modal on direct URL access
+  useEffect(() => {
+    if (imageSlug && artworks.length > 0 && !active) {
+      const image = findImageBySlug(imageSlug, artworks);
+      if (image) {
+        const idx = artworks.findIndex(art => art.id === image.id);
+        setActive({ art: image, idx: idx >= 0 ? idx : 0 });
+      }
+    }
+  }, [imageSlug, artworks]);
 
   // Debounce search input
   useEffect(() => {
@@ -620,11 +669,21 @@ export default function Gallery() {
 
   return (
     <>
-      <SEO 
-        title="Gallery - Wildlife & Nature Photography Collection | Kuya JP"
-        description="Explore the complete wildlife and nature photography gallery by Kuya JP. Browse stunning images of Philippine birds, wildlife, and nature captured with dedication and artistic vision."
-        keywords="wildlife gallery, nature photography collection, bird photos, Philippine wildlife images, photography portfolio, Kuya JP gallery"
-      />
+      {/* Dynamic SEO for individual images or default gallery SEO */}
+      {active ? (
+        <SEO 
+          title={`${active.art.title}${active.art.scientificName ? ` - ${active.art.scientificName}` : ''} | JP Morada Photography`}
+          description={active.art.description || `Wildlife photography of ${active.art.title} by JP Morada. ${active.art.scientificName ? `Scientific name: ${active.art.scientificName}. ` : ''}${active.art.location ? `Photographed in ${active.art.location}.` : ''}`}
+          keywords={`${active.art.title}, ${active.art.scientificName || ''}, wildlife photography, JP Morada, bird photography, ${active.art.location || ''}`}
+          image={active.art.src}
+        />
+      ) : (
+        <SEO 
+          title="Gallery - Wildlife & Nature Photography Collection | JP Morada"
+          description="Explore the complete wildlife and nature photography gallery by JP Morada. Browse stunning images of Philippine birds, wildlife, and nature captured with dedication and artistic vision."
+          keywords="wildlife gallery, nature photography collection, bird photos, Philippine wildlife images, photography portfolio, JP Morada gallery"
+        />
+      )}
       <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
       <div className="container-responsive pt-20 sm:pt-24 md:pt-20 lg:pt-24 pb-6 sm:pb-8">
         <div className="mb-6 sm:mb-8 md:mb-10">
@@ -806,12 +865,12 @@ export default function Gallery() {
                     console.log('Opening series modal with complete data:', art.completeSeriesData);
                     console.log('Opening at index:', art.seriesIndex - 1);
                     
-                    // Use the complete series data directly
-                    setActive({ art: art.completeSeriesData, idx: art.seriesIndex - 1 });
+                    // Use the complete series data directly with URL routing
+                    handleImageClick(art.completeSeriesData, art.seriesIndex - 1);
                   } else {
-                    // For single images, open normally
+                    // For single images, open normally with URL routing
                     console.log('Opening single image modal:', art);
-                    setActive({ art, idx: 0 });
+                    handleImageClick(art, 0);
                   }
                 }}
               >
@@ -967,7 +1026,13 @@ export default function Gallery() {
       </div>
 
       {active && (
-        <ModalViewer active={active} setActive={setActive} allArtworks={artworks} />
+        <ModalViewer 
+          active={active} 
+          setActive={setActive} 
+          allArtworks={artworks}
+          handleImageClick={handleImageClick}
+          handleModalClose={handleModalClose}
+        />
       )}
       </div>
     </main>
@@ -975,7 +1040,7 @@ export default function Gallery() {
   )
 }
 
-function ModalViewer({ active, setActive, allArtworks }) {
+function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleModalClose }) {
   // Early return if active is null or invalid
   if (!active || !active.art) {
     return null
@@ -991,7 +1056,8 @@ function ModalViewer({ active, setActive, allArtworks }) {
     
     // If it's a series and we're not on the first image, navigate within the series
     if (currentActive.art.isSeries && currentActive.idx > 0) {
-      setActive({ art: currentActive.art, idx: currentActive.idx - 1 })
+      const newIdx = currentActive.idx - 1;
+      handleImageClick(currentActive.art, newIdx);
       return
     }
     
@@ -1001,7 +1067,7 @@ function ModalViewer({ active, setActive, allArtworks }) {
       const prevArt = allArtworks[currentIndex - 1]
       // If previous artwork is a series, go to its last image
       const lastIdx = prevArt.isSeries ? (prevArt.images?.length || 1) - 1 : 0
-      setActive({ art: prevArt, idx: lastIdx })
+      handleImageClick(prevArt, lastIdx);
     }
   }
   
@@ -1011,7 +1077,8 @@ function ModalViewer({ active, setActive, allArtworks }) {
     
     // If it's a series and we're not on the last image, navigate within the series
     if (currentActive.art.isSeries && currentActive.idx < (currentActive.art.images?.length || 1) - 1) {
-      setActive({ art: currentActive.art, idx: currentActive.idx + 1 })
+      const newIdx = currentActive.idx + 1;
+      handleImageClick(currentActive.art, newIdx);
       return
     }
     
@@ -1019,7 +1086,7 @@ function ModalViewer({ active, setActive, allArtworks }) {
     const currentIndex = allArtworks.findIndex(art => art.id === currentActive.art.id)
     if (currentIndex < allArtworks.length - 1) {
       const nextArt = allArtworks[currentIndex + 1]
-      setActive({ art: nextArt, idx: 0 })
+      handleImageClick(nextArt, 0);
     }
   }
   
@@ -1232,10 +1299,12 @@ function ModalViewer({ active, setActive, allArtworks }) {
           if (e.key === 'Escape') exitFullscreen()
           if (hasMultipleImages) {
             if (e.key === 'ArrowLeft') {
-              setActive({ art: active.art, idx: (active.idx - 1 + (active.art.images?.length || 1)) % (active.art.images?.length || 1) })
+              const newIdx = (active.idx - 1 + (active.art.images?.length || 1)) % (active.art.images?.length || 1);
+              handleImageClick(active.art, newIdx);
             }
             if (e.key === 'ArrowRight') {
-              setActive({ art: active.art, idx: (active.idx + 1) % (active.art.images?.length || 1) })
+              const newIdx = (active.idx + 1) % (active.art.images?.length || 1);
+              handleImageClick(active.art, newIdx);
             }
           }
         }
@@ -1375,7 +1444,7 @@ function ModalViewer({ active, setActive, allArtworks }) {
         style={{
           background: 'linear-gradient(135deg, rgba(var(--bg), 0.95) 0%, rgba(var(--bg), 0.85) 50%, rgba(var(--bg), 0.95) 100%)'
         }}
-        onClick={() => setActive(null)} 
+        onClick={handleModalClose} 
       />
       
       {/* Main modal container */}
@@ -1453,7 +1522,7 @@ function ModalViewer({ active, setActive, allArtworks }) {
                     onMouseLeave={(e) => {
                       e.target.style.backgroundColor = 'rgba(var(--muted), 0.2)'
                     }}
-                    onClick={() => setActive(null)} 
+                    onClick={handleModalClose} 
                     aria-label="Close"
                   >
                     <X size={18} />
@@ -1767,7 +1836,7 @@ function ModalViewer({ active, setActive, allArtworks }) {
                             style={{ 
                               border: i === active.idx ? '2px solid rgb(var(--primary))' : '2px solid transparent'
                             }}
-                            onClick={() => setActive({ art: active.art, idx: i })}
+                            onClick={() => handleImageClick(active.art, i)}
                           >
                             <img 
                               src={image.src} 
@@ -1977,7 +2046,7 @@ function ModalViewer({ active, setActive, allArtworks }) {
                           style={{ 
                             border: i === active.idx ? '2px solid rgb(var(--primary))' : '2px solid transparent'
                           }}
-                          onClick={() => setActive({ art: active.art, idx: i })}
+                          onClick={() => handleImageClick(active.art, i)}
                         >
                           <img 
                             src={image.src} 
