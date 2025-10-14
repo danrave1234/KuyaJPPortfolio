@@ -760,7 +760,16 @@ export default function Gallery() {
             {(debouncedQuery || sortFilter !== 'default') && (
               <div className="mt-2 text-center text-sm text-[rgb(var(--muted))] transition-colors duration-300">
                 {debouncedQuery && (
-                  <span>Showing {deduplicatedArtworks.length} results</span>
+                  <span>
+                    {isSearching || isDebouncing ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-[rgb(var(--muted))]/30 border-t-[rgb(var(--muted))] rounded-full animate-spin"></div>
+                        Searching...
+                      </span>
+                    ) : (
+                      `Showing ${deduplicatedArtworks.length} results`
+                    )}
+                  </span>
                 )}
                 {sortFilter !== 'default' && !debouncedQuery && (
                   <span>Sorted by {sortFilter === 'most-liked' ? 'Most Liked' : 'Default'}</span>
@@ -792,7 +801,7 @@ export default function Gallery() {
               <p className="text-[rgb(var(--muted-fg))] transition-colors duration-300">No images found in Firebase Storage</p>
             </div>
           </div>
-        ) : debouncedQuery && deduplicatedArtworks.length === 0 && !isSearching ? (
+        ) : debouncedQuery && deduplicatedArtworks.length === 0 && !isSearching && !isDebouncing ? (
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
               <p className="text-[rgb(var(--muted-fg))] transition-colors duration-300">No results for "{debouncedQuery}"</p>
