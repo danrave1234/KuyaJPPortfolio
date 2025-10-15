@@ -9,15 +9,15 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/KuyaJP.jpg",
-      "type": "image/jpeg",
+      "src": "/LightmodeLogo.png",
+      "type": "image/png",
       "sizes": "192x192 256x256 384x384 512x512",
       "purpose": "any maskable"
     },
     {
-      "src": "/LightmodeLogo.svg",
-      "type": "image/svg+xml",
-      "sizes": "any",
+      "src": "/DarkmodeLogo.png",
+      "type": "image/png",
+      "sizes": "192x192 256x256 384x384 512x512",
       "purpose": "any"
     }
   ],
