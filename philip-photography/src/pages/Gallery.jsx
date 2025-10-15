@@ -48,6 +48,10 @@ export default function Gallery() {
 
   // Handle image click with URL routing
   const handleImageClick = (art, idx = 0) => {
+    try {
+      // Persist current scroll so we can restore after closing modal/back nav
+      sessionStorage.setItem('gallery-scrollY', String(window.scrollY || 0))
+    } catch {}
     const slug = generateSlug(art.title, art.scientificName, art.id);
     navigate(`/gallery/${slug}`, { replace: false, state: { scrollPosition: window.scrollY } });
     setActive({ art, idx });
@@ -55,14 +59,24 @@ export default function Gallery() {
 
   // Handle modal close with URL routing
   const handleModalClose = () => {
+    // Save scroll position before closing so gallery restores where user left off
+    let scrollY = 0
+    try {
+      scrollY = window.scrollY || 0
+      sessionStorage.setItem('gallery-scrollY', String(scrollY))
+    } catch {}
     setActive(null);
-    navigate('/gallery', { replace: false });
+    navigate('/gallery', { replace: false, state: { restoreScroll: true, scrollPosition: scrollY } });
   };
 
   // Handle browser back/forward buttons
   useEffect(() => {
     const handlePopState = () => {
       if (!imageSlug) {
+        // Returning to /gallery: ensure we keep/restored scroll
+        try {
+          sessionStorage.setItem('gallery-scrollY', String(window.scrollY || 0))
+        } catch {}
         setActive(null);
       }
     };

@@ -16,9 +16,10 @@ import NotFound from './pages/NotFound.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 
-// Component to scroll to top on route change
+// Component to control scroll on route change
 function ScrollToTop({ onRouteChange }) {
-  const { pathname } = useLocation()
+  const location = useLocation()
+  const { pathname, state } = location
 
   // Ensure the browser doesn't try to restore scroll position automatically
   useEffect(() => {
@@ -28,16 +29,34 @@ function ScrollToTop({ onRouteChange }) {
   }, [])
 
   useLayoutEffect(() => {
-    // Force scroll position to the very top on every route change
-    const reset = () => {
-      // Reset all common scroll roots
-      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
-      document.documentElement.scrollTop = 0
-      document.body.scrollTop = 0
+    const isGalleryRoute = pathname === '/gallery' || pathname.startsWith('/gallery/')
+    const savedScroll = (() => {
+      // Prefer state passed via navigation
+      if (state && typeof state.scrollPosition === 'number') return state.scrollPosition
+      const fromSession = sessionStorage.getItem('gallery-scrollY')
+      return fromSession ? parseInt(fromSession, 10) : null
+    })()
+
+    // For gallery routes, restore stored scroll if requested/available
+    if (isGalleryRoute) {
+      // If we navigated back to /gallery after closing modal, try to restore
+      const shouldRestore = state?.restoreScroll || (pathname === '/gallery' && savedScroll != null)
+      if (shouldRestore && savedScroll != null && !Number.isNaN(savedScroll)) {
+        // Restore on next frame to ensure layout is ready
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: savedScroll, left: 0, behavior: 'auto' })
+        })
+      }
+    } else {
+      // Non-gallery routes: force scroll to top as before
+      const reset = () => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+        document.documentElement.scrollTop = 0
+        document.body.scrollTop = 0
+      }
+      reset()
+      requestAnimationFrame(reset)
     }
-    // Run immediately and again on next frame to cover late paints
-    reset()
-    requestAnimationFrame(reset)
 
     // Track page views with Google Analytics
     if (analytics) {
@@ -58,7 +77,7 @@ function ScrollToTop({ onRouteChange }) {
     if (typeof onRouteChange === 'function') {
       onRouteChange(pathname)
     }
-  }, [pathname])
+    }, [pathname, state])
 
   return null
 }

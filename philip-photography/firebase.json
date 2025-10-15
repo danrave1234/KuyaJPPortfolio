@@ -57,14 +57,8 @@
       {
         "source": "/sitemap.xml",
         "headers": [
-          {
-            "key": "Content-Type",
-            "value": "application/xml"
-          },
-          {
-            "key": "Cache-Control",
-            "value": "public, max-age=86400"
-          }
+          { "key": "Content-Type", "value": "application/xml" },
+          { "key": "Cache-Control", "value": "public, max-age=86400" }
         ]
       },
       {
@@ -82,10 +76,8 @@
       }
     ],
     "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
+      { "source": "/sitemap.xml", "function": "sitemap" },
+      { "source": "**", "destination": "/index.html" }
     ],
     "cleanUrls": true,
     "trailingSlash": false,

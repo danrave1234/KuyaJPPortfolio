@@ -4,6 +4,124 @@ const admin = require('firebase-admin');
 // Initialize Firebase Admin
 admin.initializeApp();
 
+// Helper to generate SEO-friendly slugs (mirrors frontend/script logic)
+function generateSlugServer(title, scientificName = '', id = '') {
+  let slug = title || 'untitled';
+  if (scientificName && typeof scientificName === 'string' && scientificName.trim()) {
+    const clean = scientificName.replace(/<\/?em>/g, '').replace(/<\/?i>/g, '').trim();
+    slug += `-${clean}`;
+  }
+  if (id) slug += `-${id}`;
+  slug = slug.toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+  if (!slug) slug = 'image';
+  if (slug.length < 3) slug += `-${Date.now().toString(36)}`;
+  return slug;
+}
+
+// Dynamic sitemap.xml – always reflects current Storage contents
+exports.sitemap = functions.region('asia-southeast1').https.onRequest(async (req, res) => {
+  try {
+    const baseUrl = 'https://jpmorada.photography';
+    const lastmod = new Date().toISOString().split('T')[0];
+
+    const bucket = admin.storage().bucket();
+    const folderPath = 'gallery';
+
+    // List all files in the gallery folder
+    const [files] = await bucket.getFiles({ prefix: `${folderPath}/`, delimiter: '/' });
+    const validFiles = files.filter(file => {
+      const name = file.name.split('/').pop();
+      return name && name.includes('.') && /(jpg|jpeg|png|gif|webp|svg)$/i.test(name);
+    });
+
+    // Build basic pages
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+      `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n` +
+      `        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n\n` +
+      `  <!-- Homepage -->\n` +
+      `  <url>\n` +
+      `    <loc>${baseUrl}/</loc>\n` +
+      `    <lastmod>${lastmod}</lastmod>\n` +
+      `    <changefreq>weekly</changefreq>\n` +
+      `    <priority>1.0</priority>\n` +
+      `  </url>\n\n` +
+      `  <!-- Gallery Page -->\n` +
+      `  <url>\n` +
+      `    <loc>${baseUrl}/gallery</loc>\n` +
+      `    <lastmod>${lastmod}</lastmod>\n` +
+      `    <changefreq>weekly</changefreq>\n` +
+      `    <priority>0.9</priority>\n` +
+      `  </url>\n\n` +
+      `  <!-- About Page -->\n` +
+      `  <url>\n` +
+      `    <loc>${baseUrl}/about</loc>\n` +
+      `    <lastmod>${lastmod}</lastmod>\n` +
+      `    <changefreq>monthly</changefreq>\n` +
+      `    <priority>0.8</priority>\n` +
+      `  </url>\n\n` +
+      `  <!-- Contact Page -->\n` +
+      `  <url>\n` +
+      `    <loc>${baseUrl}/contact</loc>\n` +
+      `    <lastmod>${lastmod}</lastmod>\n` +
+      `    <changefreq>monthly</changefreq>\n` +
+      `    <priority>0.7</priority>\n` +
+      `  </url>\n\n` +
+      `  <!-- Individual Gallery Images (live) -->\n`;
+
+    // Fetch metadata in parallel to enrich entries
+    const metaList = await Promise.all(validFiles.map(async (file) => {
+      try {
+        const [metadata] = await file.getMetadata();
+        const custom = metadata.metadata || metadata.customMetadata || {};
+        const filename = file.name.split('/').pop();
+        const title = custom.title || filename;
+        const scientificName = custom.scientificName || '';
+        const description = custom.description || '';
+        const location = custom.location || '';
+        const id = file.name; // ensure uniqueness
+        const slug = generateSlugServer(title, scientificName, id);
+        const url = `${baseUrl}/gallery/${slug}`;
+        return {
+          url,
+          title: scientificName ? `${title} (${scientificName}) - Wildlife Photography` : `${title} - Wildlife Photography`,
+          caption: description || (location ? `Wildlife photograph of ${title} captured in ${location}` : `Wildlife photograph of ${title}`),
+          lastmod: lastmod
+        };
+      } catch (e) {
+        return null;
+      }
+    }));
+
+    for (const entry of metaList.filter(Boolean)) {
+      xml += `  <url>\n` +
+             `    <loc>${entry.url}</loc>\n` +
+             `    <lastmod>${entry.lastmod}</lastmod>\n` +
+             `    <changefreq>monthly</changefreq>\n` +
+             `    <priority>0.8</priority>\n` +
+             `    <image:image>\n` +
+             `      <image:loc>${entry.url}</image:loc>\n` +
+             `      <image:title>${entry.title}</image:title>\n` +
+             `      <image:caption>${entry.caption}</image:caption>\n` +
+             `    </image:image>\n` +
+             `  </url>\n\n`;
+    }
+
+    xml += `</urlset>\n`;
+
+    res.set('Content-Type', 'application/xml');
+    // Cache for a day; clients will re-fetch next day
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.status(200).send(xml);
+  } catch (error) {
+    console.error('Error generating dynamic sitemap:', error);
+    res.status(500).send('');
+  }
+});
+
 // Cloud Function to get all gallery images in a single request (asia-southeast1)
 exports.getGalleryImages = functions.region('asia-southeast1').https.onRequest(async (req, res) => {
   // Enable CORS for your frontend domain

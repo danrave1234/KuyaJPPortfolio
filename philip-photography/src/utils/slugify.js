@@ -91,3 +91,4 @@ export const isValidSlug = (slug) => {
   const validSlugRegex = /^[a-z0-9\-]+$/;
   return validSlugRegex.test(slug) && slug.length > 0;
 };
+

@@ -4,8 +4,8 @@
  * Sitemap Generator Script
  * 
  * This script generates individual image URLs for the sitemap.xml
- * by fetching gallery images from Firebase Storage and creating
- * SEO-friendly URLs using the slugify utility.
+ * by fetching gallery images from Firebase (via Cloud Functions)
+ * and creating SEO-friendly URLs using the slugify utility.
  * 
  * Usage: node scripts/generate-sitemap.js
  */
@@ -86,6 +86,45 @@ function generateImageSitemapEntries(images) {
   });
   
   return entries;
+}
+
+/**
+ * Fetch all gallery images from Cloud Functions with pagination
+ */
+async function fetchAllGalleryImages(folder = 'gallery', pageSize = 100) {
+  const functionsURL = 'https://asia-southeast1-kuyajp-portfolio.cloudfunctions.net';
+  let page = 1;
+  let allImages = [];
+  let hasMore = true;
+
+  while (hasMore) {
+    const url = `${functionsURL}/getGalleryImages?folder=${encodeURIComponent(folder)}&page=${page}&limit=${pageSize}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch gallery images: HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    if (data?.success && Array.isArray(data.images)) {
+      allImages = allImages.concat(data.images);
+      hasMore = Boolean(data.pagination?.hasMore);
+      page += 1;
+    } else {
+      // Stop if unexpected shape
+      hasMore = false;
+    }
+  }
+
+  // De-duplicate by id/path in case of overlaps
+  const seen = new Set();
+  const unique = [];
+  for (const img of allImages) {
+    const key = img.id || img.path || img.src;
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      unique.push(img);
+    }
+  }
+  return unique;
 }
 
 /**
@@ -170,34 +209,11 @@ function generateSitemapXML(imageEntries) {
 async function generateSitemap() {
   try {
     console.log('🔄 Generating sitemap...');
-    
-    // For now, we'll create a template with example entries
-    // In the future, this could fetch actual images from Firebase
-    const exampleImages = [
-      {
-        id: 'philippine-eagle-001',
-        title: 'Philippine Eagle',
-        scientificName: 'Pithecophaga jefferyi',
-        description: 'Stunning photograph of the Philippine Eagle, one of the rarest and most powerful birds of prey in the world',
-        location: 'Davao Oriental, Philippines'
-      },
-      {
-        id: 'kingfisher-001',
-        title: 'Common Kingfisher',
-        scientificName: 'Alcedo atthis',
-        description: 'Beautiful close-up of a Common Kingfisher in its natural habitat',
-        location: 'Metro Manila, Philippines'
-      },
-      {
-        id: 'hornbill-001',
-        title: 'Visayan Hornbill',
-        scientificName: 'Penelopides panini',
-        description: 'Rare Visayan Hornbill captured in its natural forest habitat',
-        location: 'Negros Island, Philippines'
-      }
-    ];
-    
-    const imageEntries = generateImageSitemapEntries(exampleImages);
+    // Fetch all images from Firebase Functions so sitemap reflects adds/removals
+    const images = await fetchAllGalleryImages('gallery', 100);
+    console.log(`📷 Retrieved ${images.length} images from Cloud Functions`);
+
+    const imageEntries = generateImageSitemapEntries(images);
     const sitemapXML = generateSitemapXML(imageEntries);
     
     // Write to public/sitemap.xml
