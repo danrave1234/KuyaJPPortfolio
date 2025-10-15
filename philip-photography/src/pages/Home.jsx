@@ -258,7 +258,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/30" />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <div className="text-center">
-              <h1 className="font-heading text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold text-white drop-shadow mb-4 sm:mb-6 md:mb-8 lg:mb-10" style={{ letterSpacing: '0.12em', fontKerning: 'none' }}>JP Morada</h1>
+              <h1 className="font-heading text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold text-white drop-shadow mb-4 sm:mb-6 md:mb-8 lg:mb-10" style={{ letterSpacing: '0.12em', fontKerning: 'none' }}>JP MORADA</h1>
               <p className="font-body text-white/90 max-w-2xl mx-auto text-sm sm:text-base md:text-base lg:text-lg xl:text-xl 2xl:text-2xl leading-relaxed lg:max-w-3xl">Capturing the beauty of wildlife, especially the magnificent diversity of bird species in their natural habitats.</p>
               <Link 
                 to="/gallery" 

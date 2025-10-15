@@ -40,10 +40,10 @@ export default function Footer() {
             <div className="text-[10px] uppercase tracking-[0.25em]">Contact</div>
             <ul className="space-y-1">
               <li><strong className="text-xs sm:text-sm text-[rgb(var(--fg))]">Kuya JP Photography</strong></li>
-              <li><span className="text-xs sm:text-sm">Bulacan, Luzon, Philippines</span></li>
+              <li><span className="text-xs sm:text-sm">Batangas, Luzon, Philippines</span></li>
               <li><a href="tel:+639453859776" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">+63 945 385 9776</a></li>
               <li><a href="mailto:jpmoradanaturegram@gmail.com" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">jpmoradanaturegram@gmail.com</a></li>
-              <li><span className="text-xs sm:text-sm">Serving Bulacan • Metro Manila • Central Luzon</span></li>
+              <li><span className="text-xs sm:text-sm">Serving Batangas • Metro Manila • Southern Luzon</span></li>
             </ul>
           </div>
 
