@@ -9,15 +9,15 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/LightmodeLogo.svg",
-      "type": "image/svg+xml",
-      "sizes": "any",
+      "src": "/KuyaJP.jpg",
+      "type": "image/jpeg",
+      "sizes": "192x192 256x256 384x384 512x512",
       "purpose": "any maskable"
     },
     {
-      "src": "/Hero.jpg",
-      "type": "image/jpeg",
-      "sizes": "512x512",
+      "src": "/LightmodeLogo.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
       "purpose": "any"
     }
   ],
