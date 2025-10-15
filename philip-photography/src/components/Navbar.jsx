@@ -96,8 +96,8 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
           </Link>
         </div>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-1">
+        {/* Desktop Navigation - centered */}
+        <div className="hidden md:flex items-center gap-1 flex-1 justify-center">
           <NavLink
             to="/"
             end
@@ -107,6 +107,10 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
             to="/gallery"
             className={({ isActive }) => linkBase(isActive)}
           >Gallery</NavLink>
+          <NavLink
+            to="/services"
+            className={({ isActive }) => linkBase(isActive)}
+          >Services</NavLink>
           <NavLink
             to="/about"
             className={({ isActive }) => linkBase(isActive)}
@@ -184,6 +188,17 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
                   <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
                   <span>Gallery</span>
                   <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">📸</div>
+                </div>
+              </NavLink>
+              <NavLink
+                to="/services"
+                className={({ isActive }) => mobileLinkBase(isActive)}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <div className="flex items-center gap-3 mobile-link-enter">
+                  <div className="w-2 h-2 rounded-full bg-[rgb(var(--primary))] opacity-60 transition-all duration-300 hover:opacity-100 hover:scale-125"></div>
+                  <span>Services</span>
+                  <div className="ml-auto text-xs text-[rgb(var(--muted))] opacity-0 group-hover:opacity-100 transition-opacity duration-300">🛠️</div>
                 </div>
               </NavLink>
               <NavLink

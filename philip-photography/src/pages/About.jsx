@@ -26,7 +26,7 @@ export default function About() {
                 <span className="block text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl opacity-90">
                   Behind the <span className="font-extrabold" style={{ color: 'rgb(var(--primary))' }}>Lens</span>
                 </span>
-                <span className="mt-2 sm:mt-3 block h-[2px] bg-[rgb(var(--muted))]/25" />
+                
               </h1>
               <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
                 <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">Stories, craft, and dedication</div>
@@ -34,7 +34,7 @@ export default function About() {
             </div>
             <div className="lg:col-span-5 lg:self-end mt-4 lg:mt-0">
               <p className="text-[rgb(var(--muted))] text-sm sm:text-base md:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-6 transition-colors duration-300">
-                I'm a <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>wildlife</span> photographer who loves <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>bird photography</span>. I focus on getting the small details and natural behaviors of different bird <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>species</span> in their own homes, from big eagles to tiny songbirds.
+                I'm a <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>wildlife</span> photographer who loves <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>bird photography</span>, based in <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>Bulacan, Luzon (Philippines)</span>. I focus on the small details and natural behaviors of different bird <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>species</span> in their own homes, from big eagles to tiny songbirds. Available for assignments across Bulacan, Metro Manila, and Central Luzon.
               </p>
             </div>
           </div>
@@ -49,6 +49,24 @@ export default function About() {
 
         {/* Authentic sections: what / why / how / approach */}
         <div className="mt-12 sm:mt-16 space-y-8 sm:space-y-12">
+          {/* Services section for local SEO */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+            <div className="lg:col-span-6">
+              <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 sm:mb-4 transition-colors duration-300">Services</div>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300">Wildlife & bird photography services in <span className="font-extrabold" style={{ color: 'rgb(var(--primary))' }}>Bulacan • Metro Manila • Central Luzon</span></h3>
+              <ul className="list-disc pl-5 space-y-2 text-[rgb(var(--muted-fg))] text-sm sm:text-base">
+                <li><span className="font-medium text-[rgb(var(--fg))]">Birdlife portraits</span> for print and editorial features</li>
+                <li><span className="font-medium text-[rgb(var(--fg))]">Conservation/editorial assignments</span> with ethical field practices</li>
+                <li><span className="font-medium text-[rgb(var(--fg))]">Workshops & guided shoots</span> around Bulacan and nearby provinces</li>
+              </ul>
+              <div className="mt-4">
+                <a href="/contact" className="inline-block px-4 py-2 rounded-md border border-[rgb(var(--muted))]/30 hover:border-[rgb(var(--primary))]/50 hover:text-[rgb(var(--fg))] transition-colors duration-300">Inquire about availability</a>
+              </div>
+            </div>
+            <figure className="lg:col-span-6 rounded-xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300">
+              <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1600&auto=format&fit=crop" alt="Camera and field kit" className="w-full h-48 sm:h-56 md:h-64 lg:h-72 object-cover" loading="lazy" />
+            </figure>
+          </section>
           {/* What */}
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
             <div className="lg:col-span-6 order-2 lg:order-1">
@@ -125,8 +143,43 @@ export default function About() {
             </div>
           </section>
         </div>
+        {/* FAQ section */}
+        <section className="prose prose-invert max-w-3xl mt-12 sm:mt-16">
+          <h2 className="text-2xl sm:text-3xl font-bold">Frequently Asked Questions</h2>
+          <div className="mt-4 space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold">What areas do you cover?</h3>
+              <p>I’m based in Bulacan, Luzon and regularly work across Bulacan, Metro Manila, and Central Luzon. I’m available for assignments nationwide by arrangement.</p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Do you bait or use call playback?</h3>
+              <p>No. I follow ethical guidelines: no baiting, no recorded calls. Fieldcraft and patience only.</p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Can you lead workshops or guided shoots?</h3>
+              <p>Yes. I offer small, ethics‑first sessions around Bulacan and nearby provinces. <a href="/contact">Contact me</a> for dates.</p>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">How do I book?</h3>
+              <p>Send your brief via the <a href="/contact">Contact</a> page—include location, dates, and scope.</p>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
+    {/* FAQPage JSON-LD */}
+    <script type="application/ld+json">{`
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {"@type": "Question","name": "What areas do you cover?","acceptedAnswer": {"@type": "Answer","text": "Based in Bulacan, Luzon; serving Bulacan, Metro Manila, and Central Luzon."}},
+        {"@type": "Question","name": "Do you bait or use call playback?","acceptedAnswer": {"@type": "Answer","text": "No baiting or recorded calls; strictly ethical field practices."}},
+        {"@type": "Question","name": "Can you lead workshops or guided shoots?","acceptedAnswer": {"@type": "Answer","text": "Yes, small ethics-first workshops around Bulacan and nearby provinces."}},
+        {"@type": "Question","name": "How do I book?","acceptedAnswer": {"@type": "Answer","text": "Send your brief and dates via the Contact page."}}
+      ]
+    }
+    `}</script>
     </>
   )
 }

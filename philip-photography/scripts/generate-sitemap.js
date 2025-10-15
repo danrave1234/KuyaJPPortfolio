@@ -166,6 +166,14 @@ function generateSitemapXML(imageEntries) {
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
+
+  <!-- Services Page -->
+  <url>
+    <loc>${baseUrl}/services</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
   
   <!-- Contact Page -->
   <url>

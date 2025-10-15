@@ -11,6 +11,7 @@ import Home from './pages/Home.jsx'
 import Gallery from './pages/Gallery.jsx'
 import About from './pages/About.jsx'
 import Contact from './pages/Contact.jsx'
+import Services from './pages/Services.jsx'
 import Admin from './pages/Admin.jsx'
 import NotFound from './pages/NotFound.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
@@ -203,6 +204,12 @@ function App() {
           <Route path="/about" element={
             <>
               <About />
+              <Footer />
+            </>
+          } />
+          <Route path="/services" element={
+            <>
+              <Services />
               <Footer />
             </>
           } />

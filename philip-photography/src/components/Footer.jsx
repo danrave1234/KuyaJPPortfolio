@@ -35,14 +35,15 @@ export default function Footer() {
             </ul>
           </nav>
 
-          {/* Contact - simplified for mobile */}
+          {/* Contact / NAP - simplified for mobile */}
           <div className="space-y-2">
             <div className="text-[10px] uppercase tracking-[0.25em]">Contact</div>
             <ul className="space-y-1">
-              <li><a href="mailto:jpmoradanaturegram@gmail.com" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">jpmoradanaturegram@gmail.com</a></li>
+              <li><strong className="text-xs sm:text-sm text-[rgb(var(--fg))]">Kuya JP Photography</strong></li>
+              <li><span className="text-xs sm:text-sm">Bulacan, Luzon, Philippines</span></li>
               <li><a href="tel:+639453859776" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">+63 945 385 9776</a></li>
-              <li><span className="text-xs sm:text-sm hidden sm:block">Based in Philippines • Available worldwide</span>
-                  <span className="text-xs sm:hidden">Philippines • Worldwide</span></li>
+              <li><a href="mailto:jpmoradanaturegram@gmail.com" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">jpmoradanaturegram@gmail.com</a></li>
+              <li><span className="text-xs sm:text-sm">Serving Bulacan • Metro Manila • Central Luzon</span></li>
             </ul>
           </div>
 
@@ -50,7 +51,7 @@ export default function Footer() {
           <div className="space-y-2">
             <div className="text-[10px] uppercase tracking-[0.25em]">Social</div>
             <div className="flex items-center gap-3 sm:gap-4">
-              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="Instagram">
+              <a href="https://www.instagram.com/jpmorada_/" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="Instagram">
                 <Instagram size={16} className="sm:w-[18px] sm:h-[18px]" />
                 <span className="text-xs sm:text-sm hidden sm:inline">Instagram</span>
               </a>

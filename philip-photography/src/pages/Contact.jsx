@@ -39,9 +39,13 @@ export default function Contact() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
             <div className="lg:col-span-7">
               <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-2 sm:mb-3 transition-colors duration-300">Get in Touch</div>
-              <h1 className="font-extrabold text-[rgb(var(--fg))] uppercase leading-[0.9] transition-colors duration-300">
-                <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">Booking</span>
-                <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl opacity-90">& Inquiries</span>
+              <h1 className="font-extrabold text-[rgb(var(--fg))] uppercase leading-[0.9] transition-colors duration-300" style={{ letterSpacing: '0.20em', fontKerning: 'none', fontVariantLigatures: 'none' }}>
+                <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl" style={{ letterSpacing: '0.18em' }}>
+                  <span className="inline-block" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.25)' }}>
+                    Booking <span style={{ color: 'rgb(var(--primary))', letterSpacing: '0.18em' }}>&amp; Inquiries</span>
+                    <span className="mt-2 block h-[4px] w-full bg-[rgb(var(--primary))] rounded-full" />
+                  </span>
+                </span>
               </h1>
               <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
                 <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">Collaborations and print requests</div>
@@ -108,7 +112,7 @@ export default function Contact() {
           <div className="card p-4 transition-colors duration-300">
             <div className="text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-1 transition-colors duration-300">Follow</div>
             <div className="flex items-center gap-4">
-              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-[rgb(var(--primary))] transition-colors duration-300" aria-label="Instagram">
+              <a href="https://www.instagram.com/jpmorada_/" target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-[rgb(var(--primary))] transition-colors duration-300" aria-label="Instagram">
                 <Instagram size={18} />
                 <span>Instagram</span>
               </a>
