@@ -766,8 +766,8 @@ export default function Admin() {
     return (
       <>
         <SEO 
-          title="Admin Portal - Kuya JP Photography"
-          description="Admin portal for managing Kuya JP Photography website"
+          title="Admin Portal - John Philip Morada Photography"
+          description="Admin portal for managing John Philip Morada Photography website"
         />
         <div className="min-h-screen bg-[rgb(var(--bg))] flex items-center justify-center p-4">
         <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl max-w-md w-full border border-[rgb(var(--muted))]/20">
@@ -790,8 +790,8 @@ export default function Admin() {
     return (
       <>
         <SEO 
-          title="Admin Login - Kuya JP Photography"
-          description="Admin login for Kuya JP Photography website"
+          title="Admin Login - John Philip Morada Photography"
+          description="Admin login for John Philip Morada Photography website"
         />
         <div className="min-h-screen bg-[rgb(var(--bg))] flex items-center justify-center p-4">
         <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl max-w-md w-full border border-[rgb(var(--muted))]/20">
@@ -802,7 +802,7 @@ export default function Admin() {
             <h1 className="text-3xl font-bold font-heading text-[rgb(var(--fg))]">
               Admin Portal
             </h1>
-            <p className="text-[rgb(var(--muted))] mt-2 font-medium">Kuya JP Photography</p>
+            <p className="text-[rgb(var(--muted))] mt-2 font-medium">John Philip Morada Photography</p>
           </div>
           
           <form onSubmit={handleLogin} className="space-y-6">
@@ -880,8 +880,8 @@ export default function Admin() {
   return (
     <>
       <SEO 
-        title="Admin Dashboard - Kuya JP Photography"
-        description="Admin dashboard for managing Kuya JP Photography website"
+        title="Admin Dashboard - John Philip Morada Photography"
+        description="Admin dashboard for managing John Philip Morada Photography website"
       />
       <div className="min-h-screen bg-[rgb(var(--bg))] flex">
       {/* Mobile Overlay */}
@@ -904,7 +904,7 @@ export default function Admin() {
               <h1 className="text-base sm:text-lg font-bold font-heading text-[rgb(var(--fg))] truncate">
                 Admin Panel
               </h1>
-              <p className="text-xs text-[rgb(var(--muted))] truncate">Kuya JP Photography</p>
+              <p className="text-xs text-[rgb(var(--muted))] truncate">John Philip Morada Photography</p>
             </div>
           </div>
         </div>

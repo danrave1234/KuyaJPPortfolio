@@ -220,7 +220,7 @@ function generateSitemapXML(imageEntries) {
     <priority>1.0</priority>
     <image:image>
       <image:loc>${baseUrl}/Hero.jpg</image:loc>
-      <image:title>Kuya JP Photography - Wildlife Photography</image:title>
+      <image:title>John Philip Morada Photography - Wildlife Photography</image:title>
       <image:caption>Professional wildlife and nature photography</image:caption>
     </image:image>
   </url>

@@ -243,9 +243,9 @@ export default function Home() {
   return (
     <>
       <SEO 
-        title="Kuya JP Photography - Wildlife & Nature Photography Portfolio"
+        title="John Philip Morada Photography - Wildlife & Nature Photography Portfolio"
         description="Professional wildlife and nature photography by John Philip Morada. Capturing the beauty of Philippine wildlife, birds, and nature through patient observation and storytelling."
-        keywords="wildlife photography, nature photography, bird photography, Philippine wildlife, John Philip Morada, Kuya JP, nature conservation, wildlife art"
+        keywords="wildlife photography, nature photography, bird photography, Philippine wildlife, John Philip Morada, nature conservation, wildlife art"
       />
       {/* Full-width hero */}
       <section id="home" className="snap-start min-h-screen relative w-full overflow-x-hidden">

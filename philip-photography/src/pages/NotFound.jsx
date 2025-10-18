@@ -6,9 +6,9 @@ export default function NotFound() {
   return (
     <>
       <SEO 
-        title="404 - Page Not Found | Kuya JP Photography"
-        description="The page you're looking for doesn't exist. Return to Kuya JP Photography portfolio to explore wildlife photography."
-        keywords="404, page not found, Kuya JP Photography, wildlife photography"
+        title="404 - Page Not Found | John Philip Morada Photography"
+        description="The page you're looking for doesn't exist. Return to John Philip Morada Photography portfolio to explore wildlife photography."
+        keywords="404, page not found, John Philip Morada Photography, wildlife photography"
       />
       <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300 flex items-center justify-center p-2 sm:p-4 pt-20 sm:pt-24">
         <div className="w-full max-w-2xl mx-auto">

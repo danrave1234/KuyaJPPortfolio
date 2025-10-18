@@ -5,9 +5,9 @@ export default function Contact() {
   return (
     <>
       <SEO 
-        title="Contact Kuya JP - Wildlife Photography Booking & Inquiries"
-        description="Get in touch with Kuya JP for wildlife photography inquiries, collaborations, print requests, and booking information. Available for photography projects and conservation initiatives."
-        keywords="contact Kuya JP, wildlife photography booking, photography inquiry, print requests, photography collaboration, hire wildlife photographer"
+        title="Contact John Philip Morada - Wildlife Photography Booking & Inquiries"
+        description="Get in touch with John Philip Morada for wildlife photography inquiries, collaborations, print requests, and booking information. Available for photography projects and conservation initiatives."
+        keywords="contact John Philip Morada, wildlife photography booking, photography inquiry, print requests, photography collaboration, hire wildlife photographer"
       />
       <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
         <div className="container-responsive pt-16 xs:pt-18 sm:pt-20 md:pt-22 lg:pt-24 xl:pt-26 2xl:pt-28 pb-6 xs:pb-8 sm:pb-10 md:pb-12 lg:pb-14 xl:pb-16">
