@@ -4,6 +4,19 @@ const admin = require('firebase-admin');
 // Initialize Firebase Admin
 admin.initializeApp();
 
+// Helper to escape XML characters for sitemap
+function escapeXml(unsafe) {
+  return unsafe.replace(/[<>&'"]/g, function (c) {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+    }
+  });
+}
+
 // Helper to generate SEO-friendly slugs (mirrors frontend/script logic exactly)
 function generateSlugServer(title, scientificName = '', id = '') {
   // Start with the title
@@ -118,10 +131,14 @@ exports.sitemap = functions.region('asia-southeast1').https.onRequest(async (req
         const cleanId = seriesNumber;
         const slug = generateSlugServer(title, scientificName, cleanId);
         const url = `${baseUrl}/gallery/${slug}`;
+        // Escape XML characters for proper XML parsing
+        const escapedTitle = escapeXml(scientificName ? `${title} (${scientificName}) - Wildlife Photography` : `${title} - Wildlife Photography`);
+        const escapedCaption = escapeXml(description || (location ? `Wildlife photograph of ${title} captured in ${location}` : `Wildlife photograph of ${title}`));
+        
         return {
           url,
-          title: scientificName ? `${title} (${scientificName}) - Wildlife Photography` : `${title} - Wildlife Photography`,
-          caption: description || (location ? `Wildlife photograph of ${title} captured in ${location}` : `Wildlife photograph of ${title}`),
+          title: escapedTitle,
+          caption: escapedCaption,
           lastmod: lastmod
         };
       } catch (e) {

@@ -17,6 +17,19 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Helper to escape XML characters for sitemap
+function escapeXml(unsafe) {
+  return unsafe.replace(/[<>&'"]/g, function (c) {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+    }
+  });
+}
+
 // Import the slugify utility (we'll need to create a Node.js version)
 function generateSlug(title, scientificName = '', id = '') {
   // Start with the title
@@ -104,8 +117,8 @@ function generateImageSitemapEntries(images) {
       
       entries.push({
         url,
-        title: fullTitle,
-        caption,
+        title: escapeXml(fullTitle),
+        caption: escapeXml(caption),
         lastmod: new Date().toISOString().split('T')[0],
         priority: '0.8'
       });
@@ -138,8 +151,8 @@ function generateImageSitemapEntries(images) {
     
     entries.push({
       url,
-      title: fullTitle,
-      caption,
+      title: escapeXml(fullTitle),
+      caption: escapeXml(caption),
       lastmod: new Date().toISOString().split('T')[0],
       priority: '0.8'
     });
