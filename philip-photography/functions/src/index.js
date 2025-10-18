@@ -59,9 +59,12 @@ exports.sitemap = functions.region('asia-southeast1').https.onRequest(async (req
       const name = file.name.split('/').pop();
       return name && name.includes('.') && /(jpg|jpeg|png|gif|webp|svg)$/i.test(name);
     });
+    
+    console.log(`Sitemap: Found ${validFiles.length} valid files in gallery folder`);
 
     // Build basic pages
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+      `<!-- Generated at: ${new Date().toISOString()} -->\n` +
       `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n` +
       `        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n\n` +
       `  <!-- Homepage -->\n` +
@@ -122,11 +125,15 @@ exports.sitemap = functions.region('asia-southeast1').https.onRequest(async (req
           lastmod: lastmod
         };
       } catch (e) {
+        console.error(`Error processing file ${file.name} for sitemap:`, e);
         return null;
       }
     }));
 
-    for (const entry of metaList.filter(Boolean)) {
+    const validEntries = metaList.filter(Boolean);
+    console.log(`Sitemap: Generated ${validEntries.length} gallery entries`);
+    
+    for (const entry of validEntries) {
       xml += `  <url>\n` +
              `    <loc>${entry.url}</loc>\n` +
              `    <lastmod>${entry.lastmod}</lastmod>\n` +
@@ -143,8 +150,10 @@ exports.sitemap = functions.region('asia-southeast1').https.onRequest(async (req
     xml += `</urlset>\n`;
 
     res.set('Content-Type', 'application/xml');
-    // Cache for a day; clients will re-fetch next day
-    res.set('Cache-Control', 'public, max-age=86400');
+    // Temporarily disable cache for testing - remove this in production
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
     res.status(200).send(xml);
   } catch (error) {
     console.error('Error generating dynamic sitemap:', error);
@@ -216,10 +225,20 @@ exports.getGalleryImages = functions.region('asia-southeast1').https.onRequest(a
           seriesIndex = parseInt(index);
         }
 
+        // Generate gallery URL using the same logic as sitemap
+        const baseUrl = 'https://jpmorada.photography';
+        const filenameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+        const numberMatch = filenameWithoutExt.match(/_(\d+)$/);
+        const seriesNumber = numberMatch ? numberMatch[1] : '1';
+        const cleanId = seriesNumber;
+        const slug = generateSlugServer(seriesTitle, metadata.metadata?.scientificName || '', cleanId);
+        const galleryUrl = `${baseUrl}/gallery/${slug}`;
+
         return {
           id: file.name,
           name: filename,
           src: url,
+          galleryUrl: galleryUrl, // Gallery page URL for navigation
           path: file.name,
           title: seriesTitle,
           alt: metadata.metadata?.alt || filename,
@@ -324,14 +343,42 @@ exports.searchGalleryImages = functions.region('asia-southeast1').https.onReques
           seriesIndex = parseInt(index);
         }
 
+        // Get metadata for better title formatting
+        const customMetadata = metadata.metadata || metadata.customMetadata || {};
+        const scientificName = customMetadata?.scientificName || '';
+        const description = customMetadata?.description || '';
+        const location = customMetadata?.location || '';
+        
+        // Create formatted title for search results
+        let formattedTitle = seriesTitle;
+        if (scientificName) {
+          formattedTitle = `${seriesTitle} (${scientificName})`;
+        }
+        if (location) {
+          formattedTitle += ` - ${location}`;
+        }
+        formattedTitle += ' - Wildlife Photography';
+        
+        // Generate gallery URL using the same logic as sitemap
+        const baseUrl = 'https://jpmorada.photography';
+        const filenameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+        const numberMatch = filenameWithoutExt.match(/_(\d+)$/);
+        const seriesNumber = numberMatch ? numberMatch[1] : '1';
+        const cleanId = seriesNumber;
+        const slug = generateSlugServer(seriesTitle, scientificName, cleanId);
+        const galleryUrl = `${baseUrl}/gallery/${slug}`;
+        
         return {
           id: file.name,
           name: filename,
-          src: url,
+          src: url, // Direct image URL for display
+          galleryUrl: galleryUrl, // Gallery page URL for navigation
           path: file.name,
-          title: seriesTitle,
-          alt: metadata.metadata?.alt || filename,
-          description: metadata.metadata?.description || '',
+          title: formattedTitle,
+          alt: customMetadata?.alt || filename,
+          description: description,
+          scientificName: scientificName,
+          location: location,
           isSeries: isSeries,
           seriesIndex: seriesIndex,
           size: parseInt(metadata.size || '0'),
@@ -460,10 +507,20 @@ exports.getAdminGalleryImages = functions.region('asia-southeast1').https.onRequ
         // Get metadata from either metadata.metadata or metadata.customMetadata
         const customMetadata = metadata.metadata || metadata.customMetadata || {};
         
+        // Generate gallery URL using the same logic as sitemap
+        const baseUrl = 'https://jpmorada.photography';
+        const filenameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+        const numberMatch = filenameWithoutExt.match(/_(\d+)$/);
+        const seriesNumber = numberMatch ? numberMatch[1] : '1';
+        const cleanId = seriesNumber;
+        const slug = generateSlugServer(seriesTitle, customMetadata?.scientificName || '', cleanId);
+        const galleryUrl = `${baseUrl}/gallery/${slug}`;
+        
         return {
           id: file.name,
           name: filename,
           src: url,
+          galleryUrl: galleryUrl, // Gallery page URL for navigation
           path: file.name,
           title: seriesTitle,
           alt: customMetadata?.alt || filename,
@@ -678,16 +735,29 @@ exports.getGalleryImagesCallable = functions.region('asia-southeast1').https.onC
 
         // Get metadata from either metadata.metadata or metadata.customMetadata
         const customMetadata = metadata.metadata || metadata.customMetadata || {};
+        const filename = file.name.split('/').pop();
+        const title = customMetadata?.title || filename;
+        const scientificName = customMetadata?.scientificName || '';
+        
+        // Generate gallery URL using the same logic as sitemap
+        const baseUrl = 'https://jpmorada.photography';
+        const filenameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+        const numberMatch = filenameWithoutExt.match(/_(\d+)$/);
+        const seriesNumber = numberMatch ? numberMatch[1] : '1';
+        const cleanId = seriesNumber;
+        const slug = generateSlugServer(title, scientificName, cleanId);
+        const galleryUrl = `${baseUrl}/gallery/${slug}`;
         
         return {
           id: file.name,
-          name: file.name.split('/').pop(),
+          name: filename,
           src: url,
+          galleryUrl: galleryUrl, // Gallery page URL for navigation
           path: file.name,
-          title: customMetadata?.title || file.name.split('/').pop(),
-          alt: customMetadata?.alt || file.name.split('/').pop(),
+          title: title,
+          alt: customMetadata?.alt || filename,
           description: customMetadata?.description || '',
-          scientificName: customMetadata?.scientificName || '',
+          scientificName: scientificName,
           location: customMetadata?.location || '',
           timeTaken: customMetadata?.timeTaken || '',
           history: customMetadata?.history || '',

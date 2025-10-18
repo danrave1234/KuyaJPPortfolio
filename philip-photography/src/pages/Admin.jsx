@@ -2001,19 +2001,6 @@ export default function Admin() {
 
                         <div>
                           <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                            Description
-                          </label>
-                          <textarea
-                            value={uploadDescription}
-                            onChange={(e) => setUploadDescription(e.target.value)}
-                            rows={4}
-                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200 resize-none"
-                            placeholder="Describe your series or add context..."
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
                             Scientific Name
                           </label>
                           <input
@@ -2022,6 +2009,19 @@ export default function Admin() {
                             onChange={(e) => setUploadScientificName(e.target.value)}
                             className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
                             placeholder="e.g., Panthera leo"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                            Description
+                          </label>
+                          <textarea
+                            value={uploadDescription}
+                            onChange={(e) => setUploadDescription(e.target.value)}
+                            rows={4}
+                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200 resize-none"
+                            placeholder="Describe your series or add context..."
                           />
                         </div>
 
