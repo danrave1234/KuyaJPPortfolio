@@ -4,21 +4,43 @@ const admin = require('firebase-admin');
 // Initialize Firebase Admin
 admin.initializeApp();
 
-// Helper to generate SEO-friendly slugs (mirrors frontend/script logic)
+// Helper to generate SEO-friendly slugs (mirrors frontend/script logic exactly)
 function generateSlugServer(title, scientificName = '', id = '') {
+  // Start with the title
   let slug = title || 'untitled';
-  if (scientificName && typeof scientificName === 'string' && scientificName.trim()) {
-    const clean = scientificName.replace(/<\/?em>/g, '').replace(/<\/?i>/g, '').trim();
-    slug += `-${clean}`;
+  
+  // Add scientific name if available
+  if (scientificName && scientificName.trim()) {
+    // Remove italic formatting if present
+    const cleanScientificName = scientificName.replace(/<\/?em>/g, '').replace(/<\/?i>/g, '').trim();
+    slug += `-${cleanScientificName}`;
   }
-  if (id) slug += `-${id}`;
-  slug = slug.toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w\-]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-  if (!slug) slug = 'image';
-  if (slug.length < 3) slug += `-${Date.now().toString(36)}`;
+  
+  // Add ID for uniqueness if provided
+  if (id) {
+    slug += `-${id}`;
+  }
+  
+  // Convert to lowercase
+  slug = slug.toLowerCase();
+  
+  // Replace spaces and special characters with hyphens
+  slug = slug
+    .replace(/\s+/g, '-')           // Replace spaces with hyphens
+    .replace(/[^\w\-]/g, '')        // Remove special characters except hyphens and word chars
+    .replace(/-+/g, '-')            // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, '');         // Remove leading/trailing hyphens
+  
+  // Ensure slug is not empty
+  if (!slug) {
+    slug = 'image';
+  }
+  
+  // Add timestamp if still empty or too short
+  if (slug.length < 3) {
+    slug += `-${Date.now().toString(36)}`;
+  }
+  
   return slug;
 }
 
@@ -78,12 +100,20 @@ exports.sitemap = functions.region('asia-southeast1').https.onRequest(async (req
         const [metadata] = await file.getMetadata();
         const custom = metadata.metadata || metadata.customMetadata || {};
         const filename = file.name.split('/').pop();
-        const title = custom.title || filename;
+        const title = custom.title || filename.replace(/\.[^/.]+$/, ""); // Remove file extension
         const scientificName = custom.scientificName || '';
         const description = custom.description || '';
         const location = custom.location || '';
-        const id = file.name; // ensure uniqueness
-        const slug = generateSlugServer(title, scientificName, id);
+        
+        // Generate clean slug using title, scientific name, and series number
+        // Extract series number from filename for clean URLs like "philippine-coucal-centropus-viridis-1"
+        const filenameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+        const numberMatch = filenameWithoutExt.match(/_(\d+)$/);
+        const seriesNumber = numberMatch ? numberMatch[1] : '1';
+        
+        // Create clean ID using just the series number
+        const cleanId = seriesNumber;
+        const slug = generateSlugServer(title, scientificName, cleanId);
         const url = `${baseUrl}/gallery/${slug}`;
         return {
           url,
@@ -194,6 +224,8 @@ exports.getGalleryImages = functions.region('asia-southeast1').https.onRequest(a
           title: seriesTitle,
           alt: metadata.metadata?.alt || filename,
           description: metadata.metadata?.description || '',
+          scientificName: metadata.metadata?.scientificName || '',
+          location: metadata.metadata?.location || '',
           isSeries: isSeries,
           seriesIndex: seriesIndex,
           size: parseInt(metadata.size || '0'),

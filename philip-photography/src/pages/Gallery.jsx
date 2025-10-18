@@ -40,10 +40,34 @@ export default function Gallery() {
   const findImageBySlug = (slug, images) => {
     if (!slug || !images) return null;
     
-    return images.find(img => {
-      const imgSlug = generateSlug(img.title, img.scientificName, img.id);
-      return imgSlug === slug;
+    // Extract series number from the slug (e.g., "philippine-coucal-centropus-viridis-2" -> "2")
+    const slugParts = slug.split('-');
+    const lastPart = slugParts[slugParts.length - 1];
+    const seriesNumber = /^\d+$/.test(lastPart) ? parseInt(lastPart) : 1;
+    
+    // Find the series group by matching title and scientific name
+    const seriesGroup = images.find(img => {
+      if (!img.isSeries) return false;
+      
+      // Generate slug for series (using series number 1 as base)
+      const baseSlug = generateSlug(img.title, img.scientificName, '1');
+      // Remove the series number from the base slug to match the series
+      const seriesSlug = baseSlug.replace(/-1$/, '');
+      const inputSeriesSlug = slug.replace(/-\d+$/, '');
+      
+      return seriesSlug === inputSeriesSlug;
     });
+    
+    if (seriesGroup && seriesGroup.images && seriesGroup.images.length > 0) {
+      // Return the series group with the correct index
+      const targetIndex = Math.min(seriesNumber - 1, seriesGroup.images.length - 1);
+      return {
+        ...seriesGroup,
+        targetIndex: targetIndex
+      };
+    }
+    
+    return null;
   };
 
   // Handle image click with URL routing
@@ -52,7 +76,23 @@ export default function Gallery() {
       // Persist current scroll so we can restore after closing modal/back nav
       sessionStorage.setItem('gallery-scrollY', String(window.scrollY || 0))
     } catch {}
-    const slug = generateSlug(art.title, art.scientificName, art.id);
+    
+    // Extract series number from the image for clean URLs
+    let seriesNumber = '1';
+    if (art.isSeries && art.images && art.images[idx]) {
+      seriesNumber = String(art.images[idx].seriesIndex || idx + 1);
+    } else if (art.seriesNumber) {
+      seriesNumber = String(art.seriesNumber);
+    } else if (art.seriesIndex) {
+      seriesNumber = String(art.seriesIndex);
+    } else {
+      // Extract from path/name if available
+      const name = art.name || art.path?.split('/').pop() || '';
+      const match = name.match(/_(\d+)\./);
+      if (match) seriesNumber = match[1];
+    }
+    
+    const slug = generateSlug(art.title, art.scientificName, seriesNumber);
     navigate(`/gallery/${slug}`, { replace: false, state: { scrollPosition: window.scrollY } });
     setActive({ art, idx });
   };
@@ -89,8 +129,14 @@ export default function Gallery() {
     if (imageSlug && artworks.length > 0 && !active) {
       const image = findImageBySlug(imageSlug, artworks);
       if (image) {
-        const idx = artworks.findIndex(art => art.id === image.id);
-        setActive({ art: image, idx: idx >= 0 ? idx : 0 });
+        if (image.targetIndex !== undefined) {
+          // For series images, use the target index
+          setActive({ art: image, idx: image.targetIndex });
+        } else {
+          // For single images, find the index
+          const idx = artworks.findIndex(art => art.id === image.id);
+          setActive({ art: image, idx: idx >= 0 ? idx : 0 });
+        }
       }
     }
   }, [imageSlug, artworks]);
@@ -252,7 +298,8 @@ export default function Gallery() {
             alt: `${img.title} images`,
             isSeries: true,
             description: img.description || '',
-            scientificName: img.scientificName || ''
+            scientificName: img.scientificName || '',
+            seriesNumber: img.seriesIndex || 1 // Add series number for URL generation
           };
         }
         // Push the full image object, not just the src

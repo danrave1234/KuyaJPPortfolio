@@ -63,24 +63,84 @@ function generateSlug(title, scientificName = '', id = '') {
 function generateImageSitemapEntries(images) {
   const entries = [];
   
-  images.forEach(image => {
-    const slug = generateSlug(image.title, image.scientificName, image.id);
+  // Group images by series first
+  const seriesGroups = {};
+  const singleImages = [];
+  
+  images.forEach((image) => {
+    if (image.isSeries && image.title) {
+      if (!seriesGroups[image.title]) {
+        seriesGroups[image.title] = [];
+      }
+      seriesGroups[image.title].push(image);
+    } else {
+      singleImages.push(image);
+    }
+  });
+  
+  // Process series images - create individual entry for each image in the series
+  Object.values(seriesGroups).forEach(seriesImages => {
+    // Sort by seriesIndex to ensure correct order
+    seriesImages.sort((a, b) => (a.seriesIndex || 0) - (b.seriesIndex || 0));
+    
+    // Create individual entry for each image in the series
+    seriesImages.forEach(image => {
+      const title = image.title || 'untitled';
+      const scientificName = image.scientificName || '';
+      const seriesNumber = String(image.seriesIndex || 1);
+      
+      // Generate slug using title, scientific name, and series number
+      const slug = generateSlug(title, scientificName, seriesNumber);
+      const url = `https://jpmorada.photography/gallery/${slug}`;
+      
+      // Create title with scientific name if available
+      const fullTitle = scientificName 
+        ? `${title} (${scientificName}) - Wildlife Photography`
+        : `${title} - Wildlife Photography`;
+      
+      // Create description/caption
+      const caption = image.description || 
+        `Beautiful wildlife photography of ${title}${image.location ? ` captured in ${image.location}` : ''}`;
+      
+      entries.push({
+        url,
+        title: fullTitle,
+        caption,
+        lastmod: new Date().toISOString().split('T')[0],
+        priority: '0.8'
+      });
+    });
+  });
+  
+  // Process single images
+  singleImages.forEach((image) => {
+    const title = image.title || image.name || 'untitled';
+    const scientificName = image.scientificName || '';
+    
+    // Extract series number from filename for clean URLs
+    const filename = image.name || image.path?.split('/').pop() || '';
+    const filenameWithoutExt = filename.replace(/\.[^/.]+$/, "");
+    const numberMatch = filenameWithoutExt.match(/_(\d+)$/);
+    const seriesNumber = numberMatch ? numberMatch[1] : '1';
+    
+    // Generate slug using title, scientific name, and series number
+    const slug = generateSlug(title, scientificName, seriesNumber);
     const url = `https://jpmorada.photography/gallery/${slug}`;
     
     // Create title with scientific name if available
-    const title = image.scientificName 
-      ? `${image.title} (${image.scientificName}) - Wildlife Photography`
-      : `${image.title} - Wildlife Photography`;
+    const fullTitle = scientificName 
+      ? `${title} (${scientificName}) - Wildlife Photography`
+      : `${title} - Wildlife Photography`;
     
     // Create description/caption
     const caption = image.description || 
-      `Beautiful wildlife photography of ${image.title}${image.location ? ` captured in ${image.location}` : ''}`;
+      `Beautiful wildlife photography of ${title}${image.location ? ` captured in ${image.location}` : ''}`;
     
     entries.push({
       url,
-      title,
+      title: fullTitle,
       caption,
-      lastmod: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+      lastmod: new Date().toISOString().split('T')[0],
       priority: '0.8'
     });
   });
@@ -89,7 +149,8 @@ function generateImageSitemapEntries(images) {
 }
 
 /**
- * Fetch all gallery images from Cloud Functions with pagination
+ * Fetch all gallery images from Cloud Functions API with pagination
+ * This matches the deployed sitemap generation logic
  */
 async function fetchAllGalleryImages(folder = 'gallery', pageSize = 100) {
   const functionsURL = 'https://asia-southeast1-kuyajp-portfolio.cloudfunctions.net';
@@ -217,7 +278,7 @@ function generateSitemapXML(imageEntries) {
 async function generateSitemap() {
   try {
     console.log('🔄 Generating sitemap...');
-    // Fetch all images from Firebase Functions so sitemap reflects adds/removals
+    // Fetch all images from Firebase Functions API
     const images = await fetchAllGalleryImages('gallery', 100);
     console.log(`📷 Retrieved ${images.length} images from Cloud Functions`);
 
