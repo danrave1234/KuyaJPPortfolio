@@ -1709,11 +1709,11 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      {/* Mobile version - Simple icon + number */}
+                    <div className="flex items-center gap-2">
+                      {/* Simple like button for all screen sizes */}
                       <button
                         onClick={() => handleLike(currentImageData)}
-                        className="sm:hidden flex items-center gap-2 transition-all duration-200 hover:scale-110"
+                        className="flex items-center gap-2 transition-all duration-200 hover:scale-110"
                         title="Like this photo"
                         aria-label="Like this photo"
                       >
@@ -1732,84 +1732,6 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
                         >
                           {currentImageData?.likes || 0}
                         </span>
-                      </button>
-
-                      {/* Desktop version - Full button with background */}
-                      <button
-                        onClick={() => handleLike(currentImageData)}
-                        className="hidden sm:flex relative items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group overflow-hidden backdrop-blur-md shadow-lg hover:shadow-xl"
-                        style={{
-                          background: 'linear-gradient(135deg, rgba(var(--primary), 0.15) 0%, rgba(var(--primary), 0.08) 100%)',
-                          border: '1px solid rgba(var(--primary), 0.3)',
-                          backdropFilter: 'blur(12px)'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.background = 'linear-gradient(135deg, rgba(var(--primary), 0.25) 0%, rgba(var(--primary), 0.15) 100%)'
-                          e.target.style.borderColor = 'rgba(var(--primary), 0.5)'
-                          e.target.style.transform = 'translateY(-2px) scale(1.05)'
-                          e.target.style.boxShadow = '0 8px 25px rgba(var(--primary), 0.25)'
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.background = 'linear-gradient(135deg, rgba(var(--primary), 0.15) 0%, rgba(var(--primary), 0.08) 100%)'
-                          e.target.style.borderColor = 'rgba(var(--primary), 0.3)'
-                          e.target.style.transform = 'translateY(0px) scale(1)'
-                          e.target.style.boxShadow = '0 4px 15px rgba(var(--primary), 0.15)'
-                        }}
-                        title="Like this photo to show appreciation"
-                        aria-label="Like this photo to show appreciation"
-                      >
-                        {/* Animated background effect */}
-                        <div 
-                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                          style={{
-                            background: 'linear-gradient(135deg, rgba(var(--primary), 0.1) 0%, rgba(var(--primary), 0.05) 100%)'
-                          }}
-                        />
-                        
-                        {/* Heart icon with enhanced styling */}
-                        <div className="relative z-10">
-                          <Heart
-                            size={20}
-                            className="text-[rgb(var(--primary))] group-hover:scale-110 transition-all duration-300 drop-shadow-lg"
-                            style={{
-                              filter: 'drop-shadow(0 2px 6px rgba(var(--primary), 0.4))'
-                            }}
-                          />
-                        </div>
-                        
-                        {/* Like count with compact typography and helper */}
-                        <div className="relative z-10 flex flex-col items-start">
-                          <span 
-                            className="text-lg font-bold transition-all duration-300 group-hover:scale-105" 
-                            style={{ 
-                              color: 'rgb(var(--fg))',
-                              textShadow: '0 1px 3px rgba(0,0,0,0.3)'
-                            }}
-                          >
-                            {(currentImageData?.likes || 0).toLocaleString?.() || (currentImageData?.likes || 0)}
-                          </span>
-                          <span 
-                            className="text-xs font-medium transition-colors duration-300" 
-                            style={{ 
-                              color: 'rgba(var(--muted-fg), 0.9)',
-                              letterSpacing: '0.5px'
-                            }}
-                          >
-                            {currentImageData?.likes === 1 ? 'Like' : 'Likes'}
-                          </span>
-                          <span 
-                            className="mt-0.5 text-[10px] opacity-0 group-hover:opacity-100 transition-opacity duration-200" 
-                            style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                          >
-                            Click to add your appreciation
-                          </span>
-                        </div>
-                        
-                        {/* Pulse animation */}
-                        <div 
-                          className="absolute top-1/2 left-1/2 w-0 h-0 rounded-full opacity-0 group-hover:opacity-20 group-hover:w-24 group-hover:h-24 transition-all duration-500 -translate-x-1/2 -translate-y-1/2"
-                          style={{ backgroundColor: 'rgb(var(--primary))' }}
-                        />
                       </button>
                     </div>
                   )}
