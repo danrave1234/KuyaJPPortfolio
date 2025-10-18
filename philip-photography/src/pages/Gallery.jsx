@@ -8,15 +8,61 @@ import { trackImageView, trackGalleryNavigation } from '../services/analytics'
 import SEO from '../components/SEO'
 import { generateSlug, extractIdFromSlug } from '../utils/slugify'
 
+// Simple cache restoration function
+const getCachedArtworks = () => {
+  try {
+    // Check localStorage cache first
+    const cachedArtworks = localStorage.getItem('gallery-artwork-cache')
+    const cacheTimestamp = localStorage.getItem('gallery-artwork-cache-timestamp')
+    const now = Date.now()
+    const cacheExpiry = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+    if (cachedArtworks && cacheTimestamp && (now - parseInt(cacheTimestamp)) < cacheExpiry) {
+      const parsedArtworks = JSON.parse(cachedArtworks)
+      if (parsedArtworks && Array.isArray(parsedArtworks) && parsedArtworks.length > 0) {
+        console.log(`✅ Found cache with ${parsedArtworks.length} images`)
+        return {
+          artworks: parsedArtworks,
+          page: 1,
+          hasMore: true,
+          totalCount: parsedArtworks.length,
+          fromCache: 'localStorage'
+        }
+      }
+    }
+
+    // Check sessionStorage as backup
+    const sessionCache = sessionStorage.getItem('gallery-artwork-session')
+    if (sessionCache) {
+      const parsedArtworks = JSON.parse(sessionCache)
+      if (parsedArtworks && Array.isArray(parsedArtworks) && parsedArtworks.length > 0) {
+        console.log(`✅ Found session cache with ${parsedArtworks.length} images`)
+        return {
+          artworks: parsedArtworks,
+          page: 1,
+          hasMore: true,
+          totalCount: parsedArtworks.length,
+          fromCache: 'session'
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Error reading cache:', e)
+  }
+  return null
+}
+
 export default function Gallery() {
   const { imageSlug } = useParams()
   const navigate = useNavigate()
+  
   const [active, setActive] = useState(null) // { art, idx }
   const [imageDimensions, setImageDimensions] = useState({})
   const [loadedImages, setLoadedImages] = useState(new Set())
   const [firebaseImages, setFirebaseImages] = useState([])
   const [artworks, setArtworks] = useState([])
   const [galleryLoading, setGalleryLoading] = useState(true)
+  const [isInitialized, setIsInitialized] = useState(false)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   
@@ -370,111 +416,42 @@ export default function Gallery() {
     return result;
   }
   
-  // Load initial 20 images from Firebase Storage with enhanced caching
+  // Simple loading logic - run only once
   useEffect(() => {
-    let isMounted = true // Prevent state updates if component unmounts
+    let isMounted = true
     
     const loadInitialImages = async () => {
       try {
-        // Check if we already have artworks loaded (prevent duplicate calls)
-        if (artworks.length > 0) {
-          setGalleryLoading(false)
+        // Check cache first
+        const cachedData = getCachedArtworks()
+        
+        if (cachedData) {
+          console.log(`✅ Using ${cachedData.fromCache} cache with ${cachedData.artworks.length} images`)
+          if (isMounted) {
+            setArtworks(cachedData.artworks)
+            setCurrentPage(cachedData.page)
+            setHasMore(cachedData.hasMore)
+            setTotalCount(cachedData.totalCount)
+            setGalleryLoading(false)
+            setIsInitialized(true)
+          }
           return
         }
 
-        // 1. Check sessionStorage first (fastest)
-        const sessionCache = sessionStorage.getItem('gallery-artwork-session')
-        const sessionPage = sessionStorage.getItem('gallery-artwork-page')
-        if (sessionCache) {
-          try {
-            const parsedArtworks = JSON.parse(sessionCache)
-            if (parsedArtworks && Array.isArray(parsedArtworks) && parsedArtworks.length > 0) {
-              if (isMounted) {
-                setArtworks(parsedArtworks)
-                setCurrentPage(parseInt(sessionPage) || 1)
-                setHasMore(true) // Assume more available for pagination
-                setTotalCount(parsedArtworks.length)
-                setGalleryLoading(false)
-                console.log(`Restored ${parsedArtworks.length} images from session cache (page ${parseInt(sessionPage) || 1})`)
-              }
-              return
-            }
-          } catch (e) {
-            console.warn('Invalid session cache, clearing...')
-            sessionStorage.removeItem('gallery-artwork-session')
-            sessionStorage.removeItem('gallery-artwork-page')
-          }
-        }
-
-        // 2. Check localStorage cache (persistent)
-        const cachedArtworks = localStorage.getItem('gallery-artwork-cache')
-        const cacheTimestamp = localStorage.getItem('gallery-artwork-cache-timestamp')
-        const cachedPage = localStorage.getItem('gallery-artwork-page')
-        const now = Date.now()
-        const cacheExpiry = 7 * 24 * 60 * 60 * 1000 // 7 days
-
-        if (cachedArtworks && cacheTimestamp && (now - parseInt(cacheTimestamp)) < cacheExpiry) {
-          try {
-            const parsedArtworks = JSON.parse(cachedArtworks)
-            if (parsedArtworks && Array.isArray(parsedArtworks) && parsedArtworks.length > 0) {
-              if (isMounted) {
-                setArtworks(parsedArtworks)
-                setCurrentPage(parseInt(cachedPage) || 1)
-                setHasMore(true) // Assume more available for pagination
-                setTotalCount(parsedArtworks.length)
-                // Also store in sessionStorage for faster subsequent loads
-                sessionStorage.setItem('gallery-artwork-session', cachedArtworks)
-                sessionStorage.setItem('gallery-artwork-page', cachedPage || '1')
-                setGalleryLoading(false)
-                console.log(`Restored ${parsedArtworks.length} images from localStorage cache (page ${parseInt(cachedPage) || 1})`)
-              }
-              return
-            }
-          } catch (e) {
-            console.warn('Invalid localStorage cache, clearing...')
-            localStorage.removeItem('gallery-artwork-cache')
-            localStorage.removeItem('gallery-artwork-cache-timestamp')
-            localStorage.removeItem('gallery-artwork-page')
-          }
-        }
-
-        // 3. Check for existing shuffled order
-        const existingOrder = localStorage.getItem('gallery-artwork-order')
-        if (existingOrder) {
-          try {
-            const parsedOrder = JSON.parse(existingOrder)
-            if (parsedOrder && Array.isArray(parsedOrder) && parsedOrder.length > 0) {
-              if (isMounted) {
-                setArtworks(parsedOrder)
-                setCurrentPage(1)
-                setHasMore(true) // Assume more available for pagination
-                setTotalCount(parsedOrder.length)
-                setGalleryLoading(false)
-              }
-              return
-            }
-          } catch (e) {
-            console.warn('Invalid order cache, clearing...')
-            localStorage.removeItem('gallery-artwork-order')
-          }
-        }
-
-        // 4. Fetch fresh data from Firebase Functions API (paginated!)
-        console.log('No valid cache found, fetching from Firebase Functions...')
+        // Fetch fresh data from Firebase Functions API
+        console.log('🔄 No valid cache found, fetching from Firebase Functions...')
         const result = await getGalleryImages('gallery', 1, 20);
         if (result.success) {
           // Group images by series first, then shuffle
           const groupedImages = groupImagesBySeries(result.images)
           const shuffled = shuffleArray(groupedImages)
           
-          // Store in all caches
+          // Store in cache
           const artworksJson = JSON.stringify(shuffled)
-          localStorage.setItem('gallery-artwork-order', artworksJson)
+          const now = Date.now()
           localStorage.setItem('gallery-artwork-cache', artworksJson)
           localStorage.setItem('gallery-artwork-cache-timestamp', now.toString())
-          localStorage.setItem('gallery-artwork-page', '1')
           sessionStorage.setItem('gallery-artwork-session', artworksJson)
-          sessionStorage.setItem('gallery-artwork-page', '1')
           
           if (isMounted) {
             setArtworks(shuffled)
@@ -482,27 +459,48 @@ export default function Gallery() {
             setHasMore(result.pagination?.hasMore || false)
             setTotalCount(result.pagination?.totalCount || 0)
             setGalleryLoading(false)
+            setIsInitialized(true)
           }
         } else {
-          console.error('Failed to load Firebase images:', result.error)
+          console.error('❌ Failed to load Firebase images:', result.error)
           if (isMounted) {
             setGalleryLoading(false)
           }
         }
       } catch (error) {
-        console.error('Error loading Firebase images:', error)
+        console.error('❌ Error loading Firebase images:', error)
         if (isMounted) {
           setGalleryLoading(false)
         }
       }
-    };
-    loadInitialImages();
-    
-    // Cleanup function
+    }
+
+    loadInitialImages()
+
     return () => {
       isMounted = false
     }
-  }, []); // Empty dependency array to prevent re-runs
+  }, []) // Empty dependency array - run only once
+
+  // Preload images for instant display
+  useEffect(() => {
+    if (artworks.length > 0) {
+      // Preload first 12 images (first visible row + buffer)
+      const imagesToPreload = artworks.slice(0, 12)
+      imagesToPreload.forEach((art, index) => {
+        if (art.isSeries && art.images && art.images.length > 0) {
+          // Preload first image in series
+          const img = new Image()
+          img.src = art.images[0].url
+        } else if (art.url) {
+          // Preload single image
+          const img = new Image()
+          img.src = art.url
+        }
+      })
+      console.log(`Preloaded ${imagesToPreload.length} images for instant display`)
+    }
+  }, [artworks])
   
   // Load more images function for infinite scroll with caching
   const loadMoreImages = async () => {
@@ -634,7 +632,7 @@ export default function Gallery() {
       // For series, create individual items for each image
       return art.images.map((image, index) => ({
         ...art,
-        id: `${art.id}-${index}`,
+        id: image.id, // Use the original image ID so dimensions match
         src: image.src,
         images: undefined, // Remove the images array since this is now a single image
         isSeries: false, // This individual image is not a series
@@ -699,28 +697,60 @@ export default function Gallery() {
     
     // If image hasn't loaded yet, use small as default
     if (!dimensions) {
-      return 'small'
+      return 'small' // Default size until dimensions load
     }
     
-    const { aspectRatio, width, height } = dimensions
+    const { aspectRatio } = dimensions
     
-    // Simple rule: Portrait = 2 grids (medium), Landscape = 4 grids (large) or 1 grid (small)
-    // Portrait: height > width (aspectRatio < 1) - should be vertical
-    // Landscape: width >= height (aspectRatio >= 1) - should be 4 grids or 1 grid
-    if (aspectRatio < 1.0) {
-      // Portrait - height is larger than width - span 1 column, 2 rows (medium)
+    // Smart grid assignment based on aspect ratio with randomization
+    if (aspectRatio < 0.8) {
+      // Portrait - always use medium (1 column, 2 rows)
       return 'medium'
+    } else if (aspectRatio > 2.0) {
+      // Very wide panorama - use wide (2 columns, 1 row)
+      return 'wide'
     } else {
-      // Landscape - width is larger than or equal to height - deterministic based on artwork ID
-      // Use artwork ID to create a pseudo-random but consistent decision
-      return (artwork.id % 2 === 0) ? 'large' : 'small'
+      // Square/landscape - randomly choose between small and large for visual variety
+      // Use a simple hash of the image ID to create consistent "randomness"
+      const hash = artwork.id ? artwork.id.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0) : Math.random() * 1000;
+      
+      // 10% chance for large, 90% chance for small
+      return Math.abs(hash) % 10 < 1 ? 'large' : 'small'
     }
   }
 
 
   const handleImageLoad = (id, naturalWidth, naturalHeight) => {
     const aspectRatio = naturalWidth / naturalHeight
-    console.log(`Image ${id}: ${naturalWidth}x${naturalHeight}, aspectRatio: ${aspectRatio.toFixed(2)}`)
+    
+    // Find the artwork to determine grid size
+    const artwork = deduplicatedArtworks.find(art => art.id === id)
+    let gridSize = 'unknown'
+    if (artwork) {
+      const dimensions = { width: naturalWidth, height: naturalHeight, aspectRatio }
+      
+      // Apply the same logic as getBentoSize
+      if (aspectRatio < 0.8) {
+        gridSize = 'medium (portrait)'
+      } else if (aspectRatio > 2.0) {
+        gridSize = 'wide (panorama)'
+      } else {
+        // Use the same hash logic for consistent debugging
+        const hash = artwork.id ? artwork.id.split('').reduce((a, b) => {
+          a = ((a << 5) - a) + b.charCodeAt(0);
+          return a & a;
+        }, 0) : Math.random() * 1000;
+        const isLarge = Math.abs(hash) % 10 < 1;
+        gridSize = isLarge ? 'large (square/landscape - featured!)' : 'small (square/landscape)'
+      }
+    }
+    
+    console.log(`📐 Image ${id}: ${naturalWidth}x${naturalHeight}, aspectRatio: ${aspectRatio.toFixed(2)} → ${gridSize}`)
+    
+    // Update dimensions and trigger re-render
     setImageDimensions(prev => ({
       ...prev,
       [id]: { width: naturalWidth, height: naturalHeight, aspectRatio }
@@ -868,7 +898,7 @@ export default function Gallery() {
           </div>
         </div>
 
-        {galleryLoading ? (
+        {galleryLoading && !isInitialized ? (
           <div className="grid grid-cols-3 gap-3 auto-rows-[80px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense">
             {[
               'large','small','medium','wide','small','large','small','medium','small','wide','small','medium'
@@ -913,9 +943,11 @@ export default function Gallery() {
             })}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-3 auto-rows-[80px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense">
+          <div className="grid grid-cols-3 gap-3 auto-rows-[80px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense animate-fadeIn">
+            {console.log('🎨 Rendering artworks:', deduplicatedArtworks.length, deduplicatedArtworks)}
             {deduplicatedArtworks.map((art, i) => {
             const size = getBentoSize(art, i)
+            
             const gridClasses = size === 'large' ? 'col-span-2 row-span-2' : 
                                size === 'wide' ? 'col-span-2 row-span-1' :
                                size === 'medium' ? 'col-span-1 row-span-2' : 
@@ -928,8 +960,8 @@ export default function Gallery() {
               return null
             }
 
-            // Create a unique key combining multiple identifiers
-            const uniqueKey = `${art.id || 'unknown'}-${i}-${art.src || 'no-image'}`.replace(/[^a-zA-Z0-9-_]/g, '-');
+            // Create a stable key that doesn't change - include series info for uniqueness
+            const uniqueKey = `${art.id || 'unknown'}-${art.seriesIndex || i}-${i}`.replace(/[^a-zA-Z0-9-_]/g, '-');
 
             return (
               <figure 
@@ -973,61 +1005,15 @@ export default function Gallery() {
                 }}
               >
                 <div className="w-full h-full relative overflow-hidden">
-                  {art.composite ? (
-                    // Composite item: single image in square format
-                    <img
-                      src={imageSrc}
-                      alt={art.title || ''}
-                      className="w-full h-full object-contain bg-black transition-transform duration-700 group-hover:scale-110 rounded-lg"
-                      onLoad={(e) => {
-                        const { naturalWidth, naturalHeight } = e.target
-                        handleImageLoad(art.id, naturalWidth, naturalHeight)
-                      }}
-                    />
-                  ) : (
-                    // Single image - smart scaling based on grid size and image aspect ratio
-                <img
-                  src={imageSrc}
-                  alt={art.title || ''}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 rounded-lg"
-                      style={{
-                        transform: (() => {
-                          const dimensions = imageDimensions[art.id]
-                          if (!dimensions) return 'scale(1)'
-                          
-                          const { aspectRatio } = dimensions
-                          const size = getBentoSize(art, i)
-                          
-                          // Calculate grid cell dimensions
-                          let gridWidth, gridHeight
-                          if (size === 'small') {
-                            gridWidth = 280; gridHeight = 320
-                          } else if (size === 'medium') {
-                            gridWidth = 280; gridHeight = 640 // 2 rows
-                          } else if (size === 'large') {
-                            gridWidth = 560; gridHeight = 640 // 2 cols, 2 rows
-                          } else {
-                            gridWidth = 560; gridHeight = 320 // wide: 2 cols, 1 row
-                          }
-                          
-                          const gridRatio = gridWidth / gridHeight
-                          
-                          // Smart scaling to minimize hidden edges
-                          if (aspectRatio > gridRatio) {
-                            // Image is wider than grid - scale down slightly to show more height
-                            return 'scale(0.95)'
-                          } else {
-                            // Image is taller than grid - scale down slightly to show more width
-                            return 'scale(0.95)'
-                          }
-                        })()
-                      }}
-                      onLoad={(e) => {
-                        const { naturalWidth, naturalHeight } = e.target
-                        handleImageLoad(art.id, naturalWidth, naturalHeight)
-                      }}
-                    />
-                  )}
+                  <img
+                    src={imageSrc}
+                    alt={art.title || ''}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    onLoad={(e) => {
+                      const { naturalWidth, naturalHeight } = e.target
+                      handleImageLoad(art.id, naturalWidth, naturalHeight)
+                    }}
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="absolute bottom-1 left-1 right-1 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
                     <div className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-[2px] rounded px-1.5 py-1 max-w-[90%]">
