@@ -40,12 +40,21 @@ export default function Gallery() {
   const findImageBySlug = (slug, images) => {
     if (!slug || !images) return null;
     
+    console.log('🔍 Finding image by slug:', slug);
+    console.log('📷 Available images:', images.map(img => ({ 
+      id: img.id, 
+      title: img.title, 
+      isSeries: img.isSeries,
+      seriesIndex: img.seriesIndex,
+      originalSeriesId: img.originalSeriesId 
+    })));
+    
     // Extract series number from the slug (e.g., "philippine-coucal-centropus-viridis-2" -> "2")
     const slugParts = slug.split('-');
     const lastPart = slugParts[slugParts.length - 1];
     const seriesNumber = /^\d+$/.test(lastPart) ? parseInt(lastPart) : 1;
     
-    // Find the series group by matching title and scientific name
+    // First, try to find a series group
     const seriesGroup = images.find(img => {
       if (!img.isSeries) return false;
       
@@ -61,12 +70,31 @@ export default function Gallery() {
     if (seriesGroup && seriesGroup.images && seriesGroup.images.length > 0) {
       // Return the series group with the correct index
       const targetIndex = Math.min(seriesNumber - 1, seriesGroup.images.length - 1);
+      console.log('✅ Found series group:', seriesGroup.title, 'at index:', targetIndex);
       return {
         ...seriesGroup,
         targetIndex: targetIndex
       };
     }
     
+    // If no series found, look for single images (including separated series items)
+    const singleImage = images.find(img => {
+      // Generate slug for the image
+      const imgSlug = generateSlug(img.title, img.scientificName, '1');
+      console.log('🔍 Checking image:', img.title, 'generated slug:', imgSlug, 'target slug:', slug);
+      return imgSlug === slug;
+    });
+    
+    if (singleImage) {
+      console.log('✅ Found single image:', singleImage.title);
+      // Return the single image
+      return {
+        ...singleImage,
+        targetIndex: 0
+      };
+    }
+    
+    console.log('❌ No image found for slug:', slug);
     return null;
   };
 
