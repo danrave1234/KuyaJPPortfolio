@@ -11,13 +11,49 @@
     {
       "src": "/LightmodeLogo.png",
       "type": "image/png",
-      "sizes": "192x192 256x256 384x384 512x512",
+      "sizes": "16x16",
+      "purpose": "any"
+    },
+    {
+      "src": "/LightmodeLogo.png",
+      "type": "image/png",
+      "sizes": "32x32",
+      "purpose": "any"
+    },
+    {
+      "src": "/LightmodeLogo.png",
+      "type": "image/png",
+      "sizes": "48x48",
+      "purpose": "any"
+    },
+    {
+      "src": "/LightmodeLogo.png",
+      "type": "image/png",
+      "sizes": "96x96",
+      "purpose": "any"
+    },
+    {
+      "src": "/LightmodeLogo.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/LightmodeLogo.png",
+      "type": "image/png",
+      "sizes": "512x512",
       "purpose": "any maskable"
     },
     {
       "src": "/DarkmodeLogo.png",
       "type": "image/png",
-      "sizes": "192x192 256x256 384x384 512x512",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/DarkmodeLogo.png",
+      "type": "image/png",
+      "sizes": "512x512",
       "purpose": "any"
     }
   ],

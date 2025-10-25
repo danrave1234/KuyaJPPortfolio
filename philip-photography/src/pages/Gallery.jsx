@@ -14,18 +14,23 @@ const getCachedArtworks = () => {
     // Check localStorage cache first
     const cachedArtworks = localStorage.getItem('gallery-artwork-cache')
     const cacheTimestamp = localStorage.getItem('gallery-artwork-cache-timestamp')
+    const cachedPage = localStorage.getItem('gallery-artwork-page')
+    const cachedDimensions = localStorage.getItem('gallery-artwork-dimensions')
     const now = Date.now()
     const cacheExpiry = 7 * 24 * 60 * 60 * 1000 // 7 days
 
     if (cachedArtworks && cacheTimestamp && (now - parseInt(cacheTimestamp)) < cacheExpiry) {
       const parsedArtworks = JSON.parse(cachedArtworks)
+      const parsedPage = cachedPage ? parseInt(cachedPage, 10) : 1
+      const parsedDimensions = cachedDimensions ? JSON.parse(cachedDimensions) : null
       if (parsedArtworks && Array.isArray(parsedArtworks) && parsedArtworks.length > 0) {
-        console.log(`✅ Found cache with ${parsedArtworks.length} images`)
+        console.log(`✅ Found cache with ${parsedArtworks.length} images (page ${parsedPage})${parsedDimensions ? ' with dimensions' : ''}`)
         return {
           artworks: parsedArtworks,
-          page: 1,
+          page: parsedPage,
           hasMore: true,
           totalCount: parsedArtworks.length,
+          dimensions: parsedDimensions,
           fromCache: 'localStorage'
         }
       }
@@ -33,15 +38,20 @@ const getCachedArtworks = () => {
 
     // Check sessionStorage as backup
     const sessionCache = sessionStorage.getItem('gallery-artwork-session')
+    const sessionPage = sessionStorage.getItem('gallery-artwork-page')
+    const sessionDimensions = sessionStorage.getItem('gallery-artwork-dimensions')
     if (sessionCache) {
       const parsedArtworks = JSON.parse(sessionCache)
+      const parsedPage = sessionPage ? parseInt(sessionPage, 10) : 1
+      const parsedDimensions = sessionDimensions ? JSON.parse(sessionDimensions) : null
       if (parsedArtworks && Array.isArray(parsedArtworks) && parsedArtworks.length > 0) {
-        console.log(`✅ Found session cache with ${parsedArtworks.length} images`)
+        console.log(`✅ Found session cache with ${parsedArtworks.length} images (page ${parsedPage})${parsedDimensions ? ' with dimensions' : ''}`)
         return {
           artworks: parsedArtworks,
-          page: 1,
+          page: parsedPage,
           hasMore: true,
           totalCount: parsedArtworks.length,
+          dimensions: parsedDimensions,
           fromCache: 'session'
         }
       }
@@ -56,8 +66,46 @@ export default function Gallery() {
   const { imageSlug } = useParams()
   const navigate = useNavigate()
   
+  // IMMEDIATE scroll restoration - before any rendering
+  const savedScrollY = sessionStorage.getItem('gallery-scrollY')
+  if (savedScrollY && !imageSlug) {
+    const scrollPosition = parseInt(savedScrollY, 10)
+    // Set scroll immediately - before React renders
+    document.documentElement.style.scrollBehavior = 'auto'
+    document.body.style.scrollBehavior = 'auto'
+    document.documentElement.scrollTop = scrollPosition
+    document.body.scrollTop = scrollPosition
+    console.log('⚡ IMMEDIATE scroll set to:', scrollPosition)
+  }
+  
+  // Disable browser's automatic scroll restoration
+  useEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual'
+    }
+    return () => {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'auto'
+      }
+    }
+  }, [])
+  
   const [active, setActive] = useState(null) // { art, idx }
-  const [imageDimensions, setImageDimensions] = useState({})
+  const [imageDimensions, setImageDimensions] = useState(() => {
+    // Pre-load dimensions from cache if available
+    try {
+      const cachedDimensions = sessionStorage.getItem('gallery-artwork-dimensions') || 
+                               localStorage.getItem('gallery-artwork-dimensions')
+      if (cachedDimensions) {
+        const parsed = JSON.parse(cachedDimensions)
+        console.log('🎨 Pre-loaded dimensions for', Object.keys(parsed).length, 'images')
+        return parsed
+      }
+    } catch (e) {
+      console.warn('Failed to pre-load dimensions:', e)
+    }
+    return {}
+  })
   const [loadedImages, setLoadedImages] = useState(new Set())
   const [firebaseImages, setFirebaseImages] = useState([])
   const [artworks, setArtworks] = useState([])
@@ -146,9 +194,11 @@ export default function Gallery() {
 
   // Handle image click with URL routing
   const handleImageClick = (art, idx = 0) => {
+    // Save current scroll position
+    const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
     try {
-      // Persist current scroll so we can restore after closing modal/back nav
-      sessionStorage.setItem('gallery-scrollY', String(window.scrollY || 0))
+      sessionStorage.setItem('gallery-scrollY', String(currentScroll))
+      console.log('💾 Saved scroll position:', currentScroll)
     } catch {}
     
     // Extract series number from the image for clean URLs
@@ -167,7 +217,7 @@ export default function Gallery() {
     }
     
     const slug = generateSlug(art.title, art.scientificName, seriesNumber);
-    navigate(`/gallery/${slug}`, { replace: false, state: { scrollPosition: window.scrollY } });
+    navigate(`/gallery/${slug}`, { replace: false, state: { scrollPosition: currentScroll } });
     setActive({ art, idx });
   };
 
@@ -188,8 +238,10 @@ export default function Gallery() {
     const handlePopState = () => {
       if (!imageSlug) {
         // Returning to /gallery: ensure we keep/restored scroll
+        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
         try {
-          sessionStorage.setItem('gallery-scrollY', String(window.scrollY || 0))
+          sessionStorage.setItem('gallery-scrollY', String(currentScroll))
+          console.log('💾 Saved scroll on popstate:', currentScroll)
         } catch {}
         setActive(null);
       }
@@ -197,6 +249,40 @@ export default function Gallery() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, [imageSlug]);
+
+  // Save scroll position before page unload (refresh/close)
+  useEffect(() => {
+    const saveScrollOnUnload = () => {
+      const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
+      try {
+        sessionStorage.setItem('gallery-scrollY', String(currentScroll))
+        console.log('💾 Saved scroll on unload:', currentScroll)
+      } catch {}
+    };
+
+    // Save on beforeunload (refresh/close)
+    window.addEventListener('beforeunload', saveScrollOnUnload);
+    
+    // Also save periodically while scrolling
+    let scrollTimeout;
+    const handleScroll = () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
+        try {
+          sessionStorage.setItem('gallery-scrollY', String(currentScroll))
+        } catch {}
+      }, 200); // Debounce scroll saves
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('beforeunload', saveScrollOnUnload);
+      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, []);
 
   // Open modal on direct URL access
   useEffect(() => {
@@ -432,6 +518,7 @@ export default function Gallery() {
             setCurrentPage(cachedData.page)
             setHasMore(cachedData.hasMore)
             setTotalCount(cachedData.totalCount)
+            // Note: Dimensions are pre-loaded in state initialization
             setGalleryLoading(false)
             setIsInitialized(true)
           }
@@ -451,7 +538,10 @@ export default function Gallery() {
           const now = Date.now()
           localStorage.setItem('gallery-artwork-cache', artworksJson)
           localStorage.setItem('gallery-artwork-cache-timestamp', now.toString())
+          localStorage.setItem('gallery-artwork-page', '1')
           sessionStorage.setItem('gallery-artwork-session', artworksJson)
+          sessionStorage.setItem('gallery-artwork-page', '1')
+          // Note: dimensions will be cached as images load via handleImageLoad
           
           if (isMounted) {
             setArtworks(shuffled)
@@ -501,6 +591,70 @@ export default function Gallery() {
       console.log(`Preloaded ${imagesToPreload.length} images for instant display`)
     }
   }, [artworks])
+
+
+  // Fine-tune scroll restoration after images load
+  useEffect(() => {
+    if (!isInitialized || artworks.length === 0 || imageSlug) {
+      return
+    }
+
+    const savedScrollY = sessionStorage.getItem('gallery-scrollY')
+    if (!savedScrollY) {
+      return
+    }
+
+    const scrollPosition = parseInt(savedScrollY, 10)
+    console.log('📍 Fine-tuning scroll to:', scrollPosition)
+
+    let hasRestored = false
+    const viewportHeight = window.innerHeight
+    const requiredHeight = scrollPosition + viewportHeight
+    
+    let attempts = 0
+    const maxAttempts = 30
+
+    // Fine-tune the scroll position as the page grows
+    const fineTuneScroll = () => {
+      if (hasRestored) return
+      
+      attempts++
+      
+      const currentHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+      )
+      
+      const currentScroll = window.scrollY || window.pageYOffset
+      const scrollDiff = Math.abs(currentScroll - scrollPosition)
+      
+      // If we're not at the right position and page is tall enough, adjust
+      if (scrollDiff > 10 && currentHeight >= requiredHeight) {
+        document.documentElement.scrollTop = scrollPosition
+        document.body.scrollTop = scrollPosition
+        console.log(`🔧 Adjusted scroll from ${currentScroll} to ${scrollPosition}`)
+      }
+      
+      // Check if we're done
+      if (currentHeight >= requiredHeight && scrollDiff <= 10) {
+        hasRestored = true
+        console.log('✅ Scroll position finalized at:', scrollPosition)
+        setTimeout(() => {
+          sessionStorage.removeItem('gallery-scrollY')
+        }, 100)
+      } else if (attempts < maxAttempts) {
+        setTimeout(fineTuneScroll, 100)
+      } else {
+        hasRestored = true
+        console.log('⚠️ Max attempts reached, scroll at:', window.scrollY)
+        sessionStorage.removeItem('gallery-scrollY')
+      }
+    }
+
+    // Start fine-tuning after a brief delay
+    setTimeout(fineTuneScroll, 100)
+
+  }, [isInitialized, artworks.length, imageSlug])
   
   // Load more images function for infinite scroll with caching
   const loadMoreImages = async () => {
@@ -531,6 +685,7 @@ export default function Gallery() {
           localStorage.setItem('gallery-artwork-cache-timestamp', now.toString());
           localStorage.setItem('gallery-artwork-page', nextPage.toString());
           localStorage.setItem('gallery-artwork-order', artworksJson);
+          // Note: dimensions will be cached as new images load via handleImageLoad
           
           console.log(`Updated cache with ${updatedArtworks.length} total images`);
           return updatedArtworks;
@@ -751,10 +906,23 @@ export default function Gallery() {
     console.log(`📐 Image ${id}: ${naturalWidth}x${naturalHeight}, aspectRatio: ${aspectRatio.toFixed(2)} → ${gridSize}`)
     
     // Update dimensions and trigger re-render
-    setImageDimensions(prev => ({
-      ...prev,
-      [id]: { width: naturalWidth, height: naturalHeight, aspectRatio }
-    }))
+    setImageDimensions(prev => {
+      const newDimensions = {
+        ...prev,
+        [id]: { width: naturalWidth, height: naturalHeight, aspectRatio }
+      }
+      
+      // Cache dimensions along with artworks
+      try {
+        const dimensionsJson = JSON.stringify(newDimensions)
+        localStorage.setItem('gallery-artwork-dimensions', dimensionsJson)
+        sessionStorage.setItem('gallery-artwork-dimensions', dimensionsJson)
+      } catch (e) {
+        console.warn('Failed to cache dimensions:', e)
+      }
+      
+      return newDimensions
+    })
     setLoadedImages(prev => new Set([...prev, id]))
   }
 
@@ -791,18 +959,20 @@ export default function Gallery() {
       {/* Dynamic SEO for individual images or default gallery SEO */}
       {active ? (
         <SEO 
-          title={`${active.art.title}${active.art.scientificName ? ` - ${active.art.scientificName}` : ''} | JP Morada Photography`}
-          description={active.art.description || `Wildlife photography of ${active.art.title} by JP Morada. ${active.art.scientificName ? `Scientific name: ${active.art.scientificName}. ` : ''}${active.art.location ? `Photographed in ${active.art.location}.` : ''}`}
-          keywords={`${active.art.title}, ${active.art.scientificName || ''}, wildlife photography, JP Morada, bird photography, ${active.art.location || ''}`}
+          title={`${active.art.title}${active.art.scientificName ? ` - ${active.art.scientificName}` : ''} | John Philip Morada Photography`}
+          description={active.art.description || `Wildlife photography of ${active.art.title} by John Philip Morada. ${active.art.scientificName ? `Scientific name: ${active.art.scientificName}. ` : ''}${active.art.location ? `Photographed in ${active.art.location}.` : ''}`}
+          keywords={`${active.art.title}, ${active.art.scientificName || ''}, wildlife photography, John Philip Morada, bird photography, ${active.art.location || ''}`}
           image={active.art.src}
         />
       ) : (
         <SEO 
-          title="Gallery - Wildlife & Nature Photography Collection | JP Morada"
-          description="Explore the complete wildlife and nature photography gallery by JP Morada. Browse stunning images of Philippine birds, wildlife, and nature captured with dedication and artistic vision."
-          keywords="wildlife gallery, nature photography collection, bird photos, Philippine wildlife images, photography portfolio, JP Morada gallery"
+          title="Gallery - Wildlife Photography | John Philip Morada"
+          description="Explore the complete wildlife and nature photography gallery by John Philip Morada. Browse stunning images of Philippine birds, wildlife, and nature captured with dedication and artistic vision."
+          keywords="wildlife gallery, nature photography collection, bird photos, Philippine wildlife images, photography portfolio, John Philip Morada gallery"
         />
       )}
+      
+      
       <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
       <div className="container-responsive pt-20 sm:pt-24 md:pt-20 lg:pt-24 pb-6 sm:pb-8">
         <div className="mb-6 sm:mb-8 md:mb-10">
@@ -1009,9 +1179,17 @@ export default function Gallery() {
                     src={imageSrc}
                     alt={art.title || ''}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    style={{
+                      opacity: loadedImages.has(art.id) ? 1 : 0,
+                      transition: 'opacity 0.5s ease-in-out'
+                    }}
                     onLoad={(e) => {
                       const { naturalWidth, naturalHeight } = e.target
                       handleImageLoad(art.id, naturalWidth, naturalHeight)
+                      // Small delay to ensure smooth fade-in
+                      setTimeout(() => {
+                        setLoadedImages(prev => new Set([...prev, art.id]))
+                      }, 50)
                     }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -1025,11 +1203,6 @@ export default function Gallery() {
                       </div>
                     </div>
                   </div>
-                  {!loadedImages.has(art.id) && (
-                    <div className="absolute inset-0 bg-gray-800 animate-pulse flex items-center justify-center">
-                      <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  </div>
-                )}
                 </div>
               </figure>
             )
