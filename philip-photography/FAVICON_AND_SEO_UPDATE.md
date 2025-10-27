@@ -121,3 +121,4 @@ Allow: /manifest.json
 3. Request re-indexing in Google Search Console
 4. Wait 3-7 days and check results
 
+

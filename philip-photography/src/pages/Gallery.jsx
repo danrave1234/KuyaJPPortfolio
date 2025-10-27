@@ -1069,7 +1069,7 @@ export default function Gallery() {
         </div>
 
         {galleryLoading && !isInitialized ? (
-          <div className="grid grid-cols-3 gap-3 auto-rows-[80px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense">
             {[
               'large','small','medium','wide','small','large','small','medium','small','wide','small','medium'
             ].map((size, i) => {
@@ -1097,7 +1097,7 @@ export default function Gallery() {
             </div>
           </div>
         ) : (isSearching || isDebouncing) ? (
-          <div className="grid grid-cols-3 gap-3 auto-rows-[80px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense">
             {[
               'large','small','medium','wide','small','large','small','medium','small','wide','small','medium'
             ].map((size, i) => {
@@ -1113,7 +1113,7 @@ export default function Gallery() {
             })}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-3 auto-rows-[80px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense animate-fadeIn">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense animate-fadeIn">
             {console.log('🎨 Rendering artworks:', deduplicatedArtworks.length, deduplicatedArtworks)}
             {deduplicatedArtworks.map((art, i) => {
             const size = getBentoSize(art, i)
@@ -1212,7 +1212,7 @@ export default function Gallery() {
 
         {/* Loading more skeleton */}
         {loadingMore && (
-          <div className="grid grid-cols-3 gap-3 auto-rows-[80px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense">
             {[
               'large','small','medium','wide','small','large','small','medium','small','wide','small','medium'
             ].map((size, i) => {
@@ -1253,7 +1253,7 @@ export default function Gallery() {
 
         {/* Gallery Statistics */}
         <div className="text-center mb-8 sm:mb-12" data-gallery-stats>
-          <div className="grid grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8 mb-6 sm:mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8 mb-6 sm:mb-8">
             <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-md sm:rounded-lg p-3 sm:p-4 md:p-6 transition-colors duration-300">
               <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[rgb(var(--fg))] mb-1 sm:mb-2 transition-colors duration-300">
                 {deduplicatedArtworks.length}

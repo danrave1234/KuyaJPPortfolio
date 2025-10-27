@@ -90,7 +90,7 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
               alt="Philip Photography Logo" 
               className="h-8 md:h-10 w-auto"
             />
-            <span className={`font-semibold font-heading transition-colors duration-300 ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'}`}>
+            <span className={`font-bold text-lg tracking-wider transition-colors duration-300 ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'}`}>
               JP MORADA
             </span>
           </Link>
