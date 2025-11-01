@@ -10,7 +10,14 @@ export const getGalleryImagesHTTP = async (folder = 'gallery', page = 1, limit =
   try {
     // Use existing Firebase project functions URL
     const functionsURL = 'https://asia-southeast1-kuyajp-portfolio.cloudfunctions.net';
-    const response = await fetch(`${functionsURL}/getGalleryImages?folder=${folder}&page=${page}&limit=${limit}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const response = await fetch(`${functionsURL}/getGalleryImages?folder=${folder}&page=${page}&limit=${limit}`, {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
@@ -50,24 +57,29 @@ export const getGalleryImagesFallback = async (folder = 'gallery') => {
 
 // Smart function that tries callable first, then HTTP, then fallback
 export const getGalleryImages = async (folder = 'gallery', page = 1, limit = 20) => {
+  // Try callable function first (most secure) with timeout
+  const callablePromise = getGalleryImagesCallable(folder, page, limit);
+  const callableTimeout = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error('Callable timeout')), 10000)
+  );
+  
   try {
-    // Try callable function first (most secure)
-    const result = await getGalleryImagesCallable(folder, page, limit);
-    if (result.success) {
+    const result = await Promise.race([callablePromise, callableTimeout]);
+    if (result && result.success) {
       return result;
     }
   } catch (error) {
-    console.warn('Callable function failed, trying HTTP method:', error);
+    console.warn('Callable function failed, trying HTTP method:', error.message);
   }
 
+  // Try HTTP method as fallback (already has timeout)
   try {
-    // Try HTTP method as fallback
     const result = await getGalleryImagesHTTP(folder, page, limit);
-    if (result.success) {
+    if (result && result.success) {
       return result;
     }
   } catch (error) {
-    console.warn('HTTP method failed, using original method:', error);
+    console.warn('HTTP method failed, using original method:', error.message);
   }
 
   // Final fallback to original method (no pagination support)
@@ -78,7 +90,14 @@ export const getGalleryImages = async (folder = 'gallery', page = 1, limit = 20)
 export const searchGalleryImages = async (folder = 'gallery', query = '', page = 1, limit = 20) => {
   try {
     const functionsURL = 'https://asia-southeast1-kuyajp-portfolio.cloudfunctions.net';
-    const response = await fetch(`${functionsURL}/searchGalleryImages?folder=${folder}&q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const response = await fetch(`${functionsURL}/searchGalleryImages?folder=${folder}&q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`, {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

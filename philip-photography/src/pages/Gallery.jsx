@@ -24,7 +24,6 @@ const getCachedArtworks = () => {
       const parsedPage = cachedPage ? parseInt(cachedPage, 10) : 1
       const parsedDimensions = cachedDimensions ? JSON.parse(cachedDimensions) : null
       if (parsedArtworks && Array.isArray(parsedArtworks) && parsedArtworks.length > 0) {
-        console.log(`✅ Found cache with ${parsedArtworks.length} images (page ${parsedPage})${parsedDimensions ? ' with dimensions' : ''}`)
         return {
           artworks: parsedArtworks,
           page: parsedPage,
@@ -45,7 +44,6 @@ const getCachedArtworks = () => {
       const parsedPage = sessionPage ? parseInt(sessionPage, 10) : 1
       const parsedDimensions = sessionDimensions ? JSON.parse(sessionDimensions) : null
       if (parsedArtworks && Array.isArray(parsedArtworks) && parsedArtworks.length > 0) {
-        console.log(`✅ Found session cache with ${parsedArtworks.length} images (page ${parsedPage})${parsedDimensions ? ' with dimensions' : ''}`)
         return {
           artworks: parsedArtworks,
           page: parsedPage,
@@ -66,17 +64,15 @@ export default function Gallery() {
   const { imageSlug } = useParams()
   const navigate = useNavigate()
   
-  // IMMEDIATE scroll restoration - before any rendering
-  const savedScrollY = sessionStorage.getItem('gallery-scrollY')
-  if (savedScrollY && !imageSlug) {
-    const scrollPosition = parseInt(savedScrollY, 10)
-    // Set scroll immediately - before React renders
-    document.documentElement.style.scrollBehavior = 'auto'
-    document.body.style.scrollBehavior = 'auto'
-    document.documentElement.scrollTop = scrollPosition
-    document.body.scrollTop = scrollPosition
-    console.log('⚡ IMMEDIATE scroll set to:', scrollPosition)
+  // Helper function to save scroll position
+  const saveScrollPosition = () => {
+    const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
+    try {
+      sessionStorage.setItem('gallery-scrollY', String(currentScroll))
+    } catch {}
   }
+  
+  // IMMEDIATE scroll restoration removed - causes issues with batch loading
   
   // Disable browser's automatic scroll restoration
   useEffect(() => {
@@ -98,7 +94,6 @@ export default function Gallery() {
                                localStorage.getItem('gallery-artwork-dimensions')
       if (cachedDimensions) {
         const parsed = JSON.parse(cachedDimensions)
-        console.log('🎨 Pre-loaded dimensions for', Object.keys(parsed).length, 'images')
         return parsed
       }
     } catch (e) {
@@ -107,10 +102,10 @@ export default function Gallery() {
     return {}
   })
   const [loadedImages, setLoadedImages] = useState(new Set())
-  const [firebaseImages, setFirebaseImages] = useState([])
   const [artworks, setArtworks] = useState([])
   const [galleryLoading, setGalleryLoading] = useState(true)
   const [isInitialized, setIsInitialized] = useState(false)
+  const hasAttemptedScrollRestoreRef = useRef(false)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   
@@ -134,15 +129,6 @@ export default function Gallery() {
   const findImageBySlug = (slug, images) => {
     if (!slug || !images) return null;
     
-    console.log('🔍 Finding image by slug:', slug);
-    console.log('📷 Available images:', images.map(img => ({ 
-      id: img.id, 
-      title: img.title, 
-      isSeries: img.isSeries,
-      seriesIndex: img.seriesIndex,
-      originalSeriesId: img.originalSeriesId 
-    })));
-    
     // Extract series number from the slug (e.g., "philippine-coucal-centropus-viridis-2" -> "2")
     const slugParts = slug.split('-');
     const lastPart = slugParts[slugParts.length - 1];
@@ -164,7 +150,6 @@ export default function Gallery() {
     if (seriesGroup && seriesGroup.images && seriesGroup.images.length > 0) {
       // Return the series group with the correct index
       const targetIndex = Math.min(seriesNumber - 1, seriesGroup.images.length - 1);
-      console.log('✅ Found series group:', seriesGroup.title, 'at index:', targetIndex);
       return {
         ...seriesGroup,
         targetIndex: targetIndex
@@ -175,12 +160,10 @@ export default function Gallery() {
     const singleImage = images.find(img => {
       // Generate slug for the image
       const imgSlug = generateSlug(img.title, img.scientificName, '1');
-      console.log('🔍 Checking image:', img.title, 'generated slug:', imgSlug, 'target slug:', slug);
       return imgSlug === slug;
     });
     
     if (singleImage) {
-      console.log('✅ Found single image:', singleImage.title);
       // Return the single image
       return {
         ...singleImage,
@@ -188,18 +171,13 @@ export default function Gallery() {
       };
     }
     
-    console.log('❌ No image found for slug:', slug);
     return null;
   };
 
   // Handle image click with URL routing
   const handleImageClick = (art, idx = 0) => {
     // Save current scroll position
-    const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
-    try {
-      sessionStorage.setItem('gallery-scrollY', String(currentScroll))
-      console.log('💾 Saved scroll position:', currentScroll)
-    } catch {}
+    saveScrollPosition()
     
     // Extract series number from the image for clean URLs
     let seriesNumber = '1';
@@ -217,20 +195,16 @@ export default function Gallery() {
     }
     
     const slug = generateSlug(art.title, art.scientificName, seriesNumber);
-    navigate(`/gallery/${slug}`, { replace: false, state: { scrollPosition: currentScroll } });
+    navigate(`/gallery/${slug}`, { replace: false, state: { scrollPosition: window.scrollY || 0 } });
     setActive({ art, idx });
   };
 
   // Handle modal close with URL routing
   const handleModalClose = () => {
     // Save scroll position before closing so gallery restores where user left off
-    let scrollY = 0
-    try {
-      scrollY = window.scrollY || 0
-      sessionStorage.setItem('gallery-scrollY', String(scrollY))
-    } catch {}
+    saveScrollPosition()
     setActive(null);
-    navigate('/gallery', { replace: false, state: { restoreScroll: true, scrollPosition: scrollY } });
+    navigate('/gallery', { replace: false, state: { restoreScroll: true, scrollPosition: window.scrollY || 0 } });
   };
 
   // Handle browser back/forward buttons
@@ -238,11 +212,7 @@ export default function Gallery() {
     const handlePopState = () => {
       if (!imageSlug) {
         // Returning to /gallery: ensure we keep/restored scroll
-        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
-        try {
-          sessionStorage.setItem('gallery-scrollY', String(currentScroll))
-          console.log('💾 Saved scroll on popstate:', currentScroll)
-        } catch {}
+        saveScrollPosition()
         setActive(null);
       }
     };
@@ -252,33 +222,20 @@ export default function Gallery() {
 
   // Save scroll position before page unload (refresh/close)
   useEffect(() => {
-    const saveScrollOnUnload = () => {
-      const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
-      try {
-        sessionStorage.setItem('gallery-scrollY', String(currentScroll))
-        console.log('💾 Saved scroll on unload:', currentScroll)
-      } catch {}
-    };
-
     // Save on beforeunload (refresh/close)
-    window.addEventListener('beforeunload', saveScrollOnUnload);
+    window.addEventListener('beforeunload', saveScrollPosition);
     
-    // Also save periodically while scrolling
+    // Also save periodically while scrolling (debounced)
     let scrollTimeout;
     const handleScroll = () => {
       clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
-        try {
-          sessionStorage.setItem('gallery-scrollY', String(currentScroll))
-        } catch {}
-      }, 200); // Debounce scroll saves
+      scrollTimeout = setTimeout(saveScrollPosition, 200);
     };
     
     window.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
-      window.removeEventListener('beforeunload', saveScrollOnUnload);
+      window.removeEventListener('beforeunload', saveScrollPosition);
       window.removeEventListener('scroll', handleScroll);
       clearTimeout(scrollTimeout);
     };
@@ -498,7 +455,6 @@ export default function Gallery() {
     });
     
     const result = Object.values(groups);
-    console.log('Grouped images by series:', result);
     return result;
   }
   
@@ -512,7 +468,6 @@ export default function Gallery() {
         const cachedData = getCachedArtworks()
         
         if (cachedData) {
-          console.log(`✅ Using ${cachedData.fromCache} cache with ${cachedData.artworks.length} images`)
           if (isMounted) {
             setArtworks(cachedData.artworks)
             setCurrentPage(cachedData.page)
@@ -526,7 +481,6 @@ export default function Gallery() {
         }
 
         // Fetch fresh data from Firebase Functions API
-        console.log('🔄 No valid cache found, fetching from Firebase Functions...')
         const result = await getGalleryImages('gallery', 1, 20);
         if (result.success) {
           // Group images by series first, then shuffle
@@ -572,30 +526,19 @@ export default function Gallery() {
     }
   }, []) // Empty dependency array - run only once
 
-  // Preload images for instant display
+  // Preload images for instant display - removed because it preloads wrong images
+  // Images load individually as they render, which is actually faster and more efficient
+
+
+  // Fine-tune scroll restoration after images load - ONLY on initial load
   useEffect(() => {
-    if (artworks.length > 0) {
-      // Preload first 12 images (first visible row + buffer)
-      const imagesToPreload = artworks.slice(0, 12)
-      imagesToPreload.forEach((art, index) => {
-        if (art.isSeries && art.images && art.images.length > 0) {
-          // Preload first image in series
-          const img = new Image()
-          img.src = art.images[0].url
-        } else if (art.url) {
-          // Preload single image
-          const img = new Image()
-          img.src = art.url
-        }
-      })
-      console.log(`Preloaded ${imagesToPreload.length} images for instant display`)
+    // Only attempt scroll restoration ONCE when page first loads
+    if (hasAttemptedScrollRestoreRef.current || !isInitialized || imageSlug) {
+      return
     }
-  }, [artworks])
-
-
-  // Fine-tune scroll restoration after images load
-  useEffect(() => {
-    if (!isInitialized || artworks.length === 0 || imageSlug) {
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (artworks.length === 0) {
       return
     }
 
@@ -604,15 +547,16 @@ export default function Gallery() {
       return
     }
 
-    const scrollPosition = parseInt(savedScrollY, 10)
-    console.log('📍 Fine-tuning scroll to:', scrollPosition)
+    // Mark as attempted so it never runs again
+    hasAttemptedScrollRestoreRef.current = true
 
+    const scrollPosition = parseInt(savedScrollY, 10)
     let hasRestored = false
     const viewportHeight = window.innerHeight
     const requiredHeight = scrollPosition + viewportHeight
     
     let attempts = 0
-    const maxAttempts = 30
+    const maxAttempts = 10 // Reduced from 30 for better performance
 
     // Fine-tune the scroll position as the page grows
     const fineTuneScroll = () => {
@@ -632,29 +576,26 @@ export default function Gallery() {
       if (scrollDiff > 10 && currentHeight >= requiredHeight) {
         document.documentElement.scrollTop = scrollPosition
         document.body.scrollTop = scrollPosition
-        console.log(`🔧 Adjusted scroll from ${currentScroll} to ${scrollPosition}`)
       }
       
       // Check if we're done
       if (currentHeight >= requiredHeight && scrollDiff <= 10) {
         hasRestored = true
-        console.log('✅ Scroll position finalized at:', scrollPosition)
         setTimeout(() => {
           sessionStorage.removeItem('gallery-scrollY')
         }, 100)
       } else if (attempts < maxAttempts) {
-        setTimeout(fineTuneScroll, 100)
+        setTimeout(fineTuneScroll, 150) // Increased from 100ms to 150ms
       } else {
         hasRestored = true
-        console.log('⚠️ Max attempts reached, scroll at:', window.scrollY)
         sessionStorage.removeItem('gallery-scrollY')
       }
     }
 
     // Start fine-tuning after a brief delay
-    setTimeout(fineTuneScroll, 100)
+    setTimeout(fineTuneScroll, 150) // Increased from 100ms to 150ms
 
-  }, [isInitialized, artworks.length, imageSlug])
+  }, [isInitialized, imageSlug]) // Removed artworks.length to prevent retriggering on new batches
   
   // Load more images function for infinite scroll with caching
   const loadMoreImages = async () => {
@@ -663,7 +604,6 @@ export default function Gallery() {
     setLoadingMore(true);
     try {
       const nextPage = currentPage + 1;
-      console.log(`Loading page ${nextPage} with 20 images...`);
       const result = await getGalleryImages('gallery', nextPage, 20);
       
       if (result.success && result.images.length > 0) {
@@ -687,15 +627,12 @@ export default function Gallery() {
           localStorage.setItem('gallery-artwork-order', artworksJson);
           // Note: dimensions will be cached as new images load via handleImageLoad
           
-          console.log(`Updated cache with ${updatedArtworks.length} total images`);
           return updatedArtworks;
         });
         
         setCurrentPage(nextPage);
         setHasMore(result.pagination?.hasMore || false);
-        console.log(`Loaded ${result.images.length} more images. Total: ${artworks.length + result.images.length}`);
       } else {
-        console.log('No more images to load');
         setHasMore(false);
       }
     } catch (error) {
@@ -718,13 +655,11 @@ export default function Gallery() {
           if (debouncedQuery.trim()) {
             // Load more search results
             if (searchHasMore && !isSearching && !isDebouncing) {
-              console.log('Statistics section visible - loading more search results...');
               performSearch(debouncedQuery, searchPage + 1);
             }
           } else {
             // Load more regular images - only if we have more pages and not currently loading
             if (hasMore && !loadingMore) {
-              console.log('Statistics section visible - loading more images...');
               loadMoreImages();
             }
           }
@@ -839,6 +774,15 @@ export default function Gallery() {
       (item.src || item.id) === uniqueKey
     ) === index;
   });
+  
+  // Add loading skeleton items when loading more (these will be interleaved by grid-flow-dense)
+  const artworksWithSkeletons = loadingMore
+    ? [...deduplicatedArtworks, ...Array.from({ length: 6 }, (_, i) => ({ 
+        id: `skeleton-${i}`, 
+        isSkeleton: true,
+        src: null
+      }))]
+    : deduplicatedArtworks;
     
   // Hardcoded artworks removed - now using Firebase Storage images
 
@@ -846,6 +790,17 @@ export default function Gallery() {
     // Composite items are always small squares
     if (artwork.composite) {
       return 'small'
+    }
+    
+    // Handle skeleton placeholders - use varied sizes for better layout
+    if (artwork.isSkeleton) {
+      const sizes = ['small', 'small', 'small', 'medium', 'large', 'wide'];
+      // Use a hash of the skeleton ID for consistent sizing
+      const hash = artwork.id ? artwork.id.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0) : index;
+      return sizes[Math.abs(hash) % sizes.length];
     }
     
     const dimensions = imageDimensions[artwork.id]
@@ -902,8 +857,6 @@ export default function Gallery() {
         gridSize = isLarge ? 'large (square/landscape - featured!)' : 'small (square/landscape)'
       }
     }
-    
-    console.log(`📐 Image ${id}: ${naturalWidth}x${naturalHeight}, aspectRatio: ${aspectRatio.toFixed(2)} → ${gridSize}`)
     
     // Update dimensions and trigger re-render
     setImageDimensions(prev => {
@@ -1114,8 +1067,21 @@ export default function Gallery() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense animate-fadeIn">
-            {console.log('🎨 Rendering artworks:', deduplicatedArtworks.length, deduplicatedArtworks)}
-            {deduplicatedArtworks.map((art, i) => {
+            {artworksWithSkeletons.map((art, i) => {
+            // Handle skeleton placeholders
+            if (art.isSkeleton) {
+              const size = getBentoSize(art, i)
+              const gridClasses = size === 'large' ? 'col-span-2 row-span-2' : 
+                                 size === 'wide' ? 'col-span-2 row-span-1' :
+                                 size === 'medium' ? 'col-span-1 row-span-2' : 
+                                 'col-span-1 row-span-1'
+              return (
+                <div key={`skeleton-${i}`} className={`${gridClasses} rounded-lg overflow-hidden relative border border-[rgb(var(--muted))]/10`}>
+                  <div className="absolute inset-0 animate-pulse bg-[rgb(var(--muted))]/20" />
+                </div>
+              )
+            }
+            
             const size = getBentoSize(art, i)
             
             const gridClasses = size === 'large' ? 'col-span-2 row-span-2' : 
@@ -1162,14 +1128,10 @@ export default function Gallery() {
 
                   // If this is a separated series item, use the complete series data
                   if (art.completeSeriesData) {
-                    console.log('Opening series modal with complete data:', art.completeSeriesData);
-                    console.log('Opening at index:', art.seriesIndex - 1);
-                    
                     // Use the complete series data directly with URL routing
                     handleImageClick(art.completeSeriesData, art.seriesIndex - 1);
                   } else {
                     // For single images, open normally with URL routing
-                    console.log('Opening single image modal:', art);
                     handleImageClick(art, 0);
                   }
                 }}
@@ -1207,40 +1169,6 @@ export default function Gallery() {
               </figure>
             )
           })}
-          </div>
-        )}
-
-        {/* Loading more skeleton */}
-        {loadingMore && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[100px] md:auto-rows-[120px] lg:auto-rows-[320px] mb-6 grid-flow-dense">
-            {[
-              'large','small','medium','wide','small','large','small','medium','small','wide','small','medium'
-            ].map((size, i) => {
-              const gridClasses = size === 'large' ? 'col-span-2 row-span-2' :
-                                   size === 'wide' ? 'col-span-2 row-span-1' :
-                                   size === 'medium' ? 'col-span-1 row-span-2' : 
-                                   'col-span-1 row-span-1'
-              return (
-                <div key={`loading-more-${i}`} className={`${gridClasses} rounded-lg overflow-hidden relative border border-[rgb(var(--muted))]/10`}>
-                  <div className="absolute inset-0 animate-pulse bg-[rgb(var(--muted))]/20" />
-                  
-                  {/* Image overlay skeleton */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0" />
-                  
-                  {/* Bottom info skeleton */}
-                  <div className="absolute bottom-2 left-2 right-2 transform translate-y-3 opacity-0">
-                    <div className="inline-flex items-center gap-1.5 bg-black/40 backdrop-blur-[2px] rounded-md px-2 py-1.5 max-w-[95%]">
-                      <div className="text-[8px] sm:text-[9px] md:text-[10px] font-mono tracking-widest text-white/80 flex-shrink-0">
-                        {String(i + 1).padStart(2, '0')}
-                      </div>
-                      <div className="text-[8px] sm:text-[9px] md:text-xs font-medium leading-tight uppercase tracking-wide text-white break-words min-w-0">
-                        Loading...
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
           </div>
         )}
         
@@ -1669,9 +1597,6 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
   // Get the current image data (for series) or artwork data (for single images)
   const getCurrentImageData = () => {
     if (!active?.art) return null
-    
-    console.log('Modal active data:', active);
-    console.log('Series images length:', active.art.images?.length);
     
     // If it's a series, get the current image from the series array
     if (active.art.isSeries && active.art.images && active.art.images.length > 0) {
