@@ -76,7 +76,7 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
     `block px-6 py-4 text-base font-semibold transition-all duration-300 rounded-2xl mx-2 my-1 ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white'} hover:bg-gradient-to-r hover:from-[rgb(var(--primary))]/10 hover:to-[rgb(var(--primary))]/5 hover:shadow-md hover:scale-[1.02] ${isActive ? 'bg-gradient-to-r from-[rgb(var(--primary))]/20 to-[rgb(var(--primary))]/10 shadow-lg scale-[1.02]' : ''}`;
   
   return (
-    <header className={`fixed top-0 left-0 right-0 z-20 transition-all duration-300 ${
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
       showBackground 
         ? 'bg-[rgb(var(--bg))]/95 shadow-sm backdrop-blur-md border-b border-gray-200 dark:border-gray-800' 
         : 'bg-transparent backdrop-blur-0 border-b border-transparent'

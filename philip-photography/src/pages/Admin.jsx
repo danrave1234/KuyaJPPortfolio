@@ -31,7 +31,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
-  ShieldCheck
+  ShieldCheck,
+  RefreshCw,
+  MapPin,
+  Calendar
 } from 'lucide-react'
 
 export default function Admin() {
@@ -877,13 +880,21 @@ export default function Admin() {
     { id: 'featured', label: 'Featured', icon: Star }
   ]
 
+  const navBadgeCounts = {
+    gallery: galleryImages.length,
+    featured: featuredImages.length
+  }
+
+  const seriesCount = Object.keys(groupImagesBySeries(galleryImages)).filter(key => !key.startsWith('individual_')).length
+  const individualCount = Object.keys(groupImagesBySeries(galleryImages)).filter(key => key.startsWith('individual_')).length
+
   return (
     <>
       <SEO 
         title="Admin Dashboard - John Philip Morada Photography"
         description="Admin dashboard for managing John Philip Morada Photography website"
       />
-      <div className="min-h-screen bg-[rgb(var(--bg))] flex">
+      <div className="min-h-screen bg-gradient-to-br from-[rgb(var(--bg))] via-[rgb(var(--bg))]/95 to-[rgb(var(--primary))]/5 flex relative overflow-hidden">
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div 
@@ -934,6 +945,11 @@ export default function Admin() {
                 <span className={`font-medium truncate transition-all duration-300 ${sidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
                   {item.label}
                 </span>
+                {navBadgeCounts[item.id] > 0 && (
+                  <span className={`ml-auto text-xs font-semibold rounded-full px-2 py-1 ${activeTab === item.id ? 'bg-[rgb(var(--primary))] text-white' : 'bg-[rgb(var(--muted))]/15 text-[rgb(var(--fg))]'} ${sidebarCollapsed ? 'absolute -top-1 -right-1' : ''}`}>
+                    {navBadgeCounts[item.id]}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -989,7 +1005,7 @@ export default function Admin() {
       {/* Main Content Area */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'} overflow-hidden`}>
         {/* Top Header */}
-        <header className="bg-[rgb(var(--bg))]/95 backdrop-blur-xl border-b border-[rgb(var(--muted))]/20 px-6 py-4 mt-14 md:mt-16">
+        <header className="bg-[rgb(var(--bg))]/95 backdrop-blur-xl border-b border-[rgb(var(--muted))]/20 px-6 py-4 mt-14 md:mt-16 sticky top-0 z-30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
@@ -999,6 +1015,15 @@ export default function Admin() {
                 <Menu size={20} />
               </button>
               <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="inline-flex items-center gap-2 text-[rgb(var(--primary))] bg-[rgb(var(--primary))]/10 px-2 py-1 rounded-full text-xs font-semibold">
+                    <ShieldCheck size={14} />
+                    Admin · Gallery Ops
+                  </span>
+                  <span className="text-[rgb(var(--muted))] text-xs">
+                    {galleryImages.length} photos • {featuredImages.length} featured
+                  </span>
+                </div>
                 <h1 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">
                   {navigationItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
                 </h1>
@@ -1012,6 +1037,20 @@ export default function Admin() {
             </div>
             
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setActiveTab('gallery')}
+                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-[rgb(var(--primary))]/10 text-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/20 transition-colors duration-200"
+              >
+                <Grid3X3 size={16} />
+                Gallery
+              </button>
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-[rgb(var(--primary))] text-white hover:bg-[rgb(var(--primary))]/90 transition-colors duration-200 shadow-md"
+              >
+                <Upload size={16} />
+                Upload
+              </button>
               <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-[rgb(var(--muted))]/10 rounded-lg">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                 <span className="text-sm font-medium text-[rgb(var(--fg))]">
@@ -1026,95 +1065,205 @@ export default function Admin() {
         <main className="flex-1 p-6 pt-12 overflow-y-auto overflow-x-hidden">
           {activeTab === 'dashboard' && (
             <div className="space-y-8">
-
-              {/* Quick Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-6 rounded-2xl border border-[rgb(var(--muted))]/20 shadow-lg hover:shadow-xl transition-all duration-300 group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-[rgb(var(--primary))] rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                      <ImageIcon className="w-7 h-7 text-white" />
+              {/* Hero */}
+              <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl rounded-3xl border border-[rgb(var(--muted))]/20 shadow-xl p-8 lg:p-10 flex flex-col lg:flex-row gap-8">
+                <div className="flex-1 space-y-4">
+                  <div className="inline-flex items-center gap-2 text-[rgb(var(--primary))] bg-[rgb(var(--primary))]/10 px-3 py-1.5 rounded-full text-xs font-semibold w-fit">
+                    <Zap size={14} />
+                    Portfolio Control Center
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-2xl sm:text-3xl font-bold font-heading text-[rgb(var(--fg))]">Curate, publish, and keep the gallery fresh</h2>
+                    <p className="text-[rgb(var(--muted))] max-w-2xl">
+                      Manage uploads, featured picks, and metadata in one place. Use the quick actions to jump straight into curation or upload a new set.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => setActiveTab('gallery')}
+                      className="inline-flex items-center gap-2 bg-[rgb(var(--primary))] text-white px-5 py-3 rounded-xl font-semibold hover:bg-[rgb(var(--primary))]/90 transition-all duration-200 shadow-lg"
+                    >
+                      <Grid3X3 size={18} />
+                      Open Gallery
+                    </button>
+                    <button
+                      onClick={() => setShowUploadModal(true)}
+                      className="inline-flex items-center gap-2 bg-[rgb(var(--bg))] px-5 py-3 rounded-xl font-semibold text-[rgb(var(--fg))] border border-[rgb(var(--muted))]/30 hover:border-[rgb(var(--primary))]/40 hover:bg-[rgb(var(--muted))]/10 transition-all duration-200"
+                    >
+                      <Upload size={18} />
+                      New Upload
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('featured')}
+                      className="inline-flex items-center gap-2 bg-[rgb(var(--muted))]/10 px-4 py-3 rounded-xl font-semibold text-[rgb(var(--fg))] hover:bg-[rgb(var(--muted))]/20 transition-all duration-200"
+                    >
+                      <Star size={18} className="text-[rgb(var(--primary))]" />
+                      Featured
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))]">
+                      <ImageIcon size={16} className="text-[rgb(var(--primary))]" />
+                      <span className="font-semibold">{galleryImages.length}</span>
+                      <span className="text-[rgb(var(--muted))] text-sm">images</span>
                     </div>
-                    <div>
-                      <p className="text-3xl font-bold font-heading text-[rgb(var(--fg))]">{galleryImages.length}</p>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))]">
+                      <Star size={16} className="text-[rgb(var(--primary))]" />
+                      <span className="font-semibold">{featuredImages.length}</span>
+                      <span className="text-[rgb(var(--muted))] text-sm">featured</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))]">
+                      <Palette size={16} className="text-[rgb(var(--primary))]" />
+                      <span className="font-semibold">{seriesCount}</span>
+                      <span className="text-[rgb(var(--muted))] text-sm">series</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-2xl p-6 shadow-lg space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs uppercase tracking-wide text-[rgb(var(--muted))]">Health</p>
+                        <h4 className="text-lg font-semibold text-[rgb(var(--fg))]">Gallery status</h4>
+                      </div>
+                      <div className="flex items-center gap-2 text-emerald-500 bg-emerald-500/10 px-3 py-1.5 rounded-full text-xs font-semibold">
+                        <ShieldCheck size={14} />
+                        Stable
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 rounded-xl bg-[rgb(var(--primary))]/10 border border-[rgb(var(--primary))]/20">
+                        <p className="text-sm text-[rgb(var(--muted))]">Selection</p>
+                        <p className="text-2xl font-bold text-[rgb(var(--fg))]">{selectedImages.size}</p>
+                        <p className="text-xs text-[rgb(var(--muted))]">items ready for bulk actions</p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-[rgb(var(--muted))]/5 border border-[rgb(var(--muted))]/20">
+                        <p className="text-sm text-[rgb(var(--muted))]">Pagination</p>
+                        <p className="text-2xl font-bold text-[rgb(var(--fg))]">{currentPage}</p>
+                        <p className="text-xs text-[rgb(var(--muted))]">{hasMore ? 'More pages available' : 'Reached end'}</p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-[rgb(var(--muted))]/5 border border-[rgb(var(--muted))]/20">
+                        <p className="text-sm text-[rgb(var(--muted))]">Search</p>
+                        <p className="text-lg font-semibold text-[rgb(var(--fg))] truncate">{searchQuery || 'No active search'}</p>
+                        <p className="text-xs text-[rgb(var(--muted))]">{isSearching ? 'Filtering results' : 'Showing gallery cache'}</p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-[rgb(var(--primary))]/5 border border-[rgb(var(--primary))]/20">
+                        <p className="text-sm text-[rgb(var(--muted))]">Cache</p>
+                        <p className="text-lg font-semibold text-[rgb(var(--fg))]">5 min TTL</p>
+                        <button
+                          onClick={() => clearPaginationCache()}
+                          className="mt-2 inline-flex text-xs items-center gap-1 text-[rgb(var(--primary))] hover:text-[rgb(var(--primary))]/80"
+                        >
+                          <RefreshCw size={12} />
+                          Clear cache
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-6 rounded-2xl border border-[rgb(var(--muted))]/20 shadow-lg hover:shadow-xl transition-all duration-300 group">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
                       <p className="text-sm text-[rgb(var(--muted))] font-medium">Total Images</p>
+                      <p className="text-3xl font-bold font-heading text-[rgb(var(--fg))]">{galleryImages.length}</p>
+                    </div>
+                    <div className="w-12 h-12 bg-[rgb(var(--primary))] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                      <ImageIcon className="w-6 h-6 text-white" />
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-6 rounded-2xl border border-[rgb(var(--muted))]/20 shadow-lg hover:shadow-xl transition-all duration-300 group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-[rgb(var(--primary))]/80 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                      <Palette className="w-7 h-7 text-white" />
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <p className="text-sm text-[rgb(var(--muted))] font-medium">Featured Images</p>
+                      <p className="text-3xl font-bold font-heading text-[rgb(var(--fg))]">{featuredImages.length}</p>
                     </div>
-                    <div>
-                      <p className="text-3xl font-bold font-heading text-[rgb(var(--fg))]">
-                        {Object.keys(groupImagesBySeries(galleryImages)).filter(key => !key.startsWith('individual_')).length}
-                      </p>
+                    <div className="w-12 h-12 bg-[rgb(var(--primary))]/80 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                      <Star className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-6 rounded-2xl border border-[rgb(var(--muted))]/20 shadow-lg hover:shadow-xl transition-all duration-300 group">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
                       <p className="text-sm text-[rgb(var(--muted))] font-medium">Photo Series</p>
+                      <p className="text-3xl font-bold font-heading text-[rgb(var(--fg))]">{seriesCount}</p>
                     </div>
-                  </div>
-                </div>
-
-                <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-6 rounded-2xl border border-[rgb(var(--muted))]/20 shadow-lg hover:shadow-xl transition-all duration-300 group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-[rgb(var(--primary))]/60 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                      <Users className="w-7 h-7 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-3xl font-bold font-heading text-[rgb(var(--fg))]">
-                        {Object.keys(groupImagesBySeries(galleryImages)).filter(key => key.startsWith('individual_')).length}
-                      </p>
-                      <p className="text-sm text-[rgb(var(--muted))] font-medium">Individual Photos</p>
+                    <div className="w-12 h-12 bg-[rgb(var(--primary))]/60 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                      <Palette className="w-6 h-6 text-white" />
                     </div>
                   </div>
                 </div>
 
               </div>
 
-              {/* Quick Actions */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Activity */}
+              <div className="grid grid-cols-1 gap-8">
                 <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl rounded-2xl border border-[rgb(var(--muted))]/20 shadow-lg p-6">
-                  <h3 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))] mb-4">Quick Actions</h3>
-                  <div className="space-y-3">
-                    <button
-                      onClick={() => setActiveTab('gallery')}
-                      className="w-full flex items-center gap-3 p-4 rounded-xl bg-[rgb(var(--primary))]/10 hover:bg-[rgb(var(--primary))]/20 text-[rgb(var(--fg))] transition-all duration-200 group"
-                    >
-                      <Grid3X3 size={20} className="text-[rgb(var(--primary))]" />
-                      <div className="text-left">
-                        <p className="font-medium">Manage Gallery</p>
-                        <p className="text-sm text-[rgb(var(--muted))]">Upload and organize photos</p>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('featured')}
-                      className="w-full flex items-center gap-3 p-4 rounded-xl bg-[rgb(var(--primary))]/10 hover:bg-[rgb(var(--primary))]/20 text-[rgb(var(--fg))] transition-all duration-200 group"
-                    >
-                      <Star size={20} className="text-[rgb(var(--primary))]" />
-                      <div className="text-left">
-                        <p className="font-medium">Featured Gallery</p>
-                        <p className="text-sm text-[rgb(var(--muted))]">Curate homepage images</p>
-                      </div>
-                    </button>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">Recent Activity</h3>
+                    <div className="text-xs text-[rgb(var(--muted))]">Auto-sync enabled</div>
                   </div>
-                </div>
-
-                <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl rounded-2xl border border-[rgb(var(--muted))]/20 shadow-lg p-6">
-                  <h3 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))] mb-4">Recent Activity</h3>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgb(var(--muted))]/5">
                       <div className="w-2 h-2 bg-[rgb(var(--primary))] rounded-full"></div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-[rgb(var(--fg))]">Portfolio is live</p>
-                        <p className="text-xs text-[rgb(var(--muted))]">Auto-sync enabled</p>
+                        <p className="text-sm font-medium text-[rgb(var(--fg))]">{galleryImages.length} images live</p>
+                        <p className="text-xs text-[rgb(var(--muted))]">Gallery refreshed{isSearching ? ' after search' : ''}</p>
                       </div>
+                      <button
+                        onClick={() => loadGalleryImages(1, searchQuery)}
+                        className="text-xs text-[rgb(var(--primary))] hover:text-[rgb(var(--primary))]/80"
+                      >
+                        Refresh
+                      </button>
                     </div>
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgb(var(--muted))]/5">
                       <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-[rgb(var(--fg))]">{galleryImages.length} images ready</p>
-                        <p className="text-xs text-[rgb(var(--muted))]">Gallery updated</p>
+                        <p className="text-sm font-medium text-[rgb(var(--fg))]">{featuredImages.length} featured picks</p>
+                        <p className="text-xs text-[rgb(var(--muted))]">Homepage curated state</p>
                       </div>
+                      <button
+                        onClick={() => setActiveTab('featured')}
+                        className="text-xs text-[rgb(var(--primary))] hover:text-[rgb(var(--primary))]/80"
+                      >
+                        Manage
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgb(var(--muted))]/5">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-[rgb(var(--fg))]">{selectedImages.size} selected for bulk actions</p>
+                        <p className="text-xs text-[rgb(var(--muted))]">Use delete or edit to apply changes</p>
+                      </div>
+                      {selectedImages.size > 0 && (
+                        <button
+                          onClick={() => deselectAllImages()}
+                          className="text-xs text-[rgb(var(--primary))] hover:text-[rgb(var(--primary))]/80"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-[rgb(var(--muted))]/5">
+                      <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-[rgb(var(--fg))]">Cache window 5 minutes</p>
+                        <p className="text-xs text-[rgb(var(--muted))]">Smart pagination + search cache</p>
+                      </div>
+                      <button
+                        onClick={() => clearPaginationCache()}
+                        className="text-xs text-[rgb(var(--primary))] hover:text-[rgb(var(--primary))]/80"
+                      >
+                        Clear
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1128,74 +1277,31 @@ export default function Admin() {
 
         {/* Gallery Management */}
         <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl rounded-3xl border border-[rgb(var(--muted))]/20 shadow-xl overflow-hidden">
-          <div className="p-6 border-b border-[rgb(var(--muted))]/20 bg-[rgb(var(--primary))]/5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <h3 className="text-lg sm:text-xl md:text-2xl font-bold font-heading text-[rgb(var(--fg))]">
-                    Gallery Management
-                  </h3>
-                    <p className="text-[rgb(var(--muted))]">
-                      {galleryImages.length} images in your portfolio
-                    </p>
-                    <button
-                      onClick={() => loadGalleryImages(1, searchQuery)}
-                      className="inline-flex items-center gap-2 text-[rgb(var(--primary))] hover:text-[rgb(var(--primary))]/80 font-medium transition-colors duration-200 hover:bg-[rgb(var(--primary))]/10 px-3 py-1 rounded-lg"
-                      title="Refresh gallery"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      Refresh
-                    </button>
-              </div>
-              
-              {/* Upload and Selection Controls */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setShowUploadModal(true)}
-                  className="flex items-center gap-2 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  <Upload size={16} />
-                  Upload
-                </button>
-                
-                {selectedImages.size > 0 ? (
-                  <button
-                    onClick={deselectAllImages}
-                    className="flex items-center gap-2 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 text-[rgb(var(--fg))] px-4 py-2 rounded-lg font-medium transition-all duration-200"
-                  >
-                    <X size={16} />
-                    Clear
-                  </button>
-                ) : (
-                  <button
-                    onClick={selectAllImages}
-                    className="flex items-center gap-2 bg-[rgb(var(--primary))]/10 hover:bg-[rgb(var(--primary))]/20 text-[rgb(var(--primary))] px-4 py-2 rounded-lg font-medium transition-all duration-200"
-                  >
-                    <Check size={16} />
-                    Select All
-                  </button>
-                )}
-                
-                {selectedImages.size > 0 && (
-                  <button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="flex items-center gap-3 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg"
-                  >
-                    <Trash2 size={18} />
-                    Delete ({selectedImages.size})
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-          
           <div className="p-8">
-            {/* Search and Pagination Controls */}
-            <div className="mb-8 space-y-6">
-              {/* Search Bar */}
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="flex-1 max-w-md">
+            {/* Sticky Controls */}
+            <div className="sticky top-16 z-20 -mx-8 px-8 py-4 bg-[rgb(var(--bg))]/95 backdrop-blur-xl border-b border-[rgb(var(--muted))]/20 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">Gallery controls</h3>
+                  <p className="text-[rgb(var(--muted))] text-sm">Upload, curate, and bulk edit your photo collection</p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="inline-flex items-center gap-2 bg-[rgb(var(--primary))]/10 text-[rgb(var(--primary))] px-3 py-1.5 rounded-full text-sm font-semibold">
+                    <ImageIcon size={16} />
+                    {galleryImages.length} images
+                  </span>
+                  <span className="inline-flex items-center gap-2 bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))] px-3 py-1.5 rounded-full text-sm font-semibold">
+                    <Palette size={16} className="text-[rgb(var(--primary))]" />
+                    {seriesCount} series
+                  </span>
+                  <span className="inline-flex items-center gap-2 bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))] px-3 py-1.5 rounded-full text-sm font-semibold">
+                    <Star size={16} className="text-[rgb(var(--primary))]" />
+                    {featuredImages.length} featured
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+                <div className="flex-1 max-w-xl">
                   <div className="relative">
                     <input
                       type="text"
@@ -1213,14 +1319,15 @@ export default function Admin() {
                       <button
                         onClick={() => setSearchQuery('')}
                         className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] transition-colors duration-200"
+                        title="Clear search"
                       >
                         <X size={18} />
                       </button>
                     )}
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-3">
+
+                <div className="flex flex-wrap items-center gap-3">
                   <button
                     onClick={() => {
                       if (searchQuery.trim()) {
@@ -1232,7 +1339,7 @@ export default function Admin() {
                       }
                     }}
                     disabled={uploading}
-                    className="flex items-center gap-2 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 disabled:bg-[rgb(var(--muted))]/50 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-md"
+                    className="inline-flex items-center gap-2 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 disabled:bg-[rgb(var(--muted))]/50 text-white px-4 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-md"
                   >
                     {uploading ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -1243,43 +1350,68 @@ export default function Admin() {
                     )}
                     {searchQuery.trim() ? 'Search' : 'Load All'}
                   </button>
-                  
-                  {isSearching && (
+                  <button
+                    onClick={() => loadGalleryImages(1, searchQuery)}
+                    className="inline-flex items-center gap-2 bg-[rgb(var(--muted))]/10 hover:bg-[rgb(var(--muted))]/20 text-[rgb(var(--fg))] px-4 py-3 rounded-xl font-medium transition-all duration-200"
+                    title="Refresh gallery"
+                  >
+                    <RefreshCw size={16} />
+                    Refresh
+                  </button>
+                  <button
+                    onClick={() => setShowUploadModal(true)}
+                    className="inline-flex items-center gap-2 bg-[rgb(var(--primary))]/10 hover:bg-[rgb(var(--primary))]/20 text-[rgb(var(--primary))] px-4 py-3 rounded-xl font-semibold transition-all duration-200"
+                  >
+                    <Upload size={16} />
+                    Upload
+                  </button>
+                  {selectedImages.size > 0 ? (
                     <button
-                      onClick={() => {
-                        setIsSearching(false);
-                        setSearchQuery('');
-                        loadGalleryImages(1, '');
-                      }}
-                      className="flex items-center gap-2 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 text-[rgb(var(--fg))] px-4 py-3 rounded-xl font-medium transition-all duration-200"
+                      onClick={deselectAllImages}
+                      className="inline-flex items-center gap-2 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 text-[rgb(var(--fg))] px-4 py-3 rounded-xl font-medium transition-all duration-200"
                     >
                       <X size={16} />
-                      Clear Search
+                      Clear ({selectedImages.size})
+                    </button>
+                  ) : (
+                    <button
+                      onClick={selectAllImages}
+                      className="inline-flex items-center gap-2 bg-[rgb(var(--primary))]/10 hover:bg-[rgb(var(--primary))]/20 text-[rgb(var(--primary))] px-4 py-3 rounded-xl font-medium transition-all duration-200"
+                    >
+                      <Check size={16} />
+                      Select All
+                    </button>
+                  )}
+                  {selectedImages.size > 0 && (
+                    <button
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="inline-flex items-center gap-3 bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg"
+                    >
+                      <Trash2 size={18} />
+                      Delete ({selectedImages.size})
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Pagination Controls */}
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="text-sm text-[rgb(var(--muted))]">
-                    {isSearching ? (
-                      <span>Search results: {galleryImages.length} images{selectedImages.size > 0 && ` • ${selectedImages.size} selected`}</span>
-                    ) : (
-                      <span>Page {currentPage} • {galleryImages.length} images on this page{selectedImages.size > 0 && ` • ${selectedImages.size} selected`}</span>
-                    )}
-                  </div>
+            {/* Pagination & Meta */}
+            <div className="pt-6 space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="text-sm text-[rgb(var(--muted))]">
+                  {isSearching ? (
+                    <span>Search results: {galleryImages.length} images{selectedImages.size > 0 && ` • ${selectedImages.size} selected`}</span>
+                  ) : (
+                    <span>Page {currentPage} • {galleryImages.length} images on this page{selectedImages.size > 0 && ` • ${selectedImages.size} selected`}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() => clearPaginationCache()}
-                    className="text-xs text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] px-2 py-1 rounded hover:bg-[rgb(var(--muted))]/10 transition-colors duration-200"
+                    className="text-xs text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] px-3 py-2 rounded-lg bg-[rgb(var(--muted))]/10 hover:bg-[rgb(var(--muted))]/20 transition-colors duration-200"
                     title="Clear pagination cache"
                   >
                     Clear Cache
                   </button>
-                </div>
-                
-                <div className="flex items-center gap-3">
                   <button
                     onClick={() => loadGalleryImages(currentPage - 1, searchQuery.trim())}
                     disabled={currentPage <= 1 || uploading}
@@ -1290,7 +1422,6 @@ export default function Admin() {
                     </svg>
                     Previous
                   </button>
-                  
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-[rgb(var(--muted))]">Page</span>
                     <span className="bg-[rgb(var(--primary))] text-white px-3 py-1 rounded-lg font-semibold text-sm">
@@ -1300,7 +1431,6 @@ export default function Admin() {
                       <span className="text-xs text-[rgb(var(--muted))]">of many</span>
                     )}
                   </div>
-                  
                   <button
                     onClick={() => loadGalleryImages(currentPage + 1, searchQuery.trim())}
                     disabled={!hasMore || uploading}
@@ -1313,6 +1443,7 @@ export default function Admin() {
                   </button>
                 </div>
               </div>
+            </div>
             </div>
 
             {uploading && galleryImages.length === 0 ? (
@@ -1380,8 +1511,28 @@ export default function Admin() {
                     <img
                       src={image.src}
                       alt={image.title}
-                      className="w-full h-32 object-cover"
+                      className="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-105"
                     />
+
+                    {/* Series/featured badge */}
+                    {(() => {
+                      const fileName = image.name.replace(/\.[^/.]+$/, "");
+                      const seriesMatch = fileName.match(/^(.+?)\.(\d+)$/);
+                      return (
+                        <div className="absolute top-3 left-3 flex gap-2">
+                          {seriesMatch && (
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-black/60 text-white border border-white/10">
+                              Series · {seriesMatch[1]}
+                            </span>
+                          )}
+                          {image.isFeatured && (
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[rgb(var(--primary))] text-white border border-white/10">
+                              Featured
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                     
                     {/* Selection overlay */}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center pointer-events-none">
@@ -1418,8 +1569,22 @@ export default function Admin() {
                     </div>
                     
                     {/* Image info */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-3">
-                      <p className="text-white text-sm truncate font-semibold">{image.title}</p>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-3 space-y-1">
+                      <p className="text-white text-sm truncate font-semibold">{image.title || image.name}</p>
+                      <div className="flex items-center gap-2 text-white/80 text-[11px] truncate">
+                        {image.location && (
+                          <span className="inline-flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full">
+                            <MapPin size={12} />
+                            <span className="truncate">{image.location}</span>
+                          </span>
+                        )}
+                        {image.dateTaken && (
+                          <span className="inline-flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full">
+                            <Calendar size={12} />
+                            <span className="truncate">{image.dateTaken}</span>
+                          </span>
+                        )}
+                      </div>
                       {(() => {
                         const fileName = image.name.replace(/\.[^/.]+$/, "");
                         const seriesMatch = fileName.match(/^(.+?)\.(\d+)$/);
@@ -1582,6 +1747,11 @@ export default function Admin() {
                   <div>
                     <h2 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">Upload Featured Image</h2>
                     <p className="text-[rgb(var(--muted))] text-sm">Add a single featured image to the homepage</p>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[rgb(var(--primary))]/10 text-[rgb(var(--primary))]">1 image at a time</span>
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))]">Best at 3:2 or 4:3</span>
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))]">Keep under 2MB</span>
+                    </div>
                   </div>
                 </div>
               </div>

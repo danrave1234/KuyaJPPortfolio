@@ -106,6 +106,8 @@ export default function Gallery() {
   const [galleryLoading, setGalleryLoading] = useState(true)
   const [isInitialized, setIsInitialized] = useState(false)
   const hasAttemptedScrollRestoreRef = useRef(false)
+  const pressTimersRef = useRef(new Map())
+  const [pressedImageId, setPressedImageId] = useState(null)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   
@@ -177,7 +179,8 @@ export default function Gallery() {
   // Handle image click with URL routing
   const handleImageClick = (art, idx = 0) => {
     // Save current scroll position
-    saveScrollPosition()
+    const currentScroll = window.scrollY || document.documentElement.scrollTop
+    sessionStorage.setItem('gallery-scrollY', String(currentScroll))
     
     // Extract series number from the image for clean URLs
     let seriesNumber = '1';
@@ -201,10 +204,11 @@ export default function Gallery() {
 
   // Handle modal close with URL routing
   const handleModalClose = () => {
-    // Save scroll position before closing so gallery restores where user left off
-    saveScrollPosition()
+    // Don't save current scroll position here because it might be 0 due to ScrollToTop
+    // We rely on the position saved when the image was clicked
     setActive(null);
-    navigate('/gallery', { replace: false, state: { restoreScroll: true, scrollPosition: window.scrollY || 0 } });
+    const savedScroll = sessionStorage.getItem('gallery-scrollY')
+    navigate('/gallery', { replace: false, state: { restoreScroll: true, scrollPosition: savedScroll ? parseInt(savedScroll) : 0 } });
   };
 
   // Handle browser back/forward buttons
@@ -530,10 +534,13 @@ export default function Gallery() {
   // Images load individually as they render, which is actually faster and more efficient
 
 
-  // Fine-tune scroll restoration after images load - ONLY on initial load
+  // Fine-tune scroll restoration after images load - ONLY on initial load or modal close
   useEffect(() => {
-    // Only attempt scroll restoration ONCE when page first loads
-    if (hasAttemptedScrollRestoreRef.current || !isInitialized || imageSlug) {
+    // Check if we are returning from modal (state has restoreScroll)
+    const state = window.history.state?.usr; // React Router stores state in usr
+    const shouldRestore = hasAttemptedScrollRestoreRef.current === false || (state && state.restoreScroll);
+    
+    if (!shouldRestore || !isInitialized || imageSlug) {
       return
     }
     
@@ -547,20 +554,28 @@ export default function Gallery() {
       return
     }
 
-    // Mark as attempted so it never runs again
+    // Mark as attempted so it doesn't loop, unless explicit restore requested again
     hasAttemptedScrollRestoreRef.current = true
 
     const scrollPosition = parseInt(savedScrollY, 10)
     let hasRestored = false
-    const viewportHeight = window.innerHeight
-    const requiredHeight = scrollPosition + viewportHeight
+    let isCancelled = false
     
     let attempts = 0
-    const maxAttempts = 10 // Reduced from 30 for better performance
+    const maxAttempts = 15 
+
+    // Cancel restoration if user interacts
+    const cancelRestoration = () => {
+      isCancelled = true
+    }
+    
+    window.addEventListener('wheel', cancelRestoration, { passive: true })
+    window.addEventListener('touchmove', cancelRestoration, { passive: true })
+    window.addEventListener('keydown', cancelRestoration, { passive: true })
 
     // Fine-tune the scroll position as the page grows
     const fineTuneScroll = () => {
-      if (hasRestored) return
+      if (hasRestored || isCancelled) return
       
       attempts++
       
@@ -569,33 +584,33 @@ export default function Gallery() {
         document.documentElement.scrollHeight
       )
       
-      const currentScroll = window.scrollY || window.pageYOffset
-      const scrollDiff = Math.abs(currentScroll - scrollPosition)
-      
-      // If we're not at the right position and page is tall enough, adjust
-      if (scrollDiff > 10 && currentHeight >= requiredHeight) {
-        document.documentElement.scrollTop = scrollPosition
-        document.body.scrollTop = scrollPosition
+      // If we can scroll to the position, do it
+      if (currentHeight >= scrollPosition) {
+        window.scrollTo(0, scrollPosition)
+        hasRestored = true // Assume success to prevent fighting the user
       }
       
-      // Check if we're done
-      if (currentHeight >= requiredHeight && scrollDiff <= 10) {
-        hasRestored = true
-        setTimeout(() => {
-          sessionStorage.removeItem('gallery-scrollY')
-        }, 100)
-      } else if (attempts < maxAttempts) {
-        setTimeout(fineTuneScroll, 150) // Increased from 100ms to 150ms
+      if (!hasRestored && attempts < maxAttempts) {
+        setTimeout(fineTuneScroll, 100)
       } else {
-        hasRestored = true
-        sessionStorage.removeItem('gallery-scrollY')
+        // Cleanup listeners when done or timed out
+        window.removeEventListener('wheel', cancelRestoration)
+        window.removeEventListener('touchmove', cancelRestoration)
+        window.removeEventListener('keydown', cancelRestoration)
       }
     }
 
-    // Start fine-tuning after a brief delay
-    setTimeout(fineTuneScroll, 150) // Increased from 100ms to 150ms
+    // Start fine-tuning immediately
+    fineTuneScroll()
+    
+    // Cleanup on unmount (or re-run)
+    return () => {
+      window.removeEventListener('wheel', cancelRestoration)
+      window.removeEventListener('touchmove', cancelRestoration)
+      window.removeEventListener('keydown', cancelRestoration)
+    }
 
-  }, [isInitialized, imageSlug]) // Removed artworks.length to prevent retriggering on new batches
+  }, [isInitialized, imageSlug, artworks.length])
   
   // Load more images function for infinite scroll with caching
   const loadMoreImages = async () => {
@@ -961,6 +976,17 @@ export default function Gallery() {
           <div className="mt-4 sm:mt-6 h-px w-full bg-[rgb(var(--muted))]/20 transition-colors duration-300" />
         </div>
 
+        {/* Mobile Hint - Single indicator at top */}
+        <div className="mb-4 sm:hidden">
+          <div className="flex items-center justify-center gap-2 px-4 py-2 bg-[rgb(var(--primary))]/10 border border-[rgb(var(--primary))]/20 rounded-full w-fit mx-auto">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[rgb(var(--primary))]">
+              <path d="M9 11l3 3L22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            <span className="text-[10px] text-[rgb(var(--primary))] font-medium">Hold any image to preview details</span>
+          </div>
+        </div>
+
         {/* Search and description row */}
         <div className="mb-8 flex items-center justify-center">
           <div className="w-full max-w-3xl">
@@ -1099,10 +1125,75 @@ export default function Gallery() {
             // Create a stable key that doesn't change - include series info for uniqueness
             const uniqueKey = `${art.id || 'unknown'}-${art.seriesIndex || i}-${i}`.replace(/[^a-zA-Z0-9-_]/g, '-');
 
+            const isPressed = pressedImageId === art.id
+            
             return (
               <figure 
                 key={uniqueKey} 
-                className={`group cursor-pointer ${gridClasses} rounded-lg overflow-hidden relative transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] border border-[rgb(var(--muted))]/10 hover:border-[rgb(var(--primary))]/30`}
+                className={`group cursor-pointer ${gridClasses} rounded-xl overflow-hidden relative transition-all duration-500 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] hover:z-10 ${isPressed ? 'z-10 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)]' : ''}`}
+                onTouchStart={(e) => {
+                  // Start timer for long press
+                  const timer = setTimeout(() => {
+                    setPressedImageId(art.id)
+                  }, 300) // 300ms hold to show overlay
+                  pressTimersRef.current.set(art.id, timer)
+                }}
+                onTouchEnd={(e) => {
+                  // Clear the timer if user releases before long press
+                  const timer = pressTimersRef.current.get(art.id)
+                  if (timer) {
+                    clearTimeout(timer)
+                    pressTimersRef.current.delete(art.id)
+                  }
+                  
+                  // If overlay was shown, hide it and don't open modal
+                  if (isPressed) {
+                    setPressedImageId(null)
+                    e.preventDefault()
+                    return
+                  }
+                  
+                  // Otherwise, open modal on tap
+                  // Track image view in analytics
+                  if (analytics) {
+                    logEvent(analytics, 'view_item', {
+                      item_id: art.id,
+                      item_name: art.title,
+                      item_category: 'photography',
+                      item_variant: art.isSeries ? 'series' : 'single'
+                    })
+                  }
+
+                  // Track image view with custom analytics
+                  trackImageView({
+                    id: art.id,
+                    title: art.title,
+                    path: art.src,
+                    isFeatured: false
+                  }, {
+                    isSeries: art.isSeries,
+                    seriesIndex: i,
+                    galleryType: 'main'
+                  });
+
+                  // If this is a separated series item, use the complete series data
+                  if (art.completeSeriesData) {
+                    // Use the complete series data directly with URL routing
+                    handleImageClick(art.completeSeriesData, art.seriesIndex - 1);
+                  } else {
+                    // For single images, open normally with URL routing
+                    handleImageClick(art, 0);
+                  }
+                }}
+                onTouchCancel={() => {
+                  // Clear timer if touch is cancelled
+                  const timer = pressTimersRef.current.get(art.id)
+                  if (timer) {
+                    clearTimeout(timer)
+                    pressTimersRef.current.delete(art.id)
+                  }
+                  setPressedImageId(null)
+                }}
                 onClick={() => {
                   // Track image view in analytics
                   if (analytics) {
@@ -1136,14 +1227,14 @@ export default function Gallery() {
                   }
                 }}
               >
-                <div className="w-full h-full relative overflow-hidden">
+                <div className="w-full h-full relative overflow-hidden bg-gray-900">
                   <img
                     src={imageSrc}
                     alt={art.title || ''}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    className={`w-full h-full object-cover transition-transform duration-700 ease-out ${isPressed ? 'scale-110' : 'group-hover:scale-110'}`}
                     style={{
                       opacity: loadedImages.has(art.id) ? 1 : 0,
-                      transition: 'opacity 0.5s ease-in-out'
+                      transition: 'opacity 0.7s ease-in-out'
                     }}
                     onLoad={(e) => {
                       const { naturalWidth, naturalHeight } = e.target
@@ -1154,15 +1245,25 @@ export default function Gallery() {
                       }, 50)
                     }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="absolute bottom-1 left-1 right-1 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                    <div className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-[2px] rounded px-1.5 py-1 max-w-[90%]">
-                      <div className="text-[6px] sm:text-[7px] md:text-[8px] font-mono tracking-widest text-white/90 flex-shrink-0">
-                        {String(i + 1).padStart(2, '0')}
-                      </div>
-                      <div className="text-[6px] sm:text-[7px] md:text-[8px] font-medium leading-tight uppercase tracking-wide text-white break-words min-w-0">
+                  
+                  
+                  {/* Elegant Gradient Overlay */}
+                  <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-opacity duration-500 ${isPressed ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
+                  
+                  {/* Content Overlay */}
+                  <div className={`absolute bottom-0 left-0 right-0 p-4 transition-all duration-500 ease-out ${isPressed ? 'translate-y-0 opacity-100' : 'transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100'}`}>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-mono tracking-widest text-white/60 uppercase">
+                        {String(i + 1).padStart(2, '0')} — {art.isSeries ? 'Series' : 'Single'}
+                      </span>
+                      <h3 className="text-white font-medium text-sm sm:text-base leading-tight tracking-wide drop-shadow-md line-clamp-2">
                         {art.title}
-                      </div>
+                      </h3>
+                      {art.scientificName && (
+                        <p className="text-white/70 text-xs italic font-serif mt-0.5 tracking-wide">
+                          {art.scientificName}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1323,7 +1424,9 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
   }
   
   useEffect(() => {
-    const prev = document.body.style.overflow
+    // Only lock body scroll, DO NOT mess with modal container scroll or reset it
+    const prevOverflow = document.body.style.overflow
+    
     document.body.style.overflow = 'hidden'
     
     // Focus the modal container to ensure keyboard events are captured
@@ -1345,6 +1448,8 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
       
       if (e.key === 'Escape') {
         setActive(null)
+        // Explicitly call handleModalClose to restore state properly
+        handleModalClose()
         return
       }
       
@@ -1406,7 +1511,7 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
     window.addEventListener('touchend', handleTouchEnd, { passive: true })
     
     return () => { 
-      document.body.style.overflow = prev
+      document.body.style.overflow = prevOverflow
       // Remove global key handlers
       document.removeEventListener('keydown', globalKeyHandler, { capture: true })
       window.removeEventListener('keydown', globalKeyHandler, { capture: true })
@@ -1620,601 +1725,179 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
 
   return (
     <>
-      {/* Enhanced backdrop with theme-aware blur */}
+      {/* Cinematic Backdrop */}
       <div 
-        className="fixed inset-0 z-40 backdrop-blur-md transition-colors duration-300" 
-        style={{
-          background: 'linear-gradient(135deg, rgba(var(--bg), 0.95) 0%, rgba(var(--bg), 0.85) 50%, rgba(var(--bg), 0.95) 100%)'
-        }}
+        className="fixed inset-0 z-[90] bg-black/95 backdrop-blur-xl transition-all duration-500" 
         onClick={handleModalClose} 
       />
       
       {/* Main modal container */}
       <div 
-        className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-0 sm:p-2 lg:p-4 overflow-y-auto" 
+        className="fixed inset-0 z-[100] flex items-center justify-center lg:overflow-hidden overflow-y-auto"
         role="dialog" 
         aria-modal="true"
         tabIndex={-1}
-        onKeyDown={(e) => {
-          // Ensure keyboard events are captured by the modal
-          e.stopPropagation()
-        }}
+        onKeyDown={(e) => e.stopPropagation()}
         style={{ outline: 'none' }}
       >
-        <div ref={containerRef} className="w-full h-full sm:h-auto max-w-7xl max-h-[100vh] sm:max-h-[95vh] relative sm:my-auto">
-          <div 
-            ref={viewerRef} 
-            className="relative sm:rounded-2xl shadow-2xl ring-0 sm:ring-1 ring-[rgb(var(--muted))]/20 overflow-hidden transition-colors duration-300 h-full sm:h-auto"
-            style={{ 
-              backgroundColor: 'rgb(var(--bg))',
-              maxWidth: '100vw',
-              maxHeight: '100vh',
-              minHeight: 'auto'
-            }}
-          >
-            
-            {/* Header with controls */}
-            <div 
-              className="absolute top-0 left-0 right-0 z-20 p-2 sm:p-4 lg:p-6 transition-colors duration-300"
-              style={{ 
-                background: 'linear-gradient(to bottom, rgba(var(--bg), 0.95) 0%, rgba(var(--bg), 0.8) 50%, transparent 100%)'
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span 
-                    className="ml-3 text-xs font-mono uppercase tracking-wider transition-colors duration-300"
-                    style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                  >
-                    {hasMultipleImages ? `Image ${active.idx + 1} of ${active.art.images?.length || 0}` : 'Single Image'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    className="p-2.5 rounded-full backdrop-blur-sm transition-all duration-200 shadow-lg hover:scale-105" 
-                    style={{ 
-                      backgroundColor: 'rgba(var(--muted), 0.2)',
-                      color: 'rgb(var(--fg))'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = 'rgba(var(--muted), 0.3)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = 'rgba(var(--muted), 0.2)'
-                    }}
-                    onClick={toggleFullscreen} 
-                    aria-label="View image in fullscreen"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                    </svg>
-                  </button>
-                  <button 
-                    className="p-2.5 rounded-full backdrop-blur-sm transition-all duration-200 shadow-lg hover:scale-105" 
-                    style={{ 
-                      backgroundColor: 'rgba(var(--muted), 0.2)',
-                      color: 'rgb(var(--fg))'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = 'rgba(var(--muted), 0.3)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = 'rgba(var(--muted), 0.2)'
-                    }}
-                    onClick={handleModalClose} 
-                    aria-label="Close"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
+        <div ref={containerRef} className="w-full h-full pointer-events-auto flex flex-col lg:flex-row">
+          
+          <div className="fixed inset-0 bg-gradient-to-b from-black/60 to-transparent pointer-events-none lg:absolute" />
+          
+          {/* Main Image Area - Cinematic & Centered */}
+          <div className="relative flex-[2] lg:flex-1 h-[60vh] lg:h-full flex flex-col justify-center overflow-hidden">
+            {/* Minimal Header Overlay */}
+            <div className="absolute top-0 left-0 right-0 z-30 p-4 sm:p-6 flex justify-between items-start pointer-events-none">
+              <div className="pointer-events-auto flex items-center gap-4">
+                 <button 
+                  onClick={handleModalClose}
+                  className="group flex items-center gap-2 text-white/70 hover:text-white transition-colors"
+                >
+                  <div className="p-2 rounded-full bg-white/10 backdrop-blur-md group-hover:bg-white/20 transition-all">
+                    <ChevronLeft size={20} />
+                  </div>
+                  <span className="text-sm font-medium tracking-wide hidden sm:block">Back to Gallery</span>
+                </button>
+              </div>
+
+              <div className="pointer-events-auto flex gap-3">
+                <button 
+                  onClick={toggleFullscreen}
+                  className="p-3 rounded-full bg-white/10 backdrop-blur-md text-white/70 hover:text-white hover:bg-white/20 transition-all"
+                  title="Toggle Fullscreen"
+                >
+                  {isFs ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                </button>
               </div>
             </div>
 
-            {/* Main content area */}
-            <div className="flex flex-col lg:flex-row lg:min-h-[80vh] overflow-y-auto" style={{ maxHeight: '100vh' }}>
-              
-              {/* Image section */}
-              <div 
-                className="relative lg:flex-1 overflow-hidden transition-colors duration-300"
-                style={{ 
-                  background: 'linear-gradient(135deg, rgba(var(--muted), 0.1) 0%, rgba(var(--muted), 0.05) 100%)',
-                  minHeight: 'auto'
-                }}
-              >
-                <div className="relative w-full flex flex-col lg:h-full lg:min-h-[70vh] lg:flex-row lg:items-center lg:justify-center p-2 sm:p-4 lg:p-8 pt-12 sm:pt-16 lg:pt-16 pb-2 sm:pb-4 lg:pb-8 overflow-hidden">
-                  {currentImageSrc ? (
-                    <div className="w-full flex items-start sm:items-center lg:items-center justify-center relative" style={{ minHeight: 'auto' }}>
-                      <img 
-                        ref={imageRef}
-                        src={currentImageSrc} 
-                        alt={active.art.title || ''} 
-                        className={`max-w-full object-contain transition-all duration-700 rounded-lg ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
-                        style={{ 
-                          maxWidth: '100%', 
-                          maxHeight: 'calc(100vh - 200px)', // Account for header and details
-                          width: 'auto', 
-                          height: 'auto',
-                          objectFit: 'contain',
-                          display: 'block'
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <div 
-                          className="w-16 h-16 rounded-full flex items-center justify-center mb-4 mx-auto transition-colors duration-300"
-                          style={{ backgroundColor: 'rgba(var(--muted), 0.2)' }}
-                        >
-                          <X size={24} style={{ color: 'rgba(var(--muted-fg), 0.6)' }} />
-                        </div>
-                        <div 
-                          className="text-lg font-semibold mb-2 transition-colors duration-300"
-                          style={{ color: 'rgb(var(--muted-fg))' }}
-                        >
-                          Image not available
-                        </div>
-                        <div 
-                          className="text-sm transition-colors duration-300"
-                          style={{ color: 'rgba(var(--muted-fg), 0.7)' }}
-                        >
-                          Unable to load image
-                        </div>
-                      </div>
-                    </div>
-                  )}
+            {/* Image Stage */}
+            <div className="flex-1 relative flex items-center justify-center w-full h-full p-0 sm:p-8 lg:p-12 overflow-hidden">
+              {currentImageSrc ? (
+                <img 
+                  ref={imageRef}
+                  src={currentImageSrc} 
+                  alt={active.art.title || ''} 
+                  className={`w-full h-full object-contain transition-all duration-500 shadow-2xl ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+                  style={{ 
+                    filter: 'drop-shadow(0 20px 50px rgba(0,0,0,0.5))'
+                  }}
+                />
+              ) : (
+                <div className="text-white/50 flex flex-col items-center">
+                  <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4" />
+                  <span className="text-sm tracking-widest uppercase">Loading Masterpiece</span>
                 </div>
+              )}
 
-                {/* Like Button - Mobile: Simple icon + number, Desktop: Full button */}
-                <div className="absolute bottom-4 right-4 z-20">
-                  {!visible ? (
-                    // Skeleton loading state for like button
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      {/* Mobile skeleton - simple */}
-                      <div className="flex items-center gap-2 sm:hidden">
-                        <div className="w-5 h-5 bg-[rgb(var(--primary))]/20 rounded animate-pulse"></div>
-                        <div className="w-6 h-4 bg-[rgb(var(--primary))]/20 rounded animate-pulse"></div>
-                      </div>
-                      {/* Desktop skeleton - full button */}
-                      <div className="hidden sm:flex items-center gap-3 px-4 py-3 rounded-2xl backdrop-blur-md"
-                        style={{
-                          background: 'linear-gradient(135deg, rgba(var(--primary), 0.08) 0%, rgba(var(--primary), 0.04) 100%)',
-                          border: '1px solid rgba(var(--primary), 0.2)'
-                        }}
-                      >
-                        <div className="w-6 h-6 bg-[rgb(var(--primary))]/20 rounded animate-pulse"></div>
-                        <div className="flex flex-col gap-1">
-                          <div className="w-8 h-5 bg-[rgb(var(--primary))]/20 rounded animate-pulse"></div>
-                          <div className="w-12 h-3 bg-[rgb(var(--primary))]/20 rounded animate-pulse"></div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      {/* Simple like button for all screen sizes */}
-                      <button
-                        onClick={() => handleLike(currentImageData)}
-                        className="flex items-center gap-2 transition-all duration-200 hover:scale-110"
-                        title="Like this photo"
-                        aria-label="Like this photo"
-                      >
-                        <Heart
-                          size={18}
-                          className="text-white drop-shadow-lg"
-                          style={{
-                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
-                          }}
-                        />
-                        <span 
-                          className="text-white font-semibold text-sm"
-                          style={{ 
-                            textShadow: '0 1px 3px rgba(0,0,0,0.7)'
-                          }}
-                        >
-                          {currentImageData?.likes || 0}
-                        </span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+              {/* Navigation Arrows (Floating) */}
+              <div className="absolute inset-x-4 sm:inset-x-8 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none">
+                <button
+                  onClick={navigateLeft}
+                  disabled={getLeftNavigationInfo().disabled}
+                  className={`pointer-events-auto p-4 rounded-full transition-all duration-300 group ${
+                    getLeftNavigationInfo().disabled ? 'opacity-0 cursor-not-allowed' : 'opacity-50 hover:opacity-100 hover:bg-white/10 backdrop-blur-sm'
+                  }`}
+                >
+                  <ChevronLeft size={32} className="text-white drop-shadow-lg group-hover:-translate-x-1 transition-transform" />
+                </button>
 
-                {/* Smart Navigation arrows - always left/right with context-aware labels */}
-                <div className="absolute inset-0 flex items-center justify-between pointer-events-none">
-                  {/* Left navigation button */}
-                  <div className="ml-2 sm:ml-4">
-                    {(() => {
-                      const leftInfo = getLeftNavigationInfo()
-                      return (
-                        <button
-                          onClick={navigateLeft}
-                          className={`pointer-events-auto p-2 sm:p-3 rounded-full transition-all duration-200 backdrop-blur-sm shadow-lg hover:scale-110 touch-manipulation ${
-                            leftInfo.disabled
-                              ? 'bg-black/20 text-gray-400 cursor-not-allowed' 
-                              : 'bg-black/60 hover:bg-black/80 text-white'
-                          }`}
-                          title={leftInfo.label}
-                          disabled={leftInfo.disabled}
-                        >
-                          <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
-                        </button>
-                      )
-                    })()}
-                  </div>
-                  
-                  {/* Right navigation button */}
-                  <div className="mr-2 sm:mr-4">
-                    {(() => {
-                      const rightInfo = getRightNavigationInfo()
-                      return (
-                        <button
-                          onClick={navigateRight}
-                          className={`pointer-events-auto p-2 sm:p-3 rounded-full transition-all duration-200 backdrop-blur-sm shadow-lg hover:scale-110 touch-manipulation ${
-                            rightInfo.disabled
-                              ? 'bg-black/20 text-gray-400 cursor-not-allowed' 
-                              : 'bg-black/60 hover:bg-black/80 text-white'
-                          }`}
-                          title={rightInfo.label}
-                          disabled={rightInfo.disabled}
-                        >
-                          <ChevronRight size={18} className="sm:w-5 sm:h-5" />
-                        </button>
-                      )
-                    })()}
-                  </div>
-                </div>
-              </div>
-
-              {/* Mobile/Tablet Photo Details - Only visible on small screens */}
-              <div className="lg:hidden p-4 border-t border-gray-300 dark:border-gray-600 transition-colors duration-300" style={{ backgroundColor: 'rgb(var(--bg))' }}>
-                {/* Photo Title and Scientific Name */}
-                <div className="mb-4">
-                  {!visible ? (
-                    // Skeleton loading state for title
-                    <div className="space-y-1">
-                      <div className="w-24 h-4 bg-[rgb(var(--muted))]/20 rounded animate-pulse"></div>
-                      <div className="w-32 h-3 bg-[rgb(var(--muted))]/20 rounded animate-pulse"></div>
-                    </div>
-                  ) : (
-                    <div>
-                      <h1 className="text-sm font-bold transition-colors duration-300" style={{ color: 'rgb(var(--fg))' }}>
-                        {active.art.title || 'Untitled'}{currentImageData?.scientificName && ` - ${currentImageData.scientificName}`}
-                      </h1>
-                    </div>
-                  )}
-                </div>
-
-
-
-                {/* Photo Details */}
-                <div className="transition-colors duration-300">
-                  <div 
-                    className="text-sm font-bold uppercase tracking-wider mb-3 transition-colors duration-300"
-                    style={{ color: 'rgba(var(--primary), 0.9)' }}
-                  >
-                    PHOTO DETAILS
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    {/* Location */}
-                    <div className="flex justify-between items-start py-2">
-                      <span 
-                        className="font-medium transition-colors duration-300 text-sm flex-shrink-0 mr-3"
-                        style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                      >
-                        Location
-                      </span>
-                      <span 
-                        className="font-semibold transition-colors duration-300 text-sm text-right flex-1 break-words"
-                        style={{ color: currentImageData?.location ? 'rgb(var(--fg))' : 'rgba(var(--muted-fg), 0.6)' }}
-                      >
-                        {currentImageData?.location || <span className="italic">Not specified</span>}
-                      </span>
-                    </div>
-                    <div
-                      className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-                    ></div>
-                    
-                    {/* Time Taken */}
-                    <div className="flex justify-between items-start py-2">
-                      <span 
-                        className="font-medium transition-colors duration-300 text-sm flex-shrink-0 mr-3"
-                        style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                      >
-                        Date Taken
-                      </span>
-                      <span 
-                        className="font-semibold transition-colors duration-300 text-sm text-right flex-1"
-                        style={{ color: currentImageData?.timeTaken ? 'rgb(var(--fg))' : 'rgba(var(--muted-fg), 0.6)' }}
-                      >
-                        {currentImageData?.timeTaken || <span className="italic">Not specified</span>}
-                      </span>
-                    </div>
-                    <div
-                      className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-                    ></div>
-                    
-                    {/* History */}
-                    <div className="py-2">
-                      <span 
-                        className="font-medium transition-colors duration-300 block mb-2 text-sm"
-                        style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                      >
-                        History
-                      </span>
-                      <p 
-                        className="text-sm transition-colors duration-300 leading-relaxed"
-                        style={{ color: currentImageData?.history ? 'rgba(var(--muted-fg), 0.9)' : 'rgba(var(--muted-fg), 0.6)' }}
-                      >
-                        {currentImageData?.history || <span className="italic">No additional information available</span>}
-                      </p>
-                    </div>
-                    
-                  </div>
-                </div>
-
-                {/* Mobile Gallery Navigation - Only visible when there are multiple images */}
-                {hasMultipleImages && (
-                  <>
-                    {/* Divider before thumbnails */}
-                    <div 
-                      className="w-full h-[2px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300 my-4"
-                    ></div>
-                    <div className="transition-colors duration-300">
-                      <div className="grid grid-cols-4 gap-2">
-                        {active.art.images.map((image, i) => (
-                          <button 
-                            key={i} 
-                            className={`relative group rounded-lg overflow-hidden transition-all duration-200 touch-manipulation ${
-                              i === active.idx 
-                                ? 'scale-105 shadow-lg' 
-                                : 'hover:scale-105 shadow-md hover:shadow-lg active:scale-95'
-                            }`} 
-                            style={{ 
-                              border: i === active.idx ? '2px solid rgb(var(--primary))' : '2px solid transparent'
-                            }}
-                            onClick={() => handleImageClick(active.art, i)}
-                          >
-                            <img 
-                              src={image.src} 
-                              alt={`${active.art.title} - Part ${i + 1}`} 
-                              className={`w-full h-16 object-cover transition-opacity duration-200 ${
-                                i === active.idx ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'
-                              }`} 
-                            />
-                            {i === active.idx && (
-                              <div 
-                                className="absolute inset-0 pointer-events-none transition-colors duration-300"
-                                style={{ backgroundColor: 'rgba(var(--primary), 0.2)' }}
-                              />
-                            )}
-                            <div 
-                              className="absolute bottom-1 right-1 text-white text-xs px-1 py-0.5 rounded text-xs font-mono transition-colors duration-300"
-                              style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
-                            >
-                              {i + 1}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Vertical divider between image and sidebar */}
-              <div 
-                className="hidden lg:block w-[2px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-              ></div>
-
-              {/* Sidebar with info and thumbnails */}
-              <div 
-                className="hidden lg:flex w-80 flex-col transition-colors duration-300 overflow-y-auto"
-                style={{ 
-                  backgroundColor: 'rgb(var(--bg))',
-                  maxHeight: 'calc(100vh - 80px)'
-                }}
-              >
-                
-                {/* Content section */}
-                <div className="flex-1 p-3 sm:p-4 lg:p-8">
-                  
-                  {/* Title and metadata */}
-                  <div className="mb-6 sm:mb-8">
-                    {/* Category Badge */}
-                    <div className="mb-3">
-                      <span 
-                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors duration-300"
-                        style={{ 
-                          backgroundColor: 'rgba(var(--primary), 0.1)',
-                          color: 'rgb(var(--primary))',
-                          border: '1px solid rgba(var(--primary), 0.2)'
-                        }}
-                      >
-                        {active.art.isSeries ? 'Photo Series' : 'Photograph'}
-                      </span>
-                    </div>
-                    
-                    {/* Main Title */}
-                    <h1 
-                      className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight mb-4 sm:mb-6 transition-colors duration-300"
-                      style={{ color: 'rgb(var(--fg))' }}
-                    >
-                      {active.art.title || 'Untitled'}
-                    </h1>
-                    
-                    {/* Description */}
-                    {active.art.description && (
-                      <div className="mb-4 sm:mb-6">
-                        <p 
-                          className="leading-relaxed text-base sm:text-lg transition-colors duration-300"
-                          style={{ color: 'rgba(var(--muted-fg), 0.9)' }}
-                        >
-                          {active.art.description}
-                        </p>
-                      </div>
-                    )}
-
-
-                  </div>
-
-                  {/* Divider between title/description and details */}
-                  <div 
-                    className="w-full h-[2px] mb-4 sm:mb-6 bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-                  ></div>
-
-                  {/* Photo Details */}
-                  <div className="transition-colors duration-300">
-                    <h3 
-                      className="text-sm sm:text-base font-bold mb-4 sm:mb-5 uppercase tracking-wider transition-colors duration-300"
-                      style={{ color: 'rgb(var(--fg))' }}
-                    >
-                      Photo Details
-                    </h3>
-                    <div className="space-y-0 text-xs sm:text-sm">
-                      {/* Scientific Name */}
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 sm:py-3 px-0 gap-1 sm:gap-0">
-                        <span 
-                          className="font-medium transition-colors duration-300 text-xs sm:text-sm"
-                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                        >
-                          Scientific Name
-                        </span>
-                        <span 
-                          className="font-semibold transition-colors duration-300 text-right text-xs sm:text-sm"
-                          style={{ color: currentImageData?.scientificName ? 'rgb(var(--fg))' : 'rgba(var(--muted-fg), 0.5)' }}
-                        >
-                          {currentImageData?.scientificName ? (
-                            <em>{currentImageData.scientificName}</em>
-                          ) : (
-                            <span className="italic">Not specified</span>
-                          )}
-                        </span>
-                      </div>
-                      <div 
-                        className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-                      ></div>
-                      
-                      {/* Location */}
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 sm:py-3 px-0 gap-1 sm:gap-0">
-                        <span 
-                          className="font-medium transition-colors duration-300 text-xs sm:text-sm"
-                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                        >
-                          Location
-                        </span>
-                        <span 
-                          className="font-semibold transition-colors duration-300 text-right text-xs sm:text-sm break-words"
-                          style={{ color: currentImageData?.location ? 'rgb(var(--fg))' : 'rgba(var(--muted-fg), 0.5)' }}
-                        >
-                          {currentImageData?.location || <span className="italic">Not specified</span>}
-                        </span>
-                      </div>
-                      <div 
-                        className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-                      ></div>
-                      
-                      {/* Time Taken */}
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 sm:py-3 px-0 gap-1 sm:gap-0">
-                        <span 
-                          className="font-medium transition-colors duration-300 text-xs sm:text-sm"
-                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                        >
-                          Date Taken
-                        </span>
-                        <span 
-                          className="font-semibold transition-colors duration-300 text-right text-xs sm:text-sm"
-                          style={{ color: currentImageData?.timeTaken ? 'rgb(var(--fg))' : 'rgba(var(--muted-fg), 0.5)' }}
-                        >
-                          {currentImageData?.timeTaken || <span className="italic">Not specified</span>}
-                        </span>
-                      </div>
-                      <div 
-                        className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-                      ></div>
-                      
-                      {/* History */}
-                      <div className="py-2 sm:py-3 px-0">
-                        <span 
-                          className="font-medium transition-colors duration-300 block mb-1 sm:mb-2 text-xs sm:text-sm"
-                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                        >
-                          History
-                        </span>
-                        <p 
-                          className="text-xs sm:text-sm transition-colors duration-300 leading-relaxed"
-                          style={{ color: currentImageData?.history ? 'rgba(var(--muted-fg), 0.9)' : 'rgba(var(--muted-fg), 0.5)' }}
-                        >
-                          {currentImageData?.history || <span className="italic">No additional information available</span>}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Thumbnail navigation */}
-                {hasMultipleImages && (
-                  <>
-                    {/* Divider before thumbnails */}
-                    <div 
-                      className="w-full h-[2px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-                    ></div>
-                    <div 
-                      className="p-3 sm:p-4 lg:p-6 transition-colors duration-300"
-                      style={{ 
-                        backgroundColor: 'rgba(var(--muted), 0.05)'
-                      }}
-                    >
-                    <h3 
-                      className="text-sm sm:text-base font-bold mb-3 sm:mb-4 uppercase tracking-wider transition-colors duration-300"
-                      style={{ color: 'rgb(var(--fg))' }}
-                    >
-                      Gallery Navigation
-                    </h3>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-1.5 sm:gap-2">
-                      {active.art.images.map((image, i) => (
-                        <button 
-                          key={i} 
-                          className={`relative group rounded-lg overflow-hidden transition-all duration-200 touch-manipulation ${
-                            i === active.idx 
-                              ? 'scale-105 shadow-lg' 
-                              : 'hover:scale-105 shadow-md hover:shadow-lg active:scale-95'
-                          }`} 
-                          style={{ 
-                            border: i === active.idx ? '2px solid rgb(var(--primary))' : '2px solid transparent'
-                          }}
-                          onClick={() => handleImageClick(active.art, i)}
-                        >
-                          <img 
-                            src={image.src} 
-                            alt={`${active.art.title} - Part ${i + 1}`} 
-                            className={`w-full h-16 sm:h-20 object-cover transition-opacity duration-200 ${
-                              i === active.idx ? 'opacity-100' : 'opacity-80 group-hover:opacity-100'
-                            }`} 
-                          />
-                          {i === active.idx && (
-                            <div 
-                              className="absolute inset-0 pointer-events-none transition-colors duration-300"
-                              style={{ backgroundColor: 'rgba(var(--primary), 0.2)' }}
-                            />
-                          )}
-                          <div 
-                            className="absolute bottom-1 right-1 text-white text-xs px-1 sm:px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-mono transition-colors duration-300"
-                            style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
-                          >
-                            {i + 1}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                    </div>
-                  </>
-                )}
+                <button
+                  onClick={navigateRight}
+                  disabled={getRightNavigationInfo().disabled}
+                  className={`pointer-events-auto p-4 rounded-full transition-all duration-300 group ${
+                    getRightNavigationInfo().disabled ? 'opacity-0 cursor-not-allowed' : 'opacity-50 hover:opacity-100 hover:bg-white/10 backdrop-blur-sm'
+                  }`}
+                >
+                  <ChevronRight size={32} className="text-white drop-shadow-lg group-hover:translate-x-1 transition-transform" />
+                </button>
               </div>
             </div>
           </div>
-          
+
+          {/* Sidebar Info Panel (Desktop & Mobile) */}
+          <div className="flex-none lg:flex w-full lg:w-[400px] h-auto lg:h-full bg-[rgb(var(--bg))] border-t lg:border-t-0 lg:border-l border-white/5 flex-col shadow-2xl relative z-20">
+            <div className="flex-1 lg:overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
+              
+              {/* Top Meta */}
+              <div className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8">
+                <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full border border-[rgb(var(--primary))]/30 text-[rgb(var(--primary))] text-[8px] sm:text-[10px] uppercase tracking-[0.2em] font-bold">
+                  {active.art.isSeries ? 'Series Collection' : 'Single Shot'}
+                </span>
+                <button onClick={() => handleLike(currentImageData)} className="group flex items-center gap-1 sm:gap-2 transition-all">
+                  <span className="text-[10px] sm:text-xs font-mono opacity-50 group-hover:opacity-100 transition-opacity hidden sm:inline">
+                    {currentImageData?.likes || 0} APPRECIATIONS
+                  </span>
+                  <div className="p-1.5 sm:p-2 rounded-full bg-white/5 group-hover:bg-red-500/10 transition-colors">
+                    <Heart size={14} className={`sm:w-[18px] sm:h-[18px] transition-all duration-300 ${currentImageData?.likes > 0 ? "fill-red-500 text-red-500" : "text-white/40 group-hover:text-red-500 group-hover:scale-110"}`} />
+                  </div>
+                </button>
+              </div>
+
+              {/* Title Section */}
+              <div className="mb-4 sm:mb-6 lg:mb-10">
+                <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold leading-[1.1] mb-1 sm:mb-2 lg:mb-3 text-[rgb(var(--fg))]">
+                  {active.art.title}
+                </h1>
+                {currentImageData?.scientificName && (
+                  <p className="text-sm sm:text-base lg:text-xl text-[rgb(var(--primary))] italic font-serif opacity-90">
+                    {currentImageData.scientificName}
+                  </p>
+                )}
+              </div>
+
+              {/* Description */}
+              {active.art.description && (
+                <div className="mb-4 sm:mb-6 lg:mb-10 text-[rgb(var(--muted-fg))] leading-relaxed font-light text-sm sm:text-base lg:text-lg">
+                  {active.art.description}
+                </div>
+              )}
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6 py-4 sm:py-6 lg:py-8 border-y border-white/5">
+                <div>
+                  <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--muted))] mb-1 sm:mb-2">Location</h4>
+                  <p className="text-xs sm:text-sm lg:text-base text-[rgb(var(--fg))] font-medium">{currentImageData?.location || 'Unknown Location'}</p>
+                </div>
+                <div>
+                  <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--muted))] mb-1 sm:mb-2">Date Taken</h4>
+                  <p className="text-xs sm:text-sm lg:text-base text-[rgb(var(--fg))] font-medium">{currentImageData?.timeTaken || 'Unknown Date'}</p>
+                </div>
+                {currentImageData?.history && (
+                   <div>
+                    <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--muted))] mb-1 sm:mb-2">Story</h4>
+                    <p className="text-xs sm:text-sm text-[rgb(var(--fg))] leading-relaxed opacity-80">{currentImageData.history}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Series Navigation (if applicable) */}
+              {hasMultipleImages && (
+                <div className="mt-4 sm:mt-6 lg:mt-10">
+                  <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--muted))] mb-2 sm:mb-3 lg:mb-4">In This Series</h4>
+                  <div className="grid grid-cols-4 sm:grid-cols-3 gap-1.5 sm:gap-2">
+                    {active.art.images.map((img, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleImageClick(active.art, idx)}
+                        className={`relative aspect-square rounded-md sm:rounded-lg overflow-hidden transition-all duration-300 ${active.idx === idx ? 'ring-1 sm:ring-2 ring-[rgb(var(--primary))] scale-95 opacity-100' : 'opacity-50 hover:opacity-100 hover:scale-105'}`}
+                      >
+                        <img src={img.src} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-3 sm:p-4 lg:p-6 border-t border-white/5 bg-[rgb(var(--bg))]">
+              <div className="flex justify-between items-center text-[8px] sm:text-[10px] uppercase tracking-widest text-[rgb(var(--muted))]">
+                <span>© John Philip Morada</span>
+                <span>{hasMultipleImages ? `${active.idx + 1} / ${active.art.images.length}` : '1 / 1'}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>

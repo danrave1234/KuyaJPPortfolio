@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState, useRef } from 'react'
-import { ChevronRight, User, X, ChevronLeft, ChevronRight as ChevronRightIcon, Maximize2, Minimize2, Heart } from 'lucide-react'
+import { ChevronRight, User, X, ChevronLeft, ChevronRight as ChevronRightIcon, Maximize2, Minimize2, Heart, ArrowDown } from 'lucide-react'
 import { getImagesFromFolder } from '../firebase/storage'
 import { getFeaturedImages } from '../firebase/admin-api'
 import { trackImageView, trackGalleryNavigation } from '../services/analytics'
 import SEO from '../components/SEO'
+import FadeInWhenVisible from '../components/FadeInWhenVisible'
 
 export default function Home() {
   const [active, setActive] = useState(null)
@@ -248,33 +249,81 @@ export default function Home() {
         keywords="wildlife photography, nature photography, bird photography, Philippine wildlife, John Philip Morada, nature conservation, wildlife art"
       />
       {/* Full-width hero */}
-      <section id="home" className="snap-start min-h-screen relative w-full overflow-x-hidden">
-        <div className="relative h-dvh">
-          <img
-            src="/Hero.jpg"
-            alt="Photographer hero"
-            className="absolute inset-0 w-full h-dvh object-cover object-center"
-          />
-          <div className="absolute inset-0 bg-black/30" />
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="text-center">
-              <h1 className="font-heading text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold text-white drop-shadow mb-4 sm:mb-6 md:mb-8 lg:mb-10" style={{ letterSpacing: '0.12em', fontKerning: 'none' }}>JP MORADA</h1>
-              <p className="font-body text-white/90 max-w-2xl mx-auto text-sm sm:text-base md:text-base lg:text-lg xl:text-xl 2xl:text-2xl leading-relaxed lg:max-w-3xl">Capturing the beauty of wildlife, especially the magnificent diversity of bird species in their natural habitats.</p>
-              <Link 
-                to="/gallery" 
-                className="btn-outline border-white text-white hover:bg-white hover:text-black mt-6 sm:mt-8 md:mt-10 lg:mt-12 inline-block text-sm sm:text-base md:text-base lg:text-lg xl:text-xl px-4 sm:px-6 md:px-8 lg:px-8 py-2 sm:py-3 md:py-3 lg:py-4"
-                onClick={() => trackGalleryNavigation('main', 'view_gallery_link')}
-              >
-                VIEW GALLERY
-              </Link>
+      <section id="home" className="snap-start min-h-screen relative w-full overflow-x-hidden bg-black">
+        <div className="relative h-dvh overflow-hidden group">
+          {/* Background Blurred Image to fill empty space */}
+          <div className="absolute inset-0 z-0">
+            <img 
+              src="/Hero.jpg" 
+              alt="Background Blur" 
+              className="w-full h-full object-cover blur-3xl scale-110 brightness-75" 
+            />
+            {/* Vignette to focus attention to center */}
+            <div className="absolute inset-0 bg-radial-gradient from-transparent via-black/20 to-black/60" />
+          </div>
+
+          <div className="absolute inset-0 bg-black/20 z-10" /> {/* Darker overlay for better text contrast */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10" />
+          
+          {/* Edge Blending Gradients - Extend the photo naturally */}
+          <div className="absolute inset-0 z-0 pointer-events-none">
+            {/* Left blending - samples dark forest tones */}
+            <div className="absolute left-0 top-0 bottom-0 w-1/3 bg-gradient-to-r from-black via-black/80 to-transparent opacity-90" />
+            {/* Right blending - samples dark forest tones */}
+            <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-black via-black/80 to-transparent opacity-90" />
+          </div>
+          
+          {/* Centered Image Container to ensure full height visibility */}
+          <div className="absolute inset-0 flex items-center justify-center overflow-hidden z-0">
+            <img
+              src="/Hero.jpg"
+              alt="Photographer hero"
+              className="h-full w-auto max-w-none animate-zoomIn"
+              style={{ 
+                animationDuration: '3s', 
+                animationFillMode: 'forwards',
+                objectFit: 'contain',
+                objectPosition: 'center',
+                maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)'
+              }}
+            />
+          </div>
+          
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-4">
+            <div className="text-center max-w-5xl mx-auto">
+              <h1 className="font-heading text-2xl xs:text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl font-bold text-white drop-shadow-2xl mb-4 sm:mb-6 opacity-0 animate-heroReveal" style={{ letterSpacing: '0.05em' }}>
+                JP MORADA
+              </h1>
+              <div className="w-16 sm:w-24 h-0.5 sm:h-1 bg-white/80 mx-auto mb-4 sm:mb-8 rounded-full opacity-0 animate-heroReveal delay-200"></div>
+              <p className="font-body text-white/90 max-w-2xl mx-auto text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-light leading-relaxed opacity-0 animate-heroReveal delay-300 tracking-wide px-2">
+                Capturing the soul of Philippine wildlife,<br className="hidden sm:block" /> one frame at a time.
+              </p>
+              
+              <div className="mt-6 sm:mt-8 lg:mt-12 opacity-0 animate-heroReveal delay-500">
+                <Link 
+                  to="/gallery" 
+                  className="group relative inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-md border border-white/30 rounded-full text-white overflow-hidden transition-all duration-300 hover:bg-white hover:text-black hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
+                  onClick={() => trackGalleryNavigation('main', 'view_gallery_link')}
+                >
+                  <span className="text-xs sm:text-sm lg:text-base font-medium tracking-widest uppercase">View Gallery</span>
+                  <ChevronRight size={16} className="sm:w-[18px] sm:h-[18px] transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+              </div>
             </div>
           </div>
           
+          {/* Scroll Indicator */}
+          <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-20 animate-bounce opacity-0 animate-heroReveal delay-700 hidden sm:flex flex-col items-center gap-2">
+            <span className="text-white/50 text-[10px] uppercase tracking-[0.2em]">Explore</span>
+            <ArrowDown className="text-white/50" size={20} />
+          </div>
+          
           {/* Testimonials Section - Bottom of Hero - Hidden on mobile */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 hidden lg:block testimonials-mobile-hidden">
+          <div className="absolute bottom-0 left-0 right-0 p-6 lg:p-10 hidden lg:block z-20">
             <div className="w-full">
               <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-5 gap-4 sm:gap-6">
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <FadeInWhenVisible delay={800} className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden">
                       <img 
@@ -291,9 +340,9 @@ export default function Home() {
                   <div className="text-white/90 text-sm">
                     "John's patience and eye for detail captured moments I never thought possible. Absolutely stunning work."
                   </div>
-                </div>
+                </FadeInWhenVisible>
                 
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <FadeInWhenVisible delay={1000} className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden">
                       <img 
@@ -310,9 +359,9 @@ export default function Home() {
                   <div className="text-white/90 text-sm">
                     "The way he captures light and movement in nature is simply magical. Every photo tells a story."
                   </div>
-                </div>
+                </FadeInWhenVisible>
                 
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                <FadeInWhenVisible delay={1200} className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden">
                       <img 
@@ -329,9 +378,9 @@ export default function Home() {
                   <div className="text-white/90 text-sm">
                     "Professional, passionate, and incredibly talented. John's work speaks for itself."
                   </div>
-                </div>
+                </FadeInWhenVisible>
                 
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 hidden 2xl:block">
+                <FadeInWhenVisible delay={1400} className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 hidden 2xl:block">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden">
                       <img 
@@ -348,9 +397,9 @@ export default function Home() {
                   <div className="text-white/90 text-sm">
                     "His bird photography is exceptional. The clarity and emotion he captures is unmatched."
                   </div>
-                </div>
+                </FadeInWhenVisible>
                 
-                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 hidden 2xl:block">
+                <FadeInWhenVisible delay={1600} className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 hidden 2xl:block">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-full overflow-hidden">
                       <img 
@@ -367,7 +416,7 @@ export default function Home() {
                   <div className="text-white/90 text-sm">
                     "Working with John was a pleasure. His dedication to getting the perfect shot is inspiring."
                   </div>
-                </div>
+                </FadeInWhenVisible>
               </div>
             </div>
           </div>
@@ -375,178 +424,154 @@ export default function Home() {
       </section>
 
       {/* Introduction section */}
-      <section id="about" className="snap-start h-screen flex items-center bg-[rgb(var(--bg))] pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-12 sm:pb-16 md:pb-20 lg:pb-24">
-        <div className="container-responsive w-full">
-          <div className="text-center lg:text-left">
-          {/* Editorial masthead - mobile optimized */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 sm:gap-3 md:gap-6 lg:gap-8 xl:gap-12 items-center">
-            <div className="lg:col-span-7 text-left">
-              <h2 className="font-heading font-extrabold leading-tight max-w-2xl" style={{ letterSpacing: '0.10em', fontKerning: 'none' }}>
-                  <span className="block text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl text-[rgb(var(--primary))]" style={{ letterSpacing: '0.12em', fontKerning: 'none' }}>John Philip Morada</span>
-                  <span className="block text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl text-[rgb(var(--fg))] mt-1" style={{ letterSpacing: '0.10em', fontKerning: 'none' }}>Wildlife & Bird Photography</span>
+      <section id="about" className="snap-start min-h-screen flex items-center bg-[rgb(var(--bg))] relative overflow-hidden py-12 sm:py-16 md:py-20 lg:py-24 xl:py-0">
+        {/* Background decorative elements */}
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-[rgb(var(--primary))]/5 -skew-x-12 transform origin-top translate-x-1/2 pointer-events-none" />
+        
+        <div className="container-responsive w-full relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-10 lg:gap-20 items-center">
+            
+            {/* Text Column */}
+            <div className="lg:col-span-7 flex flex-col justify-center text-left order-2 lg:order-1">
+              <FadeInWhenVisible>
+                <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-[rgb(var(--primary))]/10 text-[rgb(var(--primary))] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-4 sm:mb-6 w-fit">
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[rgb(var(--primary))] animate-pulse" />
+                  About The Artist
+                </div>
+                
+                <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight mb-4 sm:mb-6 text-[rgb(var(--fg))]">
+                  John Philip Morada
                 </h2>
-                <div className="mt-1 sm:mt-2 md:mt-3 lg:mt-3 h-[2px] sm:h-[3px] md:h-[4px] lg:h-[4px] w-12 sm:w-16 md:w-20 lg:w-20 xl:w-24 2xl:w-28 bg-[rgb(var(--primary))]" />
-              <p className="mt-1 sm:mt-2 md:mt-3 lg:mt-3 text-[rgb(var(--muted-fg))] text-xs sm:text-sm md:text-base lg:text-base xl:text-lg 2xl:text-xl leading-relaxed max-w-2xl">
-                  I'm based in the Philippines and love capturing real wildlife moments. 
-                  My work focuses on good light, perfect timing, and telling nature's true stories.
+                
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl text-[rgb(var(--muted-fg))] leading-relaxed mb-6 sm:mb-8 max-w-2xl font-light">
+                  Based in the Philippines, I specialize in capturing the raw, unscripted moments of wildlife. My work is a testament to patience, waiting for the perfect interplay of light and nature's true stories.
                 </p>
-                
-                {/* Personal Philosophy - Desktop only */}
-                <div className="mt-4 sm:mt-5 md:mt-6 lg:mt-6 xl:mt-7 space-y-3 sm:space-y-4 hidden md:block">
-                  <div className="bg-[rgb(var(--muted))]/5 rounded-lg p-3 sm:p-4 border border-[rgb(var(--muted))]/20">
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-[rgb(var(--primary))]/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <svg className="w-3 h-3 text-[rgb(var(--primary))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="text-xs sm:text-sm font-semibold text-[rgb(var(--fg))] mb-1">My Photography</h4>
-                        <p className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] leading-relaxed">
-                          Every photo I take shows how people and nature can live together. 
-                          I want my images to make people care about <span className="font-semibold text-[rgb(var(--primary))]">protecting</span> our wildlife and feel amazed by what I see.
-                        </p>
-                      </div>
+              </FadeInWhenVisible>
+
+              {/* Philosophy Cards - Hidden on mobile */}
+              <div className="hidden sm:grid sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-10">
+                <FadeInWhenVisible delay={200}>
+                  <div className="group p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[rgb(var(--primary))]/10 flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-[rgb(var(--primary))] group-hover:text-white transition-colors duration-300">
+                      <Heart size={16} className="sm:w-5 sm:h-5 text-[rgb(var(--primary))] group-hover:text-white" />
                     </div>
+                    <h4 className="font-heading text-base sm:text-lg font-bold mb-1.5 sm:mb-2">My Philosophy</h4>
+                    <p className="text-xs sm:text-sm text-[rgb(var(--muted-fg))] leading-relaxed">
+                      I believe every image should advocate for conservation. By showing the beauty of our wildlife, I hope to inspire protection.
+                    </p>
                   </div>
-                  
-                  <div className="bg-[rgb(var(--muted))]/5 rounded-lg p-3 sm:p-4 border border-[rgb(var(--muted))]/20">
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-[rgb(var(--primary))]/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <svg className="w-3 h-3 text-[rgb(var(--primary))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="text-xs sm:text-sm font-semibold text-[rgb(var(--fg))] mb-1">How I Work</h4>
-                        <p className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] leading-relaxed">
-                          I mix careful planning with creative vision when I go out shooting. 
-                          Every trip is a chance to learn something new and show respect for the animals I photograph.
-                        </p>
-                      </div>
+                </FadeInWhenVisible>
+
+                <FadeInWhenVisible delay={400}>
+                  <div className="group p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[rgb(var(--primary))]/10 flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-[rgb(var(--primary))] group-hover:text-white transition-colors duration-300">
+                      <User size={16} className="sm:w-5 sm:h-5 text-[rgb(var(--primary))] group-hover:text-white" />
                     </div>
+                    <h4 className="font-heading text-base sm:text-lg font-bold mb-1.5 sm:mb-2">My Approach</h4>
+                    <p className="text-xs sm:text-sm text-[rgb(var(--muted-fg))] leading-relaxed">
+                      Respect for the subject comes first. I use long lenses and careful fieldcraft to document without disturbing natural behavior.
+                    </p>
                   </div>
-                </div>
-                {/* Portfolio badge - hidden on mobile */}
-                <div className="mt-3 sm:mt-4 md:mt-5 lg:mt-6 flex items-center gap-2 sm:gap-3 md:gap-4 hidden sm:flex">
-                  <div className="inline-block rounded-full px-2 sm:px-3 md:px-4 lg:px-4 py-1 sm:py-2 md:py-2 text-[9px] sm:text-[10px] md:text-xs lg:text-sm xl:text-base uppercase tracking-[0.25em] bg-[rgb(var(--muted))]/10 text-[rgb(var(--muted))]">Portfolio</div>
-                  <div className="text-xs sm:text-sm md:text-base lg:text-base xl:text-lg text-[rgb(var(--muted))]">{new Date().getFullYear()} Edition</div>
-                </div>
-                
-                {/* Category cards - Desktop only, below Portfolio section */}
-              <div className="mt-3 sm:mt-4 md:mt-5 lg:mt-5 xl:mt-6 grid grid-cols-3 gap-2 sm:gap-3 md:gap-4 lg:gap-4 xl:gap-6 2xl:gap-8 hidden md:grid max-w-md">
-                  <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-1.5 sm:p-2 md:p-2 lg:p-2 xl:p-3 2xl:p-4 text-center hover:border-[rgb(var(--primary))]/30 transition-colors duration-300">
-                    <div className="text-xs sm:text-sm md:text-base lg:text-xs xl:text-sm 2xl:text-base font-semibold text-[rgb(var(--fg))]">Birdlife</div>
-                    <div className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[8px] xl:text-[9px] 2xl:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-0.5 lg:mt-0.5">Focus</div>
-                  </div>
-                  <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-1.5 sm:p-2 md:p-2 lg:p-2 xl:p-3 2xl:p-4 text-center hover:border-[rgb(var(--primary))]/30 transition-colors duration-300">
-                    <div className="text-xs sm:text-sm md:text-base lg:text-xs xl:text-sm 2xl:text-base font-semibold text-[rgb(var(--fg))]">Philippines</div>
-                    <div className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[8px] xl:text-[9px] 2xl:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-0.5 lg:mt-0.5">Base</div>
-                  </div>
-                  <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-lg p-1.5 sm:p-2 md:p-2 lg:p-2 xl:p-3 2xl:p-4 text-center hover:border-[rgb(var(--primary))]/30 transition-colors duration-300">
-                    <div className="text-xs sm:text-sm md:text-base lg:text-xs xl:text-sm 2xl:text-base font-semibold text-[rgb(var(--fg))]">Worldwide</div>
-                    <div className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-[8px] xl:text-[9px] 2xl:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mt-0.5 lg:mt-0.5">Available</div>
-                  </div>
-                </div>
-                
-                {/* Personal Journey - Desktop only */}
-                
+                </FadeInWhenVisible>
               </div>
-              {/* Hero image - always visible but responsive sizing */}
-            <div className="lg:col-span-5 lg:justify-self-end mt-4 sm:mt-6 lg:mt-0">
-              <figure className="relative group max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl mx-auto lg:mx-0">
+
+              <FadeInWhenVisible delay={600}>
+                <Link to="/about" className="inline-flex items-center gap-2 text-[rgb(var(--primary))] font-semibold hover:gap-4 transition-all duration-300 group">
+                  Read Full Bio 
+                  <span className="w-8 h-[1px] bg-[rgb(var(--primary))] group-hover:w-12 transition-all duration-300" />
+                  <ChevronRight size={16} />
+                </Link>
+              </FadeInWhenVisible>
+            </div>
+
+            {/* Image Column */}
+            <div className="lg:col-span-5 relative order-1 lg:order-2 mb-6 sm:mb-8 lg:mb-0">
+              <FadeInWhenVisible delay={300} className="relative z-10">
+                <div className="relative aspect-[4/5] max-w-[280px] sm:max-w-md mx-auto lg:max-w-none transition-transform duration-500 ease-out">
+                  <div className="absolute inset-0 bg-black/20 rounded-2xl sm:rounded-3xl transform translate-x-2 translate-y-2 sm:translate-x-4 sm:translate-y-4 -z-10" />
                   <img
                     src="/KuyaJP.jpg"
-                    alt="John Philip Morada photographing with a telephoto lens on a tripod"
-                    className="w-full aspect-square object-cover rounded-xl sm:rounded-2xl md:rounded-3xl lg:rounded-3xl xl:rounded-3xl shadow-xl border border-black/10 dark:border-white/10 hover:shadow-2xl transition-shadow duration-300"
+                    alt="John Philip Morada"
+                    className="w-full h-full object-cover rounded-2xl sm:rounded-3xl shadow-2xl border-2 sm:border-4 border-white dark:border-gray-800"
                   />
-                  <figcaption className="absolute bottom-2 sm:bottom-3 md:bottom-4 lg:bottom-5 left-2 sm:left-3 md:left-4 lg:left-5 right-2 sm:right-3 md:right-4 lg:right-5 px-3 sm:px-4 md:px-5 lg:px-6 py-1.5 sm:py-2 md:py-3 lg:py-4 rounded-lg text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl backdrop-blur-md bg-black/30 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="font-semibold mb-1">In the Field</div>
-                    <div className="text-xs sm:text-sm opacity-90">Where patience meets passion, and light reveals truth</div>
-                  </figcaption>
-                  <div className="pointer-events-none absolute inset-0 rounded-xl sm:rounded-2xl md:rounded-3xl lg:rounded-3xl xl:rounded-3xl ring-1 ring-inset ring-black/10 dark:ring-white/10" />
-                </figure>
-              </div>
+                  
+                  {/* Floating Badge */}
+                  <div className="absolute -bottom-4 -left-4 sm:-bottom-6 sm:-left-6 bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 hidden sm:block animate-bounce" style={{ animationDuration: '3s' }}>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="text-2xl sm:text-3xl font-bold text-[rgb(var(--primary))]">10+</div>
+                      <div className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide leading-tight text-[rgb(var(--muted-fg))]">
+                        Years of<br />Experience
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </FadeInWhenVisible>
             </div>
+            
           </div>
-         </div>
+        </div>
       </section>
 
       {/* Section 3: Magazine Style Layout */}
-      <section id="experience" className="snap-start h-screen flex flex-col items-center justify-center bg-[rgb(var(--bg))] pt-32 sm:pt-36 md:pt-40 lg:pt-44 xl:pt-48 pb-16 sm:pb-20 md:pb-24 lg:pb-28">
+      <section id="experience" className="snap-start min-h-screen flex flex-col items-center justify-center bg-[rgb(var(--bg))] py-12 sm:py-16 md:py-20 lg:py-0 relative">
         <div className="container-responsive w-full">
           {/* Magazine-style Editorial Header */}
-          <div className="mb-2 sm:mb-3 md:mb-4 lg:mb-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 md:gap-6 lg:gap-12 items-center">
+          <div className="mb-6 sm:mb-8 lg:mb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-16 items-start">
               {/* Left Column - Editorial Content */}
-              <div className="lg:col-span-6 space-y-6 lg:space-y-8">
-                {/* Issue Info */}
-                <div className="border-l-4 border-[rgb(var(--primary))] pl-4 sm:pl-6">
-                  <div className="text-[10px] sm:text-xs md:text-sm uppercase tracking-[0.2em] text-[rgb(var(--muted))] mb-1">
-                    Featured Collection
+              <div className="lg:col-span-5 space-y-4 sm:space-y-6 lg:space-y-8 sticky top-20 sm:top-32">
+                <FadeInWhenVisible>
+                  <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+                    <span className="h-[1px] w-8 sm:w-12 bg-[rgb(var(--primary))]" />
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[rgb(var(--primary))]">Selected Works</span>
                   </div>
-                    <div className="font-heading text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-[rgb(var(--fg))] leading-tight">
-                    Selected Works
-                  </div>
-                  <div className="text-xs sm:text-sm md:text-sm lg:text-base text-[rgb(var(--muted-fg))] mt-2">
-                    Issue {new Date().getFullYear()} • Wildlife Photography
-                  </div>
-                </div>
+                  
+                  <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-[rgb(var(--fg))]">
+                    Moments in <span className="text-[rgb(var(--primary))] italic">Time</span>
+                  </h2>
+                  
+                  <p className="text-[rgb(var(--muted-fg))] leading-relaxed text-sm sm:text-base md:text-lg">
+                    Photography is more than just clicking a shutter; it's about anticipation. 
+                    From the elusive Philippine Eagle to the vibrant sunbirds, each image represents hours of silent observation.
+                  </p>
+                </FadeInWhenVisible>
 
-                {/* Editorial Content - More compact on mobile */}
-                <div className="space-y-3 sm:space-y-4 md:space-y-6">
-                  <div className="prose prose-sm sm:prose-base lg:prose-lg max-w-none">
-                    <p className="text-[rgb(var(--muted-fg))] leading-relaxed text-xs sm:text-sm md:text-base lg:text-base xl:text-lg">
-                      Every photo takes hours of waiting and watching for the right moment. 
-                      From rare Philippine Eagles to colorful sunbirds, 
-                      I try to show wildlife exactly as it really is in nature.
-                    </p>
-                  </div>
-
-                  {/* Stats - More compact on mobile */}
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 pt-3 sm:pt-4 md:pt-5 border-t border-[rgb(var(--muted))]/20">
-                    <div className="text-center">
-                      <div className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-[rgb(var(--primary))]">0</div>
-                      <div className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs text-[rgb(var(--muted-fg))] uppercase tracking-wide">Years Experience</div>
+                {/* Stats */}
+                <FadeInWhenVisible delay={200}>
+                  <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:gap-8 py-4 sm:py-6 lg:py-8 border-y border-[rgb(var(--muted))]/20">
+                    <div>
+                      <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[rgb(var(--fg))] mb-1">10<span className="text-[rgb(var(--primary))]">+</span></div>
+                      <div className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] uppercase tracking-wider">Years Active</div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-[rgb(var(--primary))]">0</div>
-                      <div className="text-[8px] sm:text-[9px] md:text-[10px] lg:text-xs text-[rgb(var(--muted-fg))] uppercase tracking-wide">Species Captured</div>
+                    <div>
+                      <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[rgb(var(--fg))] mb-1">500<span className="text-[rgb(var(--primary))]">+</span></div>
+                      <div className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] uppercase tracking-wider">Species Logged</div>
                     </div>
                   </div>
+                </FadeInWhenVisible>
 
-                  {/* Photography Philosophy - Small detail to fill space */}
-                  <div className="mt-4 sm:mt-5 md:mt-6 hidden sm:block">
-                    <div className="bg-[rgb(var(--muted))]/5 rounded-lg p-3 sm:p-4 border border-[rgb(var(--muted))]/10">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-4 h-4 bg-[rgb(var(--primary))]/20 rounded-full flex items-center justify-center">
-                          <svg className="w-2.5 h-2.5 text-[rgb(var(--primary))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                        </div>
-                        <span className="text-xs font-semibold text-[rgb(var(--primary))] uppercase tracking-wide">Approach</span>
-                      </div>
-                      <p className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] leading-relaxed">
-                        Patience, respect, and understanding of animal behavior guide every shot.
-                      </p>
-                    </div>
+                <FadeInWhenVisible delay={400}>
+                  <div className="hidden sm:flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                    <Link to="/gallery" className="btn bg-[rgb(var(--fg))] text-[rgb(var(--bg))] px-6 sm:px-8 py-2.5 sm:py-3 rounded-full hover:scale-105 transition-transform text-sm sm:text-base">
+                      View All Works
+                    </Link>
+                    <span className="text-xs sm:text-sm text-[rgb(var(--muted-fg))] italic">Updated Monthly</span>
                   </div>
-
-                </div>
+                </FadeInWhenVisible>
               </div>
 
-              {/* Right Column - Dynamic Featured Grid */}
-              <div className="lg:col-span-6">
+              {/* Right Column - Featured Image */}
+              <div className="lg:col-span-7">
+                <FadeInWhenVisible delay={300}>
                 {featuredLoading ? (
-                  <div className="flex items-center justify-center aspect-[3/2] bg-[rgb(var(--muted))]/5 rounded-lg border border-[rgb(var(--muted))]/20">
+                  <div className="flex items-center justify-center aspect-[4/3] bg-[rgb(var(--muted))]/5 rounded-3xl border border-[rgb(var(--muted))]/20">
                     <div className="text-center">
-                      <div className="w-5 h-5 border-2 border-[rgb(var(--primary))]/30 border-t-[rgb(var(--primary))] rounded-full animate-spin mx-auto mb-2"></div>
-                      <div className="text-[rgb(var(--muted-fg))] text-sm">Loading featured image...</div>
+                      <div className="w-8 h-8 border-2 border-[rgb(var(--primary))]/30 border-t-[rgb(var(--primary))] rounded-full animate-spin mx-auto mb-2"></div>
+                      <div className="text-[rgb(var(--muted-fg))] text-sm">Loading masterpiece...</div>
                     </div>
                   </div>
                 ) : featuredImages.length === 0 ? (
-                  <div className="flex items-center justify-center aspect-[3/2] bg-[rgb(var(--muted))]/5 rounded-lg border border-[rgb(var(--muted))]/20">
+                  <div className="flex items-center justify-center aspect-[4/3] bg-[rgb(var(--muted))]/5 rounded-3xl border border-[rgb(var(--muted))]/20">
                     <div className="text-center">
                       <div className="text-[rgb(var(--muted-fg))] text-sm mb-2">No Featured Image</div>
                       <div className="text-[rgb(var(--muted))] text-xs">Upload an image to 'featured' folder</div>
@@ -554,11 +579,10 @@ export default function Home() {
                   </div>
                 ) : (
                   <div 
-                    className="group cursor-pointer"
+                    className="group cursor-pointer relative"
                     onClick={() => {
                       const featuredImage = getFeaturedImage()
                       if (featuredImage) {
-                        // Track featured image view with custom analytics
                         trackImageView({
                           id: featuredImage.id,
                           title: featuredImage.title,
@@ -578,39 +602,35 @@ export default function Home() {
                       const featuredImage = getFeaturedImage()
                       if (!featuredImage) return null
                       
-                      // Auto-fit container based on image orientation
                       const containerClass = featuredImage.isPortrait 
-                        ? 'aspect-[3/4] max-w-sm mx-auto' // Portrait: taller container
-                        : 'aspect-[4/3] w-full' // Landscape: wider container
+                        ? 'aspect-[3/4] max-w-[240px] sm:max-w-sm mx-auto' 
+                        : 'aspect-[4/3] w-full'
                       
                       return (
-                        <div className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${containerClass} max-h-[25vh] sm:max-h-[35vh] md:max-h-[35vh] lg:max-h-[40vh] xl:max-h-[60vh] max-w-[80vw] sm:max-w-[92vw] mx-auto`}>
+                        <div className={`relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] ${containerClass}`}>
+                          <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
                           <img
                             src={featuredImage.src}
                             alt={featuredImage.alt}
-                            className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-110"
+                            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                             onLoad={(e) => {
                               const { naturalWidth, naturalHeight } = e.target
                               handleFeaturedImageLoad(featuredImage, naturalWidth, naturalHeight)
                             }}
                           />
-                          {/* Overlay */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                           
-                          {/* Featured badge */}
-                          <div className="absolute top-3 left-3 text-xs font-bold px-3 py-1.5 rounded-full bg-[rgb(var(--primary))] text-white shadow-lg">
-                            Featured
-                          </div>
-                          
-                          {/* Info panel */}
-                          <div className="absolute bottom-3 left-3 right-3 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100">
-                            <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
-                              <p className="font-heading text-white text-sm font-semibold">
-                                {featuredImage.title}
-                              </p>
-                              <p className="text-white/80 text-xs">
-                                Featured Image
-                              </p>
+                          {/* Floating Info Card */}
+                          <div className="absolute bottom-3 left-3 right-3 sm:bottom-6 sm:left-6 sm:right-6 z-20 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 opacity-0 group-hover:opacity-100">
+                            <div className="bg-white/90 dark:bg-black/80 backdrop-blur-md p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-white/20 shadow-lg">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h3 className="font-heading text-sm sm:text-base lg:text-lg font-bold text-[rgb(var(--fg))]">{featuredImage.title}</h3>
+                                  <p className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))]">Featured Collection</p>
+                                </div>
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[rgb(var(--fg))] flex items-center justify-center text-[rgb(var(--bg))] flex-shrink-0">
+                                  <Maximize2 size={12} className="sm:w-4 sm:h-4" />
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -618,178 +638,101 @@ export default function Home() {
                     })()}
                   </div>
                 )}
+                </FadeInWhenVisible>
               </div>
             </div>
           </div>
 
           {/* Full Width Carousel at Bottom */}
-          <div className="relative w-full overflow-hidden">
+          <FadeInWhenVisible delay={500}>
+            <div className="relative w-full overflow-hidden mt-12 lg:mt-20">
                     {/* Enhanced gradient edge fades */}
-                    <div className="pointer-events-none absolute inset-y-0 left-0 w-16 sm:w-24 md:w-32 lg:w-40 xl:w-48 2xl:w-56 bg-gradient-to-r from-[rgb(var(--bg))] to-transparent z-10" />
-                    <div className="pointer-events-none absolute inset-y-0 right-0 w-16 sm:w-24 md:w-32 lg:w-40 xl:w-48 2xl:w-56 bg-gradient-to-l from-[rgb(var(--bg))] to-transparent z-10" />
+                    <div className="pointer-events-none absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[rgb(var(--bg))] to-transparent z-10" />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[rgb(var(--bg))] to-transparent z-10" />
                     
                     {loading || (allPhotographs.length > 0 && landscapeImages.length === 0) ? (
-                      <div className="flex gap-3 sm:gap-6 md:gap-8 lg:gap-10 xl:gap-12 py-6 sm:py-8 md:py-12 lg:py-16 xl:py-20 justify-center">
-                        {[1, 2, 3, 4, 5, 6].map((i) => (
-                          <div key={i} className="flex-shrink-0 w-28 h-20 sm:w-40 sm:h-30 md:w-48 md:h-36 lg:w-56 lg:h-42 xl:w-64 xl:h-48 2xl:w-72 2xl:h-54 rounded-xl lg:rounded-2xl overflow-hidden">
-                            <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 animate-pulse" />
-                          </div>
+                      <div className="flex gap-6 justify-center">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div key={i} className="flex-shrink-0 w-64 h-40 rounded-2xl overflow-hidden bg-[rgb(var(--muted))]/10 animate-pulse" />
                         ))}
                       </div>
                     ) : displayImages.length === 0 ? (
-                      <div className="flex items-center justify-center py-8 sm:py-12 md:py-16">
-                        <span className="text-[rgb(var(--muted-fg))] text-sm sm:text-base md:text-lg">No images found in Firebase Storage</span>
+                      <div className="flex items-center justify-center py-16">
+                        <span className="text-[rgb(var(--muted-fg))]">No images found in Firebase Storage</span>
                       </div>
                     ) : (
                       <div 
-                        className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-5 xl:gap-6 infinite-scroll transition-all duration-500 ease-in-out justify-center"
+                        className="flex gap-6 infinite-scroll hover:[animation-play-state:paused]"
                         style={{ 
-                          width: `calc(${displayImages.length * 3} * (clamp(200px, 14vw, 320px) + clamp(8px, 1.5vw, 24px)))`,
-                          minHeight: 'clamp(120px, 18vh, 260px)'
+                          width: 'max-content'
                         }}
                       >
-                      {/* First set of images with magazine styling */}
-                      {displayImages.map((photo, index) => (
+                      {/* Repeat images 3 times for smooth loop */}
+                      {[...displayImages, ...displayImages, ...displayImages].map((photo, index) => (
                         <div 
-                          key={photo.id} 
-                          className="flex-shrink-0 group cursor-pointer"
-                  onClick={() => {
-                    // Track image view with custom analytics
-                    trackImageView({
-                      id: photo.id,
-                      title: photo.title,
-                      path: photo.src,
-                      isFeatured: false
-                    }, {
-                      isSeries: false,
-                      seriesIndex: 0,
-                      galleryType: 'home'
-                    });
-                    
-                    setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })
-                  }}
+                          key={`${photo.id}-${index}`} 
+                          className="flex-shrink-0 group cursor-pointer w-56 h-36 sm:w-72 sm:h-48 md:w-80 md:h-52 relative rounded-xl sm:rounded-2xl overflow-hidden"
+                          onClick={() => {
+                            trackImageView({
+                              id: photo.id,
+                              title: photo.title,
+                              path: photo.src,
+                              isFeatured: false
+                            }, { isSeries: false, seriesIndex: 0, galleryType: 'home' });
+                            setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })
+                          }}
                         >
-                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(200px, 14vw, 320px)', height: 'clamp(120px, 10vw, 180px)'}}>
-                            <img
-                              src={photo.src}
-                              alt={photo.alt}
-                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                              onLoad={(e) => {
-                                const { naturalWidth, naturalHeight } = e.target
-                                handleImageLoad(photo, naturalWidth, naturalHeight)
-                              }}
-                            />
-                            {/* Magazine-style overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            
-                            
-                            {/* Magazine info panel */}
-                            <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 opacity-0 group-hover:opacity-100">
-                              <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/10">
-                                <div className="font-heading text-white text-[8px] sm:text-[9px] md:text-xs lg:text-sm font-semibold uppercase tracking-wide break-words leading-tight">
-                                  {photo.title}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                      {/* Second set for seamless loop */}
-                      {displayImages.map((photo, index) => (
-                        <div 
-                          key={`duplicate-${photo.id}`} 
-                          className="flex-shrink-0 group cursor-pointer"
-                  onClick={() => {
-                    // Track image view with custom analytics
-                    trackImageView({
-                      id: photo.id,
-                      title: photo.title,
-                      path: photo.src,
-                      isFeatured: false
-                    }, {
-                      isSeries: false,
-                      seriesIndex: 0,
-                      galleryType: 'home'
-                    });
-                    
-                    setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })
-                  }}
-                        >
-                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(200px, 14vw, 320px)', height: 'clamp(120px, 10vw, 180px)'}}>
-                            <img
-                              src={photo.src}
-                              alt={photo.alt}
-                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 opacity-0 group-hover:opacity-100">
-                              <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/10">
-                                <div className="text-white text-[8px] sm:text-[9px] md:text-xs lg:text-sm font-semibold uppercase tracking-wide break-words leading-tight">
-                                  {photo.title}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                      {/* Third set for ultra-smooth loop */}
-                      {displayImages.map((photo, index) => (
-                        <div 
-                          key={`triple-${photo.id}`} 
-                          className="flex-shrink-0 group cursor-pointer"
-                  onClick={() => {
-                    // Track image view with custom analytics
-                    trackImageView({
-                      id: photo.id,
-                      title: photo.title,
-                      path: photo.src,
-                      isFeatured: false
-                    }, {
-                      isSeries: false,
-                      seriesIndex: 0,
-                      galleryType: 'home'
-                    });
-                    
-                    setActive({ art: { id: photo.id, src: photo.src, title: photo.title, alt: photo.alt, description: photo.description }, idx: 0 })
-                  }}
-                        >
-                          <div className="relative rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-500 ring-2 ring-black/5 dark:ring-white/5 hover:ring-[rgb(var(--primary))]/30 group-hover:scale-[0.98]" style={{width: 'clamp(200px, 14vw, 320px)', height: 'clamp(120px, 10vw, 180px)'}}>
-                            <img
-                              src={photo.src}
-                              alt={photo.alt}
-                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500 opacity-0 group-hover:opacity-100">
-                              <div className="bg-black/60 backdrop-blur-sm rounded-lg p-2 sm:p-3 border border-white/10">
-                                <div className="text-white text-[8px] sm:text-[9px] md:text-xs lg:text-sm font-semibold uppercase tracking-wide break-words leading-tight">
-                                  {photo.title}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                          <img
+                            src={photo.src}
+                            alt={photo.alt}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
                         </div>
                       ))}
                       </div>
                     )}
-          </div>
+            </div>
+          </FadeInWhenVisible>
         </div>
       </section>
 
       {/* Call to Action Section - 4th Section */}
-      <section id="contact" className="snap-start h-screen flex items-center bg-[rgb(var(--bg))] pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-16 sm:pb-20 md:pb-24 lg:pb-28">
-        <div className="container-responsive w-full">
-            <div className="text-center">
-            <div className="mb-8 sm:mb-12 md:mb-16 lg:mb-20 xl:mb-24">
-              <h4 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-bold text-[rgb(var(--fg))] mb-4 sm:mb-6 md:mb-8">
-                  Ready to capture your story?
+      <section id="contact" className="snap-start min-h-screen flex items-center bg-[rgb(var(--bg))] py-12 sm:py-16 md:py-20 lg:py-24 xl:py-0 relative overflow-hidden">
+        {/* Background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[rgb(var(--primary))]/5 pointer-events-none" />
+        
+        <div className="container-responsive w-full relative z-10">
+          <FadeInWhenVisible>
+            <div className="text-center max-w-4xl mx-auto px-4">
+              <div className="mb-8 sm:mb-10 lg:mb-12">
+                <span className="inline-block px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[rgb(var(--primary))]/10 text-[rgb(var(--primary))] font-bold uppercase tracking-widest text-[10px] sm:text-xs mb-4 sm:mb-6">
+                  Work With Me
+                </span>
+                <h4 className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl font-bold text-[rgb(var(--fg))] mb-4 sm:mb-6 lg:mb-8 leading-tight">
+                  Ready to capture<br />your story?
                 </h4>
-                <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl 2xl:text-3xl text-[rgb(var(--muted-fg))] max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl mx-auto leading-relaxed">
+                <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-[rgb(var(--muted-fg))] max-w-2xl mx-auto leading-relaxed font-light">
                   Let's discuss your photography needs and create something extraordinary together.
                 </p>
               </div>
               
-          </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+                <Link 
+                  to="/contact" 
+                  className="btn bg-[rgb(var(--primary))] text-white px-6 sm:px-8 lg:px-10 py-3 sm:py-4 lg:py-5 rounded-full text-sm sm:text-base lg:text-lg hover:scale-105 hover:shadow-xl hover:shadow-[rgb(var(--primary))]/20 transition-all duration-300"
+                >
+                  Get in Touch
+                </Link>
+                <Link 
+                  to="/gallery" 
+                  className="btn-outline px-6 sm:px-8 lg:px-10 py-3 sm:py-4 lg:py-5 rounded-full text-sm sm:text-base lg:text-lg hover:bg-[rgb(var(--fg))] hover:text-[rgb(var(--bg))] transition-all duration-300"
+                >
+                  Explore Gallery
+                </Link>
+              </div>
+            </div>
+          </FadeInWhenVisible>
         </div>
       </section>
 
@@ -1190,398 +1133,158 @@ function ModalViewer({ active, setActive, allArtworks }) {
 
   return (
     <>
-      {/* Enhanced backdrop with theme-aware blur */}
+      {/* Cinematic Backdrop */}
       <div 
-        className="fixed inset-0 z-40 backdrop-blur-md transition-colors duration-300" 
-        style={{
-          background: 'linear-gradient(135deg, rgba(var(--bg), 0.95) 0%, rgba(var(--bg), 0.85) 50%, rgba(var(--bg), 0.95) 100%)'
-        }}
+        className="fixed inset-0 z-[90] bg-black/95 backdrop-blur-xl transition-all duration-500" 
         onClick={() => setActive(null)} 
       />
       
       {/* Main modal container */}
       <div 
-        className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-8 overflow-y-auto" 
+        className="fixed inset-0 z-[100] flex items-center justify-center lg:overflow-hidden overflow-y-auto"
         role="dialog" 
         aria-modal="true"
         tabIndex={-1}
-        onKeyDown={(e) => {
-          // Ensure keyboard events are captured by the modal
-          e.stopPropagation()
-        }}
+        onKeyDown={(e) => e.stopPropagation()}
         style={{ outline: 'none' }}
       >
-        <div ref={containerRef} className="w-full max-w-7xl max-h-[98vh] sm:max-h-[95vh] relative my-auto">
-          <div 
-            ref={viewerRef} 
-            className="relative rounded-2xl shadow-2xl ring-1 ring-[rgb(var(--muted))]/20 overflow-hidden transition-colors duration-300"
-            style={{ 
-              backgroundColor: 'rgb(var(--bg))',
-              maxWidth: '100vw',
-              maxHeight: '95vh'
-            }}
-          >
-            
-            {/* Header with controls */}
-            <div 
-              className="absolute top-0 left-0 right-0 z-20 p-3 sm:p-4 lg:p-6 transition-colors duration-300"
-              style={{ 
-                background: 'linear-gradient(to bottom, rgba(var(--bg), 0.9) 0%, rgba(var(--bg), 0.7) 50%, transparent 100%)'
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span 
-                    className="ml-3 text-xs font-mono uppercase tracking-wider transition-colors duration-300"
-                    style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                  >
-                    Single Image
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    className="p-2.5 rounded-full backdrop-blur-sm transition-all duration-200 shadow-lg hover:scale-105" 
-                    style={{ 
-                      backgroundColor: 'rgba(var(--muted), 0.2)',
-                      color: 'rgb(var(--fg))'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = 'rgba(var(--muted), 0.3)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = 'rgba(var(--muted), 0.2)'
-                    }}
-                    onClick={toggleFullscreen} 
-                    aria-label="View image in fullscreen"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                    </svg>
-                  </button>
-                  <button 
-                    className="p-2.5 rounded-full backdrop-blur-sm transition-all duration-200 shadow-lg hover:scale-105" 
-                    style={{ 
-                      backgroundColor: 'rgba(var(--muted), 0.2)',
-                      color: 'rgb(var(--fg))'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = 'rgba(var(--muted), 0.3)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = 'rgba(var(--muted), 0.2)'
-                    }}
-                    onClick={() => setActive(null)} 
-                    aria-label="Close"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
+        <div ref={containerRef} className="w-full h-full pointer-events-auto flex flex-col lg:flex-row">
+          
+          <div className="fixed inset-0 bg-gradient-to-b from-black/60 to-transparent pointer-events-none lg:absolute" />
+          
+          {/* Main Image Area - Cinematic & Centered */}
+          <div className="relative flex-[2] lg:flex-1 h-[60vh] lg:h-full flex flex-col justify-center overflow-hidden">
+            {/* Minimal Header Overlay */}
+            <div className="absolute top-0 left-0 right-0 z-30 p-4 sm:p-6 flex justify-between items-start pointer-events-none">
+              <div className="pointer-events-auto flex items-center gap-4">
+                <button 
+                  onClick={() => setActive(null)}
+                  className="group flex items-center gap-2 text-white/70 hover:text-white transition-colors"
+                >
+                  <div className="p-2 rounded-full bg-white/10 backdrop-blur-md group-hover:bg-white/20 transition-all">
+                    <ChevronLeft size={20} />
+                  </div>
+                  <span className="text-sm font-medium tracking-wide hidden sm:block">Back</span>
+                </button>
+              </div>
+
+              <div className="pointer-events-auto flex gap-3">
+                <button 
+                  onClick={toggleFullscreen}
+                  className="p-3 rounded-full bg-white/10 backdrop-blur-md text-white/70 hover:text-white hover:bg-white/20 transition-all"
+                  title="Toggle Fullscreen"
+                >
+                  {isFs ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+                </button>
               </div>
             </div>
 
-            {/* Main content area */}
-            <div className="flex flex-col lg:flex-row min-h-[75vh] sm:min-h-[75vh] lg:min-h-[80vh] overflow-y-auto" style={{ maxHeight: 'calc(98vh - 80px)' }}>
-              
-              {/* Image section */}
-              <div 
-                className="relative flex-1 overflow-hidden transition-colors duration-300"
-                style={{ 
-                  background: 'linear-gradient(135deg, rgba(var(--muted), 0.1) 0%, rgba(var(--muted), 0.05) 100%)'
-                }}
-              >
-                <div className="relative h-full min-h-[60vh] sm:min-h-[55vh] lg:min-h-[70vh] flex items-center justify-center p-4 sm:p-6 lg:p-8 pt-14 sm:pt-16 lg:pt-16 pb-12 sm:pb-10 lg:pb-8 overflow-hidden">
-                  {currentImageSrc ? (
-                    <img 
-                      ref={imageRef}
-                      src={currentImageSrc} 
-                      alt={active.art.title || ''} 
-                      className={`max-w-full max-h-full object-contain transition-all duration-700 rounded-lg ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
-                      style={{ 
-                        maxWidth: '100%', 
-                        maxHeight: 'calc(100% - 4rem)', 
-                        width: 'auto', 
-                        height: 'auto',
-                        objectFit: 'contain'
-                      }}
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <div 
-                          className="w-16 h-16 rounded-full flex items-center justify-center mb-4 mx-auto transition-colors duration-300"
-                          style={{ backgroundColor: 'rgba(var(--muted), 0.2)' }}
-                        >
-                          <X size={24} style={{ color: 'rgba(var(--muted-fg), 0.6)' }} />
-                        </div>
-                        <div 
-                          className="text-lg font-semibold mb-2 transition-colors duration-300"
-                          style={{ color: 'rgb(var(--muted-fg))' }}
-                        >
-                          Image not available
-                        </div>
-                        <div 
-                          className="text-sm transition-colors duration-300"
-                          style={{ color: 'rgba(var(--muted-fg), 0.7)' }}
-                        >
-                          Unable to load image
-                        </div>
-                      </div>
-                    </div>
-                  )}
+            {/* Image Stage */}
+            <div className="flex-1 relative flex items-center justify-center w-full h-full p-0 sm:p-8 lg:p-12 overflow-hidden">
+              {currentImageSrc ? (
+                <img 
+                  ref={imageRef}
+                  src={currentImageSrc} 
+                  alt={active.art.title || ''} 
+                  className={`w-full h-full object-contain transition-all duration-500 shadow-2xl ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+                  style={{ 
+                    filter: 'drop-shadow(0 20px 50px rgba(0,0,0,0.5))'
+                  }}
+                />
+              ) : (
+                <div className="text-white/50 flex flex-col items-center">
+                  <div className="w-12 h-12 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4" />
+                  <span className="text-sm tracking-widest uppercase">Loading Masterpiece</span>
                 </div>
+              )}
 
-                {/* Smart Navigation arrows - always left/right with context-aware labels */}
-                <div className="absolute inset-0 flex items-center justify-between pointer-events-none">
-                  {/* Left navigation button */}
-                  <div className="ml-2 sm:ml-4">
-                    {(() => {
-                      const leftInfo = getLeftNavigationInfo()
-                      return (
-                        <button
-                          onClick={navigateLeft}
-                          className={`pointer-events-auto p-2 sm:p-3 rounded-full transition-all duration-200 backdrop-blur-sm shadow-lg hover:scale-110 touch-manipulation ${
-                            leftInfo.disabled
-                              ? 'bg-black/20 text-gray-400 cursor-not-allowed' 
-                              : 'bg-black/60 hover:bg-black/80 text-white'
-                          }`}
-                          title={leftInfo.label}
-                          disabled={leftInfo.disabled}
-                        >
-                          <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
-                        </button>
-                      )
-                    })()}
-                  </div>
-                  
-                  {/* Right navigation button */}
-                  <div className="mr-2 sm:mr-4">
-                    {(() => {
-                      const rightInfo = getRightNavigationInfo()
-                      return (
-                        <button
-                          onClick={navigateRight}
-                          className={`pointer-events-auto p-2 sm:p-3 rounded-full transition-all duration-200 backdrop-blur-sm shadow-lg hover:scale-110 touch-manipulation ${
-                            rightInfo.disabled
-                              ? 'bg-black/20 text-gray-400 cursor-not-allowed' 
-                              : 'bg-black/60 hover:bg-black/80 text-white'
-                          }`}
-                          title={rightInfo.label}
-                          disabled={rightInfo.disabled}
-                        >
-                          <ChevronRightIcon size={18} className="sm:w-5 sm:h-5" />
-                        </button>
-                      )
-                    })()}
-                  </div>
-                </div>
-              </div>
+              {/* Navigation Arrows (Floating) */}
+              <div className="absolute inset-x-4 sm:inset-x-8 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none">
+                <button
+                  onClick={navigateLeft}
+                  disabled={getLeftNavigationInfo().disabled}
+                  className={`pointer-events-auto p-4 rounded-full transition-all duration-300 group ${
+                    getLeftNavigationInfo().disabled ? 'opacity-0 cursor-not-allowed' : 'opacity-50 hover:opacity-100 hover:bg-white/10 backdrop-blur-sm'
+                  }`}
+                >
+                  <ChevronLeft size={32} className="text-white drop-shadow-lg group-hover:-translate-x-1 transition-transform" />
+                </button>
 
-              {/* Vertical divider between image and sidebar */}
-              <div 
-                className="hidden lg:block w-[2px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-              ></div>
-
-              {/* Sidebar with info and thumbnails */}
-              <div 
-                className="w-full lg:w-80 flex flex-col transition-colors duration-300 overflow-y-auto mt-4 sm:mt-0"
-                style={{ 
-                  backgroundColor: 'rgb(var(--bg))',
-                  maxHeight: 'calc(95vh - 80px)'
-                }}
-              >
-                
-                {/* Content section */}
-                <div className="flex-1 p-4 sm:p-6 lg:p-8">
-                  
-                  {/* Title and metadata */}
-                  <div className="mb-6 sm:mb-8">
-                    {/* Category Badge */}
-                    <div className="mb-3">
-                      <span 
-                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider transition-colors duration-300"
-                        style={{ 
-                          backgroundColor: 'rgba(var(--primary), 0.1)',
-                          color: 'rgb(var(--primary))',
-                          border: '1px solid rgba(var(--primary), 0.2)'
-                        }}
-                      >
-                        Photograph
-                      </span>
-                    </div>
-                    
-                    {/* Main Title */}
-                    <h1 
-                      className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight mb-4 sm:mb-6 transition-colors duration-300"
-                      style={{ color: 'rgb(var(--fg))' }}
-                    >
-                      {active.art.title || 'Untitled'}
-                    </h1>
-                    
-                    {/* Description */}
-                    {active.art.description && (
-                      <div className="mb-4 sm:mb-6">
-                        <p 
-                          className="leading-relaxed text-base sm:text-lg transition-colors duration-300"
-                          style={{ color: 'rgba(var(--muted-fg), 0.9)' }}
-                        >
-                          {active.art.description}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Divider between title/description and details */}
-                  <div 
-                    className="w-full h-[2px] mb-4 sm:mb-6 bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-                  ></div>
-
-                  {/* Photo Details */}
-                  <div className="transition-colors duration-300">
-                    <h3 
-                      className="text-sm sm:text-base font-bold mb-4 sm:mb-5 uppercase tracking-wider transition-colors duration-300"
-                      style={{ color: 'rgb(var(--fg))' }}
-                    >
-                      Photo Details
-                    </h3>
-                    <div className="space-y-0 text-xs sm:text-sm">
-                      {/* Scientific Name */}
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 sm:py-3 px-0 gap-1 sm:gap-0">
-                        <span 
-                          className="font-medium transition-colors duration-300 text-xs sm:text-sm"
-                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                        >
-                          Scientific Name
-                        </span>
-                        <span 
-                          className="font-semibold transition-colors duration-300 text-right text-xs sm:text-sm"
-                          style={{ color: active.art.scientificName ? 'rgb(var(--fg))' : 'rgba(var(--muted-fg), 0.5)' }}
-                        >
-                          {active.art.scientificName ? (
-                            <em>{active.art.scientificName}</em>
-                          ) : (
-                            <span className="italic">Not specified</span>
-                          )}
-                        </span>
-                      </div>
-                      <div 
-                        className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-                      ></div>
-                      
-                      {/* Location */}
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 sm:py-3 px-0 gap-1 sm:gap-0">
-                        <span 
-                          className="font-medium transition-colors duration-300 text-xs sm:text-sm"
-                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                        >
-                          Location
-                        </span>
-                        <span 
-                          className="font-semibold transition-colors duration-300 text-right text-xs sm:text-sm break-words"
-                          style={{ color: active.art.location ? 'rgb(var(--fg))' : 'rgba(var(--muted-fg), 0.5)' }}
-                        >
-                          {active.art.location || <span className="italic">Not specified</span>}
-                        </span>
-                      </div>
-                      <div 
-                        className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-                      ></div>
-                      
-                      {/* Time Taken */}
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 sm:py-3 px-0 gap-1 sm:gap-0">
-                        <span 
-                          className="font-medium transition-colors duration-300 text-xs sm:text-sm"
-                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                        >
-                          Date Taken
-                        </span>
-                        <span 
-                          className="font-semibold transition-colors duration-300 text-right text-xs sm:text-sm"
-                          style={{ color: active.art.timeTaken ? 'rgb(var(--fg))' : 'rgba(var(--muted-fg), 0.5)' }}
-                        >
-                          {active.art.timeTaken || <span className="italic">Not specified</span>}
-                        </span>
-                      </div>
-                      <div 
-                        className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-                      ></div>
-                      
-                      {/* History */}
-                      <div className="py-2 sm:py-3 px-0">
-                        <span 
-                          className="font-medium transition-colors duration-300 block mb-1 sm:mb-2 text-xs sm:text-sm"
-                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                        >
-                          History
-                        </span>
-                        <p 
-                          className="text-xs sm:text-sm transition-colors duration-300 leading-relaxed"
-                          style={{ color: active.art.history ? 'rgba(var(--muted-fg), 0.9)' : 'rgba(var(--muted-fg), 0.5)' }}
-                        >
-                          {active.art.history || <span className="italic">No additional information available</span>}
-                        </p>
-                      </div>
-                      <div 
-                        className="w-full h-[1px] bg-gray-300 dark:bg-gray-600 transition-colors duration-300"
-                      ></div>
-                      
-                      {/* Likes */}
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 sm:py-3 px-0 gap-1 sm:gap-0">
-                        <span 
-                          className="font-medium transition-colors duration-300 text-xs sm:text-sm"
-                          style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                        >
-                          Likes
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span 
-                            className="font-semibold transition-colors duration-300 text-xs sm:text-sm"
-                            style={{ color: 'rgb(var(--fg))' }}
-                          >
-                            {active.art.likes || 0}
-                          </span>
-                          <button
-                            onClick={() => handleLike(active.art)}
-                            className="p-1 rounded-full hover:bg-[rgb(var(--muted))]/20 transition-all duration-200"
-                            title="Like this photo"
-                          >
-                            <Heart 
-                              size={14}
-                              className="text-[rgb(var(--primary))] hover:scale-110 transition-transform duration-200 sm:w-4 sm:h-4"
-                            />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <button
+                  onClick={navigateRight}
+                  disabled={getRightNavigationInfo().disabled}
+                  className={`pointer-events-auto p-4 rounded-full transition-all duration-300 group ${
+                    getRightNavigationInfo().disabled ? 'opacity-0 cursor-not-allowed' : 'opacity-50 hover:opacity-100 hover:bg-white/10 backdrop-blur-sm'
+                  }`}
+                >
+                  <ChevronRight size={32} className="text-white drop-shadow-lg group-hover:translate-x-1 transition-transform" />
+                </button>
               </div>
             </div>
           </div>
-          
-          {/* Footer with navigation info */}
-          <div 
-            className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 border-t border-gray-300 dark:border-gray-600 transition-colors duration-300"
-            style={{ 
-              background: 'linear-gradient(to top, rgba(var(--bg), 0.95) 0%, rgba(var(--bg), 0.8) 100%)'
-            }}
-          >
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-4">
-                <span 
-                  className="text-xs font-mono uppercase tracking-wider transition-colors duration-300"
-                  style={{ color: 'rgba(var(--muted-fg), 0.8)' }}
-                >
-                  Image {allArtworks.findIndex(art => art.id === active.art.id) + 1} of {allArtworks.length}
+
+          {/* Sidebar Info Panel (Desktop & Mobile) */}
+          <div className="flex-none lg:flex w-full lg:w-[400px] h-auto lg:h-full bg-[rgb(var(--bg))] border-t lg:border-t-0 lg:border-l border-white/5 flex-col shadow-2xl relative z-20">
+            <div className="flex-1 lg:overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
+              
+              {/* Top Meta */}
+              <div className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8">
+                <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full border border-[rgb(var(--primary))]/30 text-[rgb(var(--primary))] text-[8px] sm:text-[10px] uppercase tracking-[0.2em] font-bold">
+                  Single Shot
                 </span>
+                <button onClick={() => handleLike(active.art)} className="group flex items-center gap-1 sm:gap-2 transition-all">
+                  <span className="text-[10px] sm:text-xs font-mono opacity-50 group-hover:opacity-100 transition-opacity hidden sm:inline">
+                    {active.art?.likes || 0} APPRECIATIONS
+                  </span>
+                  <div className="p-1.5 sm:p-2 rounded-full bg-white/5 group-hover:bg-red-500/10 transition-colors">
+                    <Heart size={14} className={`sm:w-[18px] sm:h-[18px] transition-all duration-300 ${active.art?.likes > 0 ? "fill-red-500 text-red-500" : "text-white/40 group-hover:text-red-500 group-hover:scale-110"}`} />
+                  </div>
+                </button>
               </div>
-              <div 
-                className="text-xs font-mono uppercase tracking-wider transition-colors duration-300"
-                style={{ color: 'rgba(var(--muted-fg), 0.6)' }}
-              >
-                ← → for navigation
+
+              {/* Title Section */}
+              <div className="mb-4 sm:mb-6 lg:mb-10">
+                <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold leading-[1.1] mb-1 sm:mb-2 lg:mb-3 text-[rgb(var(--fg))]">
+                  {active.art.title}
+                </h1>
+                {active.art.scientificName && (
+                  <p className="text-sm sm:text-base lg:text-xl text-[rgb(var(--primary))] italic font-serif opacity-90">
+                    {active.art.scientificName}
+                  </p>
+                )}
+              </div>
+
+              {/* Description */}
+              {active.art.description && (
+                <div className="mb-4 sm:mb-6 lg:mb-10 text-[rgb(var(--muted-fg))] leading-relaxed font-light text-sm sm:text-base lg:text-lg">
+                  {active.art.description}
+                </div>
+              )}
+
+              {/* Details Grid */}
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6 py-4 sm:py-6 lg:py-8 border-y border-white/5">
+                <div>
+                  <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--muted))] mb-1 sm:mb-2">Location</h4>
+                  <p className="text-xs sm:text-sm lg:text-base text-[rgb(var(--fg))] font-medium">{active.art.location || 'Unknown Location'}</p>
+                </div>
+                <div>
+                  <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--muted))] mb-1 sm:mb-2">Date Taken</h4>
+                  <p className="text-xs sm:text-sm lg:text-base text-[rgb(var(--fg))] font-medium">{active.art.timeTaken || 'Unknown Date'}</p>
+                </div>
+                {active.art.history && (
+                  <div>
+                    <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--muted))] mb-1 sm:mb-2">Story</h4>
+                    <p className="text-xs sm:text-sm text-[rgb(var(--fg))] leading-relaxed opacity-80">{active.art.history}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-3 sm:p-4 lg:p-6 border-t border-white/5 bg-[rgb(var(--bg))]">
+              <div className="flex justify-between items-center text-[8px] sm:text-[10px] uppercase tracking-widest text-[rgb(var(--muted))]">
+                <span>© John Philip Morada</span>
+                <span>Image {allArtworks.findIndex(art => art.id === active.art.id) + 1} / {allArtworks.length}</span>
               </div>
             </div>
           </div>
