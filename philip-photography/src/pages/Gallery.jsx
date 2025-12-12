@@ -125,40 +125,6 @@ export default function Gallery() {
   const [searchPage, setSearchPage] = useState(1)
   const [searchHasMore, setSearchHasMore] = useState(false)
 
-  // Mobile label state - track which image is showing its label
-  const [activeLabelId, setActiveLabelId] = useState(null)
-  const touchStartTimeRef = useRef(null)
-  const touchTimerRef = useRef(null)
-  const justToggledLabelRef = useRef(false)
-
-  // Close mobile labels when clicking outside or when modal opens
-  useEffect(() => {
-    if (active) {
-      setActiveLabelId(null)
-    }
-    
-    const handleClickOutside = (e) => {
-      // Only close if clicking outside gallery items on mobile
-      if (window.innerWidth < 768 && !e.target.closest('[data-gallery-item]')) {
-        setActiveLabelId(null)
-      }
-    }
-    
-    if (activeLabelId && window.innerWidth < 768) {
-      document.addEventListener('click', handleClickOutside)
-      return () => document.removeEventListener('click', handleClickOutside)
-    }
-  }, [active, activeLabelId])
-
-  // Cleanup touch timers on unmount
-  useEffect(() => {
-    return () => {
-      if (touchTimerRef.current) {
-        clearTimeout(touchTimerRef.current)
-      }
-    }
-  }, [])
-
   // Image lookup function to find image by slug
   const findImageBySlug = (slug, images) => {
     if (!slug || !images) return null;
@@ -1015,7 +981,7 @@ export default function Gallery() {
               <path d="M9 11l3 3L22 4" />
               <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
             </svg>
-            <span className="text-[10px] text-[rgb(var(--primary))] font-medium">Tap any image to view details</span>
+            <span className="text-[10px] text-[rgb(var(--primary))] font-medium">Hold any image to preview details</span>
           </div>
         </div>
 
@@ -1157,89 +1123,12 @@ export default function Gallery() {
 
             // Create a stable key that doesn't change - include series info for uniqueness
             const uniqueKey = `${art.id || 'unknown'}-${art.seriesIndex || i}-${i}`.replace(/[^a-zA-Z0-9-_]/g, '-');
-            const isLabelActive = activeLabelId === uniqueKey
-            
-            // Touch handlers for mobile label display
-            const handleTouchStart = (e) => {
-              touchStartTimeRef.current = Date.now()
-              justToggledLabelRef.current = false
-              
-              // Set a timer for long press (500ms)
-              touchTimerRef.current = setTimeout(() => {
-                setActiveLabelId(uniqueKey)
-                justToggledLabelRef.current = true
-                touchStartTimeRef.current = null
-              }, 500)
-            }
-            
-            const handleTouchEnd = (e) => {
-              const touchDuration = touchStartTimeRef.current ? Date.now() - touchStartTimeRef.current : 0
-              
-              // Clear the timer
-              if (touchTimerRef.current) {
-                clearTimeout(touchTimerRef.current)
-                touchTimerRef.current = null
-              }
-              
-              // If it was a quick tap (less than 500ms), toggle label
-              if (touchDuration < 500 && touchDuration > 0) {
-                if (isLabelActive) {
-                  // If label is already active, close it
-                  setActiveLabelId(null)
-                } else {
-                  // Show label on first tap
-                  setActiveLabelId(uniqueKey)
-                }
-                justToggledLabelRef.current = true
-                // Prevent click event from firing
-                e.preventDefault()
-                e.stopPropagation()
-              }
-              
-              touchStartTimeRef.current = null
-              
-              // Reset the flag after a short delay
-              setTimeout(() => {
-                justToggledLabelRef.current = false
-              }, 300)
-            }
-            
-            const handleTouchCancel = () => {
-              if (touchTimerRef.current) {
-                clearTimeout(touchTimerRef.current)
-                touchTimerRef.current = null
-              }
-              touchStartTimeRef.current = null
-              justToggledLabelRef.current = false
-            }
             
             return (
-              <div key={uniqueKey} className={`${gridClasses} rounded-xl overflow-visible`} data-gallery-item>
               <figure 
-                className={`group cursor-pointer w-full h-full rounded-xl overflow-hidden relative transition-all duration-500 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] hover:z-10`}
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-                onTouchCancel={handleTouchCancel}
-                onClick={(e) => {
-                  // On mobile devices
-                  if (window.innerWidth < 768) {
-                    // If we just toggled the label (from touch event), don't open modal
-                    if (justToggledLabelRef.current) {
-                      return
-                    }
-                    
-                    // If label is already visible, open modal (second tap)
-                    if (isLabelActive) {
-                      setActiveLabelId(null)
-                      // Continue to open modal below
-                    } else {
-                      // If label is not visible and this is a click (not touch), show label
-                      // This handles cases where touch events didn't fire (e.g., stylus)
-                      setActiveLabelId(uniqueKey)
-                      return
-                    }
-                  }
-                  
+                key={uniqueKey} 
+                className={`group cursor-pointer ${gridClasses} rounded-xl overflow-hidden relative transition-all duration-500 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] hover:z-10`}
+                onClick={() => {
                   // Track image view in analytics
                   if (analytics) {
                     logEvent(analytics, 'view_item', {
@@ -1292,11 +1181,11 @@ export default function Gallery() {
                   />
                   
                   
-                  {/* Elegant Gradient Overlay - Hidden on mobile */}
-                  <div className="hidden md:block absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-opacity duration-500 opacity-0 group-hover:opacity-100" />
+                  {/* Elegant Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-opacity duration-500 opacity-0 group-hover:opacity-100" />
                   
-                  {/* Content Overlay - Hidden on mobile */}
-                  <div className="hidden md:block absolute bottom-0 left-0 right-0 p-4 transition-all duration-500 ease-out transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
+                  {/* Content Overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 transition-all duration-500 ease-out transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
                     <div className="flex flex-col gap-1">
                       <span className="text-[10px] font-mono tracking-widest text-white/60 uppercase">
                         {String(i + 1).padStart(2, '0')} — {art.isSeries ? 'Series' : 'Single'}
@@ -1313,78 +1202,6 @@ export default function Gallery() {
                   </div>
                 </div>
               </figure>
-              
-              {/* Mobile Label - Appears below image on touch devices */}
-              <div 
-                className={`md:hidden mt-2 rounded-lg bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 p-3 transition-all duration-300 ease-out overflow-hidden ${
-                  isLabelActive 
-                    ? 'max-h-48 opacity-100 transform translate-y-0' 
-                    : 'max-h-0 opacity-0 transform -translate-y-2 pointer-events-none'
-                }`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-mono tracking-widest text-[rgb(var(--muted))] uppercase">
-                      {String(i + 1).padStart(2, '0')} — {art.isSeries ? 'Series' : 'Single'}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setActiveLabelId(null)
-                      }}
-                      className="text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] transition-colors p-1"
-                      aria-label="Close label"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                  <h3 className="text-[rgb(var(--fg))] font-medium text-sm leading-tight tracking-wide line-clamp-2">
-                    {art.title}
-                  </h3>
-                  {art.scientificName && (
-                    <p className="text-[rgb(var(--primary))] text-xs italic font-serif tracking-wide">
-                      {art.scientificName}
-                    </p>
-                  )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setActiveLabelId(null)
-                      // Track image view in analytics
-                      if (analytics) {
-                        logEvent(analytics, 'view_item', {
-                          item_id: art.id,
-                          item_name: art.title,
-                          item_category: 'photography',
-                          item_variant: art.isSeries ? 'series' : 'single'
-                        })
-                      }
-                      trackImageView({
-                        id: art.id,
-                        title: art.title,
-                        path: art.src,
-                        isFeatured: false
-                      }, {
-                        isSeries: art.isSeries,
-                        seriesIndex: i,
-                        galleryType: 'main'
-                      });
-                      // If this is a separated series item, use the complete series data
-                      if (art.completeSeriesData) {
-                        handleImageClick(art.completeSeriesData, art.seriesIndex - 1);
-                      } else {
-                        handleImageClick(art, 0);
-                      }
-                    }}
-                    className="mt-2 w-full flex items-center justify-center gap-2 px-3 py-2 bg-[rgb(var(--primary))]/10 hover:bg-[rgb(var(--primary))]/20 border border-[rgb(var(--primary))]/30 rounded-md text-[rgb(var(--primary))] text-xs font-medium transition-colors"
-                  >
-                    <span>View Full Image</span>
-                    <ArrowRight size={14} />
-                  </button>
-                </div>
-              </div>
-              </div>
             )
           })}
           </div>
