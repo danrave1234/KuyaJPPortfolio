@@ -293,7 +293,7 @@ export default function Home() {
           <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-4">
             <div className="text-center max-w-5xl mx-auto">
               <h1 className="font-heading text-2xl xs:text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl font-bold text-white drop-shadow-2xl mb-4 sm:mb-6 opacity-0 animate-heroReveal" style={{ letterSpacing: '0.05em' }}>
-                JP MORADA
+                John Philip Morada
               </h1>
               <div className="w-16 sm:w-24 h-0.5 sm:h-1 bg-white/80 mx-auto mb-4 sm:mb-8 rounded-full opacity-0 animate-heroReveal delay-200"></div>
               <p className="font-body text-white/90 max-w-2xl mx-auto text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-light leading-relaxed opacity-0 animate-heroReveal delay-300 tracking-wide px-2">
@@ -434,12 +434,12 @@ export default function Home() {
             {/* Text Column */}
             <div className="lg:col-span-7 flex flex-col justify-center text-left order-2 lg:order-1">
               <FadeInWhenVisible>
-                <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-[rgb(var(--primary))]/10 text-[rgb(var(--primary))] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-4 sm:mb-6 w-fit">
+                <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-[rgb(var(--primary))]/10 text-[rgb(var(--primary))] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-2 sm:mb-6 w-fit">
                   <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[rgb(var(--primary))] animate-pulse" />
-                  About The Artist
+                  About The Photographer
                 </div>
                 
-                <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight mb-4 sm:mb-6 text-[rgb(var(--fg))]">
+                <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight mb-2 sm:mb-6 text-[rgb(var(--fg))]">
                   John Philip Morada
                 </h2>
                 
@@ -487,7 +487,7 @@ export default function Home() {
             {/* Image Column */}
             <div className="lg:col-span-5 relative order-1 lg:order-2 mb-6 sm:mb-8 lg:mb-0">
               <FadeInWhenVisible delay={300} className="relative z-10">
-                <div className="relative aspect-[4/5] max-w-[280px] sm:max-w-md mx-auto lg:max-w-none transition-transform duration-500 ease-out">
+                <div className="relative aspect-[3/4] max-w-[240px] sm:max-w-md mx-auto lg:max-w-none transition-transform duration-500 ease-out">
                   <div className="absolute inset-0 bg-black/20 rounded-2xl sm:rounded-3xl transform translate-x-2 translate-y-2 sm:translate-x-4 sm:translate-y-4 -z-10" />
                   <img
                     src="/KuyaJP.jpg"
@@ -519,18 +519,18 @@ export default function Home() {
           <div className="mb-6 sm:mb-8 lg:mb-12">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-16 items-start">
               {/* Left Column - Editorial Content */}
-              <div className="lg:col-span-5 space-y-4 sm:space-y-6 lg:space-y-8 sticky top-20 sm:top-32">
+              <div className="lg:col-span-5 space-y-3 sm:space-y-6 lg:space-y-8 sticky top-20 sm:top-32">
                 <FadeInWhenVisible>
                   <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                     <span className="h-[1px] w-8 sm:w-12 bg-[rgb(var(--primary))]" />
                     <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[rgb(var(--primary))]">Selected Works</span>
                   </div>
                   
-                  <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-[rgb(var(--fg))]">
+                  <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-[rgb(var(--fg))] mb-2 sm:mb-3">
                     Moments in <span className="text-[rgb(var(--primary))] italic">Time</span>
                   </h2>
                   
-                  <p className="text-[rgb(var(--muted-fg))] leading-relaxed text-sm sm:text-base md:text-lg">
+                  <p className="text-[rgb(var(--muted-fg))] leading-relaxed text-xs sm:text-sm md:text-base">
                     Photography is more than just clicking a shutter; it's about anticipation. 
                     From the elusive Philippine Eagle to the vibrant sunbirds, each image represents hours of silent observation.
                   </p>
@@ -538,12 +538,25 @@ export default function Home() {
 
                 {/* Stats */}
                 <FadeInWhenVisible delay={200}>
-                  <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:gap-8 py-4 sm:py-6 lg:py-8 border-y border-[rgb(var(--muted))]/20">
-                    <div>
+                  {/* Mobile: Compact inline design */}
+                  <div className="sm:hidden flex items-center justify-evenly py-3 border-y border-[rgb(var(--muted))]/20">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-lg font-bold text-[rgb(var(--fg))]">10<span className="text-[rgb(var(--primary))]">+</span></span>
+                      <span className="text-[9px] text-[rgb(var(--muted-fg))] uppercase tracking-wider">Years</span>
+                    </div>
+                    <div className="h-4 w-px bg-[rgb(var(--muted))]/30"></div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-lg font-bold text-[rgb(var(--fg))]">500<span className="text-[rgb(var(--primary))]">+</span></span>
+                      <span className="text-[9px] text-[rgb(var(--muted-fg))] uppercase tracking-wider">Species</span>
+                    </div>
+                  </div>
+                  {/* Desktop: Original grid design */}
+                  <div className="hidden sm:flex items-center justify-evenly py-4 sm:py-6 lg:py-8 border-y border-[rgb(var(--muted))]/20">
+                    <div className="text-center">
                       <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[rgb(var(--fg))] mb-1">10<span className="text-[rgb(var(--primary))]">+</span></div>
                       <div className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] uppercase tracking-wider">Years Active</div>
                     </div>
-                    <div>
+                    <div className="text-center">
                       <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[rgb(var(--fg))] mb-1">500<span className="text-[rgb(var(--primary))]">+</span></div>
                       <div className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] uppercase tracking-wider">Species Logged</div>
                     </div>
@@ -603,8 +616,8 @@ export default function Home() {
                       if (!featuredImage) return null
                       
                       const containerClass = featuredImage.isPortrait 
-                        ? 'aspect-[3/4] max-w-[240px] sm:max-w-sm mx-auto' 
-                        : 'aspect-[4/3] w-full'
+                        ? 'aspect-[3/4] max-w-[180px] sm:max-w-sm mx-auto' 
+                        : 'aspect-[4/3] w-full max-w-[280px] sm:max-w-none mx-auto sm:mx-0'
                       
                       return (
                         <div className={`relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] ${containerClass}`}>
@@ -645,7 +658,7 @@ export default function Home() {
 
           {/* Full Width Carousel at Bottom */}
           <FadeInWhenVisible delay={500}>
-            <div className="relative w-full overflow-hidden mt-12 lg:mt-20">
+            <div className="relative w-full overflow-hidden mt-6 sm:mt-12 lg:mt-20">
                     {/* Enhanced gradient edge fades */}
                     <div className="pointer-events-none absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[rgb(var(--bg))] to-transparent z-10" />
                     <div className="pointer-events-none absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[rgb(var(--bg))] to-transparent z-10" />
@@ -671,7 +684,7 @@ export default function Home() {
                       {[...displayImages, ...displayImages, ...displayImages].map((photo, index) => (
                         <div 
                           key={`${photo.id}-${index}`} 
-                          className="flex-shrink-0 group cursor-pointer w-56 h-36 sm:w-72 sm:h-48 md:w-80 md:h-52 relative rounded-xl sm:rounded-2xl overflow-hidden"
+                          className="flex-shrink-0 group cursor-pointer w-40 h-24 sm:w-72 sm:h-48 md:w-80 md:h-52 relative rounded-xl sm:rounded-2xl overflow-hidden"
                           onClick={() => {
                             trackImageView({
                               id: photo.id,
@@ -1293,4 +1306,5 @@ function ModalViewer({ active, setActive, allArtworks }) {
     </>
   )
 }
+
 

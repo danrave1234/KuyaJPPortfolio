@@ -30,7 +30,7 @@ export default function FadeInWhenVisible({ children, className = "", delay = 0,
   return (
     <div
       ref={domRef}
-      className={`transition-all duration-1000 ease-out ${
+      className={`transition-all duration-[600ms] ease-out ${
         isVisible 
           ? 'opacity-100 translate-y-0 filter-none' 
           : 'opacity-0 translate-y-10 blur-sm'

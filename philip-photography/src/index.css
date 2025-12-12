@@ -38,7 +38,7 @@
   .animate-fadeIn { animation: fadeIn 0.8s ease-out forwards; }
   .animate-slideUp { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   .animate-zoomIn { animation: subtleZoom 20s ease-out forwards; }
-  .animate-heroReveal { animation: heroReveal 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .animate-heroReveal { animation: heroReveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   .animate-slideDown { animation: slideDown 2s cubic-bezier(0.77, 0, 0.175, 1) infinite; }
   
   .delay-100 { animation-delay: 100ms; }
