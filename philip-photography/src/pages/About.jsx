@@ -62,8 +62,8 @@ export default function About() {
         <div className="mt-12 sm:mt-16 space-y-12 sm:space-y-16 lg:space-y-24">
           {/* Services section for local SEO */}
           <FadeInWhenVisible delay={200}>
-            <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
-              <div className="lg:col-span-6">
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
+              <div className="sm:col-span-1 lg:col-span-6">
                 <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 sm:mb-4 transition-colors duration-300">Services</div>
                 <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300">Wildlife & bird photography services in <span className="font-extrabold" style={{ color: 'rgb(var(--primary))' }}>Batangas • Metro Manila • Southern Luzon</span></h3>
                 <ul className="list-disc pl-5 space-y-2 text-[rgb(var(--muted-fg))] text-sm sm:text-base">
@@ -75,7 +75,7 @@ export default function About() {
                   <a href="/contact" className="inline-block px-6 py-3 rounded-full border border-[rgb(var(--muted))]/30 hover:border-[rgb(var(--primary))]/50 hover:bg-[rgb(var(--primary))]/5 hover:text-[rgb(var(--fg))] transition-all duration-300 text-sm font-medium">Inquire about availability</a>
                 </div>
               </div>
-              <figure className="lg:col-span-6 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300 shadow-lg">
+              <figure className="sm:col-span-1 lg:col-span-6 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300 shadow-lg">
                 <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1600&auto=format&fit=crop" alt="Camera and field kit" className="w-full h-56 sm:h-64 md:h-72 lg:h-80 object-cover hover:scale-105 transition-transform duration-700" loading="lazy" />
               </figure>
             </section>
@@ -83,15 +83,15 @@ export default function About() {
 
           {/* What */}
           <FadeInWhenVisible delay={300}>
-            <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
-              <div className="lg:col-span-6 order-2 lg:order-1">
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
+              <div className="sm:col-span-1 lg:col-span-6 order-2 lg:order-1">
                 <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 sm:mb-4 transition-colors duration-300">What I Photograph</div>
                 <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300"><span className="font-extrabold" style={{ color: 'rgb(var(--primary))' }}>Birdlife</span> and the quiet drama of the wild</h3>
                 <p className="text-[rgb(var(--muted-fg))] text-sm sm:text-base leading-relaxed transition-colors duration-300">
                   I look for moments that most people miss, like when birds are getting ready to fly, quick looks between them, rain on their feathers, and that quiet time before sunrise. My work is slow and I watch carefully, focusing on how they <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>act</span> and where they <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>live</span> rather than dramatic shots.
                 </p>
               </div>
-              <figure className="lg:col-span-6 order-1 lg:order-2 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300 shadow-lg">
+              <figure className="sm:col-span-1 lg:col-span-6 order-1 lg:order-2 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300 shadow-lg">
                 <img
                   src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?q=80&w=1600&auto=format&fit=crop"
                   alt="Heron in mist over forested water"
@@ -104,8 +104,8 @@ export default function About() {
 
           {/* Why */}
           <FadeInWhenVisible delay={300}>
-            <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
-              <figure className="lg:col-span-6 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 lg:order-1 order-2 transition-colors duration-300 shadow-lg">
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
+              <figure className="sm:col-span-1 lg:col-span-6 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 lg:order-1 order-2 transition-colors duration-300 shadow-lg">
                 <img
                   src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1600&auto=format&fit=crop"
                   alt="Fog drifting through conifer forest"
@@ -113,7 +113,7 @@ export default function About() {
                   loading="lazy"
                 />
               </figure>
-              <div className="lg:col-span-6 lg:order-2 order-1">
+              <div className="sm:col-span-1 lg:col-span-6 lg:order-2 order-1">
                 <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 sm:mb-4 transition-colors duration-300">Why I Photograph</div>
                 <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300">To <span className="font-extrabold" style={{ color: 'rgb(var(--primary))' }}>advocate</span> for places that can't speak</h3>
                 <p className="text-[rgb(var(--muted-fg))] text-sm sm:text-base leading-relaxed transition-colors duration-300">
@@ -125,15 +125,15 @@ export default function About() {
 
           {/* How */}
           <FadeInWhenVisible delay={300}>
-            <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
-              <div className="lg:col-span-6 order-2 lg:order-1">
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
+              <div className="sm:col-span-1 lg:col-span-6 order-2 lg:order-1">
                 <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 sm:mb-4 transition-colors duration-300">How I Work</div>
                 <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300"><span className="font-extrabold" style={{ color: 'rgb(var(--primary))' }}>Fieldcraft</span> over shortcuts</h3>
                 <p className="text-[rgb(var(--muted-fg))] text-sm sm:text-base leading-relaxed transition-colors duration-300">
                   I <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>scout</span> locations, <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>read light</span>, and learn patterns. Most shoots begin with long sits, mapping wind and approach, and end quietly. <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>I do not use baiting or recorded calls</span>—anything that causes disturbance. The <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>story</span> matters more than the shot.
                 </p>
               </div>
-              <figure className="lg:col-span-6 order-1 lg:order-2 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300 shadow-lg">
+              <figure className="sm:col-span-1 lg:col-span-6 order-1 lg:order-2 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300 shadow-lg">
                 <img
                   src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop"
                   alt="Forest path leading to a hide"
@@ -146,8 +146,8 @@ export default function About() {
 
           {/* Approach & Ethics */}
           <FadeInWhenVisible delay={300}>
-            <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
-              <figure className="lg:col-span-6 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 lg:order-1 order-2 transition-colors duration-300 shadow-lg">
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
+              <figure className="sm:col-span-1 lg:col-span-6 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 lg:order-1 order-2 transition-colors duration-300 shadow-lg">
                 <img
                   src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1600&auto=format&fit=crop"
                   alt="Dense forest habitat"
@@ -155,7 +155,7 @@ export default function About() {
                   loading="lazy"
                 />
               </figure>
-              <div className="lg:col-span-6 lg:order-2 order-1">
+              <div className="sm:col-span-1 lg:col-span-6 lg:order-2 order-1">
                 <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 sm:mb-4 transition-colors duration-300">Approach & Ethics</div>
                 <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300"><span className="font-extrabold" style={{ color: 'rgb(var(--primary))' }}>Leave no trace</span>, tell the truth</h3>
                 <p className="text-[rgb(var(--muted-fg))] text-sm sm:text-base leading-relaxed transition-colors duration-300">

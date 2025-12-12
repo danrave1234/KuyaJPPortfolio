@@ -974,17 +974,6 @@ export default function Gallery() {
           <div className="mt-4 sm:mt-6 h-px w-full bg-[rgb(var(--muted))]/20 transition-colors duration-300" />
         </div>
 
-        {/* Mobile Hint - Single indicator at top */}
-        <div className="mb-4 sm:hidden">
-          <div className="flex items-center justify-center gap-2 px-4 py-2 bg-[rgb(var(--primary))]/10 border border-[rgb(var(--primary))]/20 rounded-full w-fit mx-auto">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[rgb(var(--primary))]">
-              <path d="M9 11l3 3L22 4" />
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-            </svg>
-            <span className="text-[10px] text-[rgb(var(--primary))] font-medium">Hold any image to preview details</span>
-          </div>
-        </div>
-
         {/* Search and description row */}
         <div className="mb-8 flex items-center justify-center">
           <div className="w-full max-w-3xl">
@@ -1124,6 +1113,13 @@ export default function Gallery() {
             // Create a stable key that doesn't change - include series info for uniqueness
             const uniqueKey = `${art.id || 'unknown'}-${art.seriesIndex || i}-${i}`.replace(/[^a-zA-Z0-9-_]/g, '-');
             
+            // Determine overlay height based on image orientation
+            const dimensions = imageDimensions[art.id]
+            const aspectRatio = dimensions?.aspectRatio || 1
+            // Portrait images (< 1) get 15% height, landscape images (>= 1) get very small 5% height
+            const overlayHeight = aspectRatio < 1 ? 'h-[15%]' : 'h-[5%]'
+            const isLandscape = aspectRatio >= 1
+            
             return (
               <figure 
                 key={uniqueKey} 
@@ -1181,20 +1177,20 @@ export default function Gallery() {
                   />
                   
                   
-                  {/* Elegant Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-opacity duration-500 opacity-0 group-hover:opacity-100" />
+                  {/* Elegant Gradient Overlay - Always visible on mobile, hover on desktop */}
+                  <div className={`absolute inset-0 bg-gradient-to-t ${isLandscape ? 'from-black/60 via-black/5' : 'from-black/90 via-black/20'} to-transparent transition-opacity duration-500 opacity-100 md:opacity-0 md:group-hover:opacity-100`} />
                   
-                  {/* Content Overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-4 transition-all duration-500 ease-out transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] font-mono tracking-widest text-white/60 uppercase">
+                  {/* Content Overlay - Smaller for landscape, normal for portrait on mobile */}
+                  <div className={`absolute bottom-0 left-0 right-0 ${overlayHeight} md:h-auto ${isLandscape ? 'px-2 py-1' : 'p-1.5'} md:p-4 transition-all duration-500 ease-out transform translate-y-0 opacity-100 md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 flex items-end`}>
+                    <div className={`flex flex-col gap-0 md:gap-1 w-full ${isLandscape ? 'px-1' : ''}`}>
+                      <span className={`${isLandscape ? 'text-[5px]' : 'text-[7px]'} md:text-[10px] font-mono tracking-widest text-white/60 uppercase`}>
                         {String(i + 1).padStart(2, '0')} — {art.isSeries ? 'Series' : 'Single'}
                       </span>
-                      <h3 className="text-white font-medium text-sm sm:text-base leading-tight tracking-wide drop-shadow-md line-clamp-2">
+                      <h3 className={`text-white font-medium ${isLandscape ? 'text-[8px]' : 'text-[10px]'} md:text-sm lg:text-base leading-tight tracking-wide drop-shadow-md line-clamp-1 md:line-clamp-2`}>
                         {art.title}
                       </h3>
                       {art.scientificName && (
-                        <p className="text-white/70 text-xs italic font-serif mt-0.5 tracking-wide">
+                        <p className={`text-white/70 ${isLandscape ? 'text-[7px]' : 'text-[9px]'} md:text-xs italic font-serif mt-0 md:mt-0.5 tracking-wide line-clamp-1`}>
                           {art.scientificName}
                         </p>
                       )}

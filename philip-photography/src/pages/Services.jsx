@@ -48,7 +48,7 @@ export default function Services() {
           </header>
 
           {/* Services - Professional Grid Layout */}
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-12">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-12">
             {/* Service 1: Editorial Photography */}
             <FadeInWhenVisible delay={100}>
               <div className="group relative h-full">
@@ -172,36 +172,36 @@ export default function Services() {
                 <div className="w-16 sm:w-20 h-px bg-[rgb(var(--primary))] mx-auto"></div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-                <div className="text-center p-6 border border-[rgb(var(--muted))]/20 rounded-xl hover:border-[rgb(var(--primary))]/30 transition-all duration-300">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[rgb(var(--primary))]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-[rgb(var(--primary))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
+                <div className="text-center p-3 sm:p-4 md:p-6 border border-[rgb(var(--muted))]/20 rounded-xl hover:border-[rgb(var(--primary))]/30 transition-all duration-300">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-[rgb(var(--primary))]/10 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 md:mb-4">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-[rgb(var(--primary))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                   </div>
-                  <h4 className="font-semibold text-[rgb(var(--fg))] mb-2 text-base sm:text-lg">Primary Coverage</h4>
-                  <p className="text-xs sm:text-sm text-[rgb(var(--muted-fg))]">Batangas, Metro Manila, Southern Luzon</p>
+                  <h4 className="font-semibold text-[rgb(var(--fg))] mb-1 sm:mb-2 text-sm sm:text-base md:text-lg">Primary Coverage</h4>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-[rgb(var(--muted-fg))] leading-tight">Batangas, Metro Manila, Southern Luzon</p>
                 </div>
                 
-                <div className="text-center p-6 border border-[rgb(var(--muted))]/20 rounded-xl hover:border-[rgb(var(--primary))]/30 transition-all duration-300">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[rgb(var(--primary))]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-[rgb(var(--primary))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center p-3 sm:p-4 md:p-6 border border-[rgb(var(--muted))]/20 rounded-xl hover:border-[rgb(var(--primary))]/30 transition-all duration-300">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-[rgb(var(--primary))]/10 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 md:mb-4">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-[rgb(var(--primary))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h4 className="font-semibold text-[rgb(var(--fg))] mb-2 text-base sm:text-lg">Nationwide</h4>
-                  <p className="text-xs sm:text-sm text-[rgb(var(--muted-fg))]">Available across the Philippines</p>
+                  <h4 className="font-semibold text-[rgb(var(--fg))] mb-1 sm:mb-2 text-sm sm:text-base md:text-lg">Nationwide</h4>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-[rgb(var(--muted-fg))] leading-tight">Available across the Philippines</p>
                 </div>
                 
-                <div className="text-center p-6 border border-[rgb(var(--muted))]/20 rounded-xl hover:border-[rgb(var(--primary))]/30 transition-all duration-300">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[rgb(var(--primary))]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-[rgb(var(--primary))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="text-center p-3 sm:p-4 md:p-6 border border-[rgb(var(--muted))]/20 rounded-xl hover:border-[rgb(var(--primary))]/30 transition-all duration-300 col-span-2 md:col-span-1">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 bg-[rgb(var(--primary))]/10 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 md:mb-4">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 text-[rgb(var(--primary))]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
                     </svg>
                   </div>
-                  <h4 className="font-semibold text-[rgb(var(--fg))] mb-2 text-base sm:text-lg">International</h4>
-                  <p className="text-xs sm:text-sm text-[rgb(var(--muted-fg))]">Conservation projects worldwide</p>
+                  <h4 className="font-semibold text-[rgb(var(--fg))] mb-1 sm:mb-2 text-sm sm:text-base md:text-lg">International</h4>
+                  <p className="text-[10px] sm:text-xs md:text-sm text-[rgb(var(--muted-fg))] leading-tight">Conservation projects worldwide</p>
                 </div>
               </div>
             </FadeInWhenVisible>
