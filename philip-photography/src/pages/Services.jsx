@@ -308,6 +308,7 @@ export default function Services() {
                 </div>
               </div>
             </div>
+            </FadeInWhenVisible>
           </section>
 
           {/* Call to Action - Professional */}
