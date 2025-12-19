@@ -5,6 +5,9 @@ export const metadata = {
   ...homeMetadata,
   title: 'Japi Morada Photography - John Philip Morada Wildlife & Nature Photography Portfolio',
   description: 'Japi Morada Photography - Professional wildlife and nature photography by John Philip Morada. Capturing the beauty of Philippine wildlife, birds, and nature through patient observation and storytelling.',
+  alternates: {
+    canonical: '/',
+  },
 }
 
 export default function Home() {

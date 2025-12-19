@@ -10,6 +10,7 @@ import ErrorBoundary from '@/app/components/ErrorBoundary'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
+  metadataBase: new URL('https://jpmorada.photography'),
   title: 'Japi Morada Photography - John Philip Morada Wildlife & Nature Photography Portfolio',
   description: 'Japi Morada Photography - Professional wildlife and nature photography by John Philip Morada. Capturing the beauty of Philippine wildlife, birds, and nature through patient observation and storytelling. Available for photography bookings and collaborations.',
   keywords: 'Japi Morada, Japi Photography, John Philip Photography, John Philip Morada Photography, John Philip Morada Portfolio, wildlife photography, nature photography, bird photography, Philippine wildlife, John Philip Morada, nature conservation, wildlife art, photographer Philippines, wildlife photographer, nature photographer, bird photographer, Philippine birds, wildlife portfolio, nature portfolio, photography services, wildlife booking, nature photography booking',
@@ -22,13 +23,13 @@ export const metadata = {
   },
   openGraph: {
     type: 'website',
-    url: 'https://jpmorada.photography',
+    url: '/',
     title: 'Japi Morada Photography - John Philip Morada Wildlife & Nature Photography Portfolio',
     description: 'Japi Morada Photography - Professional wildlife and nature photography by John Philip Morada. Capturing the beauty of Philippine wildlife, birds, and nature through patient observation and storytelling. Available for photography bookings and collaborations.',
     siteName: 'John Philip Morada Photography',
     images: [
       {
-        url: 'https://jpmorada.photography/LightmodeLogo.png',
+        url: '/LightmodeLogo.png',
         width: 1200,
         height: 630,
         alt: 'John Philip Morada Photography',
@@ -40,7 +41,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'Japi Morada Photography - John Philip Morada Wildlife & Nature Photography Portfolio',
     description: 'Japi Morada Photography - Professional wildlife and nature photography by John Philip Morada. Capturing the beauty of Philippine wildlife, birds, and nature through patient observation and storytelling.',
-    images: ['https://jpmorada.photography/LightmodeLogo.png'],
+    images: ['/LightmodeLogo.png'],
     creator: '@kuyajp',
     site: '@kuyajp',
   },
@@ -58,7 +59,7 @@ export const metadata = {
   },
   manifest: '/manifest.json',
   alternates: {
-    canonical: 'https://jpmorada.photography',
+    canonical: '/',
   },
   other: {
     'geo.region': 'PH',

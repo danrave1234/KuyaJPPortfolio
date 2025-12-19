@@ -5,6 +5,9 @@ export const metadata = {
   ...baseMetadata,
   title: 'Wildlife & Nature Photography Gallery - John Philip Morada',
   description: 'Explore the wildlife and nature photography gallery by John Philip Morada. Featuring Philippine wildlife, birds, and nature photography.',
+  alternates: {
+    canonical: '/gallery',
+  },
 }
 
 export default function Gallery() {

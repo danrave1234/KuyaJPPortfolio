@@ -19,7 +19,12 @@ export async function generateMetadata({ params }) {
   const { slug } = await params
   const images = await getImages()
   
-  if (!images) return baseMetadata
+  if (!images) return {
+    ...baseMetadata,
+    alternates: {
+      canonical: `/gallery/${slug}`,
+    }
+  }
 
   // Find the image that matches the slug
   const image = images.find(img => {
@@ -36,7 +41,12 @@ export async function generateMetadata({ params }) {
     return generateSlug(title, scientificName, cleanId) === slug
   })
 
-  if (!image) return baseMetadata
+  if (!image) return {
+    ...baseMetadata,
+    alternates: {
+      canonical: `/gallery/${slug}`,
+    }
+  }
 
   const title = image.title || 'Untitled'
   const scientificName = image.scientificName ? ` (${image.scientificName})` : ''
@@ -60,6 +70,9 @@ export async function generateMetadata({ params }) {
       title: displayTitle,
       description: description,
       images: imageUrl ? [imageUrl] : baseMetadata.twitter?.images,
+    },
+    alternates: {
+      canonical: `/gallery/${slug}`,
     }
   }
 }

@@ -68,3 +68,13 @@
     "NEW INSTRUCTION": "WHEN modifying Next.js metadata or dynamic route files THEN run build and verify affected pages"
 }
 
+[2025-12-20 01:05] - Updated by Junie - Trajectory analysis
+{
+    "PLAN QUALITY": "suboptimal",
+    "REDUNDANT STEPS": "set global canonical in layout,add canonical to home",
+    "MISSING STEPS": "remove global canonical,scan project routes,update services page,add dynamic canonical for gallery/[slug]",
+    "BOTTLENECK": "Canonical set in layout overrides pages, recreating the original issue.",
+    "PROJECT NOTE": "Use generateMetadata in app/gallery/[slug]/page.jsx to build canonical from params.slug.",
+    "NEW INSTRUCTION": "WHEN layout metadata includes alternates.canonical THEN remove it and add per-page canonicals"
+}
+

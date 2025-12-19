@@ -6,6 +6,9 @@ export const metadata = {
   title: 'Wildlife & Bird Photography Services | Batangas, Luzon',
   description: 'Professional wildlife and bird photography services based in Batangas, Luzon. Assignments across Batangas, Metro Manila, and Southern Luzon. Ethical, fieldcraft-first approach.',
   keywords: 'bird photographer Batangas, wildlife photographer Luzon, bird photography services, Metro Manila wildlife photography',
+  alternates: {
+    canonical: '/services',
+  },
 }
 
 export default function Services() {
