@@ -1,10 +1,11 @@
+'use client'
+
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { uploadMultipleImages, deleteImage, getImagesFromFolder } from '../firebase/storage'
 import { getAdminGalleryImages, searchAdminGalleryImages, clearAdminCache, cleanupAdminCache, uploadWithProgress, deleteImageWithCache, updateImageMetadataWithCache, getAdminFeaturedImages, uploadFeaturedWithProgress, deleteFeaturedImageWithCache, clearFeaturedCache } from '../firebase/admin-api'
 import { signInUser, signOutUser } from '../firebase/auth'
 import { initTheme } from '../theme.js'
-import SEO from '../components/SEO'
 import AnalyticsDashboard from '../components/AnalyticsDashboard'
 import { 
   Upload, 
@@ -60,6 +61,7 @@ export default function Admin() {
   const [selectedImages, setSelectedImages] = useState(new Set())
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [editingImage, setEditingImage] = useState(null)
+  const [editingImageOrientation, setEditingImageOrientation] = useState('landscape') // 'landscape' or 'portrait'
   const [editForm, setEditForm] = useState({ 
     title: '', 
     description: '', 
@@ -83,22 +85,47 @@ export default function Admin() {
   // Upload modal state
   const [showUploadModal, setShowUploadModal] = useState(false)
   
-  // Handle escape key to close modal
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape' && showUploadModal) {
-        setShowUploadModal(false)
-      }
-    }
-    
-    if (showUploadModal) {
-      document.addEventListener('keydown', handleEscape)
-      return () => document.removeEventListener('keydown', handleEscape)
-    }
-  }, [showUploadModal])
+  // Featured gallery state
   const [featuredImages, setFeaturedImages] = useState([])
   const [featuredSelectedImages, setFeaturedSelectedImages] = useState(new Set())
   const [featuredEditingImage, setFeaturedEditingImage] = useState(null)
+  
+  // Handle escape key and scroll lock
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        if (showUploadModal) setShowUploadModal(false)
+        if (editingImage) handleCancelEdit()
+        if (featuredEditingImage) setFeaturedEditingImage(null)
+        if (showDeleteConfirm) setShowDeleteConfirm(false)
+      }
+    }
+    
+    const isAnyModalOpen = showUploadModal || editingImage || featuredEditingImage || showDeleteConfirm
+
+    if (isAnyModalOpen) {
+      document.addEventListener('keydown', handleEscape)
+      
+      // Lock scroll on both body and the main content area
+      const originalBodyOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      
+      const mainElement = document.querySelector('main')
+      let originalMainOverflow = ''
+      if (mainElement) {
+        originalMainOverflow = mainElement.style.overflow
+        mainElement.style.overflow = 'hidden'
+      }
+
+      return () => {
+        document.removeEventListener('keydown', handleEscape)
+        document.body.style.overflow = originalBodyOverflow || 'unset'
+        if (mainElement) {
+          mainElement.style.overflow = originalMainOverflow || 'auto'
+        }
+      }
+    }
+  }, [showUploadModal, editingImage, featuredEditingImage, showDeleteConfirm])
   const [featuredEditForm, setFeaturedEditForm] = useState({ title: '', description: '' })
   const [featuredUploadTitle, setFeaturedUploadTitle] = useState('')
   const [featuredUploadDescription, setFeaturedUploadDescription] = useState('')
@@ -631,6 +658,7 @@ export default function Admin() {
   // Handle edit image
   const handleEditImage = (image) => {
     setEditingImage(image)
+    setEditingImageOrientation('landscape') // Reset to default
     setEditForm({
       title: image.title || image.name.replace(/\.[^/.]+$/, ""),
       description: image.description || '',
@@ -768,10 +796,7 @@ export default function Admin() {
   if (loading) {
     return (
       <>
-        <SEO 
-          title="Admin Portal - John Philip Morada Photography"
-          description="Admin portal for managing John Philip Morada Photography website"
-        />
+        {/* SEO handled by Next.js metadata API */}
         <div className="min-h-screen bg-[rgb(var(--bg))] flex items-center justify-center p-4">
         <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl max-w-md w-full border border-[rgb(var(--muted))]/20">
           <div className="text-center">
@@ -792,10 +817,7 @@ export default function Admin() {
   if (!isAuthenticated) {
     return (
       <>
-        <SEO 
-          title="Admin Login - John Philip Morada Photography"
-          description="Admin login for John Philip Morada Photography website"
-        />
+        {/* SEO handled by Next.js metadata API */}
         <div className="min-h-screen bg-[rgb(var(--bg))] flex items-center justify-center p-4">
         <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl max-w-md w-full border border-[rgb(var(--muted))]/20">
           <div className="text-center mb-8">
@@ -890,10 +912,7 @@ export default function Admin() {
 
   return (
     <>
-      <SEO 
-        title="Admin Dashboard - John Philip Morada Photography"
-        description="Admin dashboard for managing John Philip Morada Photography website"
-      />
+      {/* SEO handled by Next.js metadata API */}
       <div className="min-h-screen bg-gradient-to-br from-[rgb(var(--bg))] via-[rgb(var(--bg))]/95 to-[rgb(var(--primary))]/5 flex relative overflow-hidden">
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
@@ -906,7 +925,7 @@ export default function Admin() {
       {/* Sidebar */}
       <div className={`${sidebarCollapsed ? 'w-16' : 'w-64'} ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} fixed md:fixed z-10 transition-all duration-300 bg-[rgb(var(--bg))]/95 backdrop-blur-xl border-r border-[rgb(var(--muted))]/20 flex flex-col min-h-screen h-screen`}>
         {/* Sidebar Header */}
-        <div className="p-6 pt-20 md:pt-24 border-b border-[rgb(var(--muted))]/20 relative">
+        <div className="p-6 pt-20 md:pt-20 border-b border-[rgb(var(--muted))]/20 relative">
           <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
             <div className="w-10 h-10 bg-[rgb(var(--primary))] rounded-xl flex items-center justify-center flex-shrink-0">
               <ShieldCheck className="w-5 h-5 text-white" />
@@ -1062,9 +1081,9 @@ export default function Admin() {
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 pt-12 overflow-y-auto overflow-x-hidden">
+        <main className="flex-1 p-6 pt-6 overflow-y-auto overflow-x-hidden">
           {activeTab === 'dashboard' && (
-            <div className="space-y-8">
+            <div className="space-y-4">
               {/* Hero */}
               <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl rounded-3xl border border-[rgb(var(--muted))]/20 shadow-xl p-8 lg:p-10 flex flex-col lg:flex-row gap-8">
                 <div className="flex-1 space-y-4">
@@ -1272,14 +1291,12 @@ export default function Admin() {
           )}
 
           {activeTab === 'gallery' && (
-            <div className="space-y-8">
-
-
-        {/* Gallery Management */}
+            <div className="space-y-4">
+              {/* Gallery Management */}
         <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl rounded-3xl border border-[rgb(var(--muted))]/20 shadow-xl overflow-hidden">
-          <div className="p-8">
+          <div className="p-0">
             {/* Sticky Controls */}
-            <div className="sticky top-16 z-20 -mx-8 px-8 py-4 bg-[rgb(var(--bg))]/95 backdrop-blur-xl border-b border-[rgb(var(--muted))]/20 space-y-4">
+            <div className="sticky top-0 z-20 px-4 lg:px-6 py-1.5 bg-[rgb(var(--bg))]/95 backdrop-blur-xl border-b border-[rgb(var(--muted))]/20 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">Gallery controls</h3>
@@ -1393,9 +1410,10 @@ export default function Admin() {
                   )}
                 </div>
               </div>
+            </div>
 
             {/* Pagination & Meta */}
-            <div className="pt-6 space-y-4">
+            <div className="px-4 lg:px-6 py-3 space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="text-sm text-[rgb(var(--muted))]">
                   {isSearching ? (
@@ -1443,7 +1461,6 @@ export default function Admin() {
                   </button>
                 </div>
               </div>
-            </div>
             </div>
 
             {uploading && galleryImages.length === 0 ? (
@@ -1508,11 +1525,13 @@ export default function Admin() {
                     }`}
                     onClick={() => toggleImageSelection(image.path)}
                   >
-                    <img
-                      src={image.src}
-                      alt={image.title}
-                      className="w-full h-40 object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                    <div className="relative aspect-video bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center overflow-hidden">
+                      <img
+                        src={image.src}
+                        alt={image.title}
+                        className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                      />
+                    </div>
 
                     {/* Series/featured badge */}
                     {(() => {
@@ -1767,15 +1786,15 @@ export default function Admin() {
                         Current Featured Photo
                       </h3>
                       <div className="flex items-center gap-6">
-                        <div className="relative">
+                        <div className="relative bg-slate-100 dark:bg-slate-800/50 rounded-xl overflow-hidden flex items-center justify-center w-48 h-48">
                           <img
                             src={featuredImages[0].src}
                             alt={featuredImages[0].title}
-                            className="w-48 h-48 object-cover rounded-xl shadow-lg"
+                            className="w-full h-full object-contain shadow-lg"
                           />
-                          <div className="absolute -top-2 -right-2 bg-[rgb(var(--primary))] text-white px-2 py-1 rounded-lg text-xs font-medium">
+                          <div className="absolute -top-2 -right-2 bg-[rgb(var(--primary))] text-white px-2 py-1 rounded-lg text-xs font-medium z-10">
                             Featured
-                  </div>
+                          </div>
                         </div>
                         <div className="flex-1">
                           <h4 className="text-lg font-semibold text-[rgb(var(--fg))] mb-2">{featuredImages[0].title}</h4>
@@ -2089,11 +2108,11 @@ export default function Admin() {
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                             {files.map((file, index) => (
                               <div key={index} className="relative group cursor-pointer">
-                                <div className="aspect-square rounded-2xl overflow-hidden border-2 border-[rgb(var(--muted))]/20 group-hover:border-[rgb(var(--primary))]/50 transition-all duration-300 group-hover:shadow-2xl group-hover:scale-110 group-hover:z-10">
+                                <div className="aspect-square rounded-2xl overflow-hidden border-2 border-[rgb(var(--muted))]/20 group-hover:border-[rgb(var(--primary))]/50 transition-all duration-300 group-hover:shadow-2xl group-hover:scale-110 group-hover:z-10 bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center">
                                   <img
                                     src={file instanceof File ? URL.createObjectURL(file) : file.src || '#'}
                                     alt={file.name || 'Image'}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
                                   />
                                 </div>
                                 
@@ -2263,8 +2282,14 @@ export default function Admin() {
 
       {/* Edit Image Modal */}
       {editingImage && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-[rgb(var(--bg))]/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-4xl w-full h-[95vh] sm:h-[90vh] flex flex-col border border-[rgb(var(--muted))]/20">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4"
+          onClick={handleCancelEdit}
+        >
+          <div 
+            className="bg-[rgb(var(--bg))]/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-4xl w-full h-[95vh] sm:h-[90vh] flex flex-col border border-[rgb(var(--muted))]/20"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Modal Header */}
             <div className="p-4 border-b border-[rgb(var(--muted))]/20 bg-[rgb(var(--primary))]/5">
               <div className="flex items-center justify-between">
@@ -2294,12 +2319,16 @@ export default function Admin() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
                 {/* Left Column - Photo Preview */}
                 <div className="space-y-2 sm:space-y-3">
-                  <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-4 sm:p-6">
-                    <div className="relative">
-              <img
-                src={editingImage.src}
-                alt={editingImage.title}
-                        className="w-full h-48 sm:h-56 lg:h-64 object-cover rounded-xl shadow-lg"
+                  <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-4 sm:p-6 flex flex-col items-center justify-center min-h-[300px]">
+                    <div className={`relative w-full ${editingImageOrientation === 'portrait' ? 'max-w-[300px]' : 'max-w-full'}`}>
+                      <img
+                        src={editingImage.src}
+                        alt={editingImage.title}
+                        onLoad={(e) => {
+                          const { naturalWidth, naturalHeight } = e.target;
+                          setEditingImageOrientation(naturalHeight > naturalWidth ? 'portrait' : 'landscape');
+                        }}
+                        className={`w-full h-auto max-h-[50vh] object-contain rounded-xl shadow-lg transition-all duration-500`}
                       />
                       {(() => {
                         const fileName = editingImage.name.replace(/\.[^/.]+$/, "");

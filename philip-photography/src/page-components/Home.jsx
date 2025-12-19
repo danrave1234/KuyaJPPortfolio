@@ -1,11 +1,98 @@
-import { Link } from 'react-router-dom'
+'use client'
+
+import Link from 'next/link'
 import { useEffect, useState, useRef } from 'react'
 import { ChevronRight, User, X, ChevronLeft, ChevronRight as ChevronRightIcon, Maximize2, Minimize2, Heart, ArrowDown } from 'lucide-react'
 import { getImagesFromFolder } from '../firebase/storage'
 import { getFeaturedImages } from '../firebase/admin-api'
 import { trackImageView, trackGalleryNavigation } from '../services/analytics'
-import SEO from '../components/SEO'
-import FadeInWhenVisible from '../components/FadeInWhenVisible'
+import FadeInWhenVisible from '@/app/components/FadeInWhenVisible'
+
+// Experience Badge Component
+function ExperienceBadge() {
+  const [bgColor, setBgColor] = useState('#FFFFFF')
+  
+  useEffect(() => {
+    const updateBg = () => {
+      if (typeof window !== 'undefined') {
+        const isDark = document.documentElement.classList.contains('dark')
+        setBgColor(isDark ? '#1F2937' : '#FFFFFF') // gray-800 in dark mode, white in light mode
+      }
+    }
+    
+    updateBg()
+    
+    const observer = new MutationObserver(updateBg)
+    if (typeof window !== 'undefined') {
+      observer.observe(document.documentElement, { 
+        attributes: true, 
+        attributeFilter: ['class'] 
+      })
+    }
+    
+    return () => observer.disconnect()
+  }, [])
+  
+  return (
+    <div 
+      className="absolute -bottom-4 -left-4 sm:-bottom-6 sm:-left-6 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xl border border-gray-400 dark:border-gray-700 hidden sm:block animate-bounce" 
+      style={{ animationDuration: '3s', backgroundColor: bgColor }}
+    >
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="text-2xl sm:text-3xl font-bold text-[rgb(var(--primary))]">10+</div>
+        <div className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide leading-tight text-[rgb(var(--fg))] dark:text-[rgb(var(--muted-fg))] opacity-90 dark:opacity-100">
+          Years of<br />Experience
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Featured Image Overlay Card Component
+function FeaturedImageOverlayCard({ featuredImage }) {
+  const [bgColor, setBgColor] = useState('#F8F6F2')
+  
+  useEffect(() => {
+    const updateBg = () => {
+      if (typeof window !== 'undefined') {
+        const isDark = document.documentElement.classList.contains('dark')
+        setBgColor(isDark ? 'rgba(0, 0, 0, 0.8)' : '#F8F6F2')
+      }
+    }
+    
+    updateBg()
+    
+    // Watch for theme changes
+    const observer = new MutationObserver(updateBg)
+    if (typeof window !== 'undefined') {
+      observer.observe(document.documentElement, { 
+        attributes: true, 
+        attributeFilter: ['class'] 
+      })
+    }
+    
+    return () => observer.disconnect()
+  }, [])
+  
+  return (
+    <div className="absolute bottom-3 left-3 right-3 sm:bottom-6 sm:left-6 sm:right-6 z-20 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 opacity-0 group-hover:opacity-100">
+      <div 
+        className="backdrop-blur-md p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-300 dark:border-white/20 shadow-xl dark:shadow-xl transition-colors duration-300"
+        style={{ backgroundColor: bgColor }}
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-heading text-sm sm:text-base lg:text-lg font-bold text-[rgb(var(--fg))]">{featuredImage.title}</h3>
+            <p className="text-[10px] sm:text-xs text-[rgb(var(--fg))] dark:text-[rgb(var(--muted-fg))] opacity-70 dark:opacity-100">Featured Collection</p>
+          </div>
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[rgb(var(--fg))] dark:bg-[rgb(var(--fg))] flex items-center justify-center text-white dark:text-[rgb(var(--bg))] flex-shrink-0">
+            <Maximize2 size={12} className="sm:w-4 sm:h-4" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function Home() {
   const [active, setActive] = useState(null)
@@ -18,6 +105,31 @@ export default function Home() {
   const [featuredImages, setFeaturedImages] = useState([])
   const [featuredLoading, setFeaturedLoading] = useState(true)
   const [featuredImageDimensions, setFeaturedImageDimensions] = useState({})
+  
+  // Logo state for theme-aware logo
+  const [logoSrc, setLogoSrc] = useState('/LightmodeLogo.svg')
+  
+  useEffect(() => {
+    const updateLogo = () => {
+      if (typeof window !== 'undefined') {
+        const isDark = document.documentElement.classList.contains('dark')
+        setLogoSrc(isDark ? '/DarkmodeLogo.svg' : '/LightmodeLogo.svg')
+      }
+    }
+    
+    updateLogo()
+    
+    // Watch for theme changes
+    const observer = new MutationObserver(updateLogo)
+    if (typeof window !== 'undefined') {
+      observer.observe(document.documentElement, { 
+        attributes: true, 
+        attributeFilter: ['class'] 
+      })
+    }
+    
+    return () => observer.disconnect()
+  }, [])
 
   // Load images from Firebase Storage with improved caching and loading logic
   useEffect(() => {
@@ -243,11 +355,7 @@ export default function Home() {
 
   return (
     <>
-      <SEO 
-        title="John Philip Morada Photography - Wildlife & Nature Photography Portfolio"
-        description="Professional wildlife and nature photography by John Philip Morada. Capturing the beauty of Philippine wildlife, birds, and nature through patient observation and storytelling."
-        keywords="wildlife photography, nature photography, bird photography, Philippine wildlife, John Philip Morada, nature conservation, wildlife art"
-      />
+      {/* SEO handled by Next.js metadata API */}
       {/* Full-width hero */}
       <section id="home" className="snap-start min-h-screen relative w-full overflow-x-hidden bg-black">
         <div className="relative h-dvh overflow-hidden group">
@@ -302,7 +410,7 @@ export default function Home() {
               
               <div className="mt-6 sm:mt-8 lg:mt-12 opacity-0 animate-heroReveal delay-500">
                 <Link 
-                  to="/gallery" 
+                  href="/gallery" 
                   className="group relative inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-md border border-white/30 rounded-full text-white overflow-hidden transition-all duration-300 hover:bg-white hover:text-black hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
                   onClick={() => trackGalleryNavigation('main', 'view_gallery_link')}
                 >
@@ -451,24 +559,24 @@ export default function Home() {
               {/* Philosophy Cards - Hidden on mobile */}
               <div className="hidden sm:grid sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-10">
                 <FadeInWhenVisible delay={200}>
-                  <div className="group p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+                  <div className="group p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 shadow-md dark:shadow-sm hover:shadow-lg dark:hover:shadow-md transition-all duration-300 hover:-translate-y-1">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[rgb(var(--primary))]/10 flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-[rgb(var(--primary))] group-hover:text-white transition-colors duration-300">
                       <Heart size={16} className="sm:w-5 sm:h-5 text-[rgb(var(--primary))] group-hover:text-white" />
                     </div>
-                    <h4 className="font-heading text-base sm:text-lg font-bold mb-1.5 sm:mb-2">My Philosophy</h4>
-                    <p className="text-xs sm:text-sm text-[rgb(var(--muted-fg))] leading-relaxed">
+                    <h4 className="font-heading text-base sm:text-lg font-bold mb-1.5 sm:mb-2 text-[rgb(var(--fg))]">My Philosophy</h4>
+                    <p className="text-xs sm:text-sm text-[rgb(var(--fg))] dark:text-[rgb(var(--muted-fg))] leading-relaxed opacity-80 dark:opacity-100">
                       I believe every image should advocate for conservation. By showing the beauty of our wildlife, I hope to inspire protection.
                     </p>
                   </div>
                 </FadeInWhenVisible>
 
                 <FadeInWhenVisible delay={400}>
-                  <div className="group p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
+                  <div className="group p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 shadow-md dark:shadow-sm hover:shadow-lg dark:hover:shadow-md transition-all duration-300 hover:-translate-y-1">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[rgb(var(--primary))]/10 flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-[rgb(var(--primary))] group-hover:text-white transition-colors duration-300">
                       <User size={16} className="sm:w-5 sm:h-5 text-[rgb(var(--primary))] group-hover:text-white" />
                     </div>
-                    <h4 className="font-heading text-base sm:text-lg font-bold mb-1.5 sm:mb-2">My Approach</h4>
-                    <p className="text-xs sm:text-sm text-[rgb(var(--muted-fg))] leading-relaxed">
+                    <h4 className="font-heading text-base sm:text-lg font-bold mb-1.5 sm:mb-2 text-[rgb(var(--fg))]">My Approach</h4>
+                    <p className="text-xs sm:text-sm text-[rgb(var(--fg))] dark:text-[rgb(var(--muted-fg))] leading-relaxed opacity-80 dark:opacity-100">
                       Respect for the subject comes first. I use long lenses and careful fieldcraft to document without disturbing natural behavior.
                     </p>
                   </div>
@@ -476,7 +584,7 @@ export default function Home() {
               </div>
 
               <FadeInWhenVisible delay={600}>
-                <Link to="/about" className="inline-flex items-center gap-2 text-[rgb(var(--primary))] font-semibold hover:gap-4 transition-all duration-300 group">
+                <Link href="/about" className="inline-flex items-center gap-2 text-[rgb(var(--primary))] font-semibold hover:gap-4 transition-all duration-300 group">
                   Read Full Bio 
                   <span className="w-8 h-[1px] bg-[rgb(var(--primary))] group-hover:w-12 transition-all duration-300" />
                   <ChevronRight size={16} />
@@ -488,22 +596,15 @@ export default function Home() {
             <div className="lg:col-span-5 relative order-1 lg:order-2 mb-6 sm:mb-8 lg:mb-0">
               <FadeInWhenVisible delay={300} className="relative z-10">
                 <div className="relative aspect-[3/4] max-w-[240px] sm:max-w-md mx-auto lg:max-w-none transition-transform duration-500 ease-out">
-                  <div className="absolute inset-0 bg-black/20 rounded-2xl sm:rounded-3xl transform translate-x-2 translate-y-2 sm:translate-x-4 sm:translate-y-4 -z-10" />
+                  <div className="absolute inset-0 bg-gray-300 dark:bg-black/20 rounded-2xl sm:rounded-3xl transform translate-x-2 translate-y-2 sm:translate-x-4 sm:translate-y-4 -z-10" />
                   <img
                     src="/KuyaJP.jpg"
                     alt="John Philip Morada"
-                    className="w-full h-full object-cover rounded-2xl sm:rounded-3xl shadow-2xl border-2 sm:border-4 border-white dark:border-gray-800"
+                    className="w-full h-full object-cover rounded-2xl sm:rounded-3xl shadow-2xl border-2 sm:border-4 border-gray-400 dark:border-white/20"
                   />
                   
                   {/* Floating Badge */}
-                  <div className="absolute -bottom-4 -left-4 sm:-bottom-6 sm:-left-6 bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 hidden sm:block animate-bounce" style={{ animationDuration: '3s' }}>
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="text-2xl sm:text-3xl font-bold text-[rgb(var(--primary))]">10+</div>
-                      <div className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide leading-tight text-[rgb(var(--muted-fg))]">
-                        Years of<br />Experience
-                      </div>
-                    </div>
-                  </div>
+                  <ExperienceBadge />
                 </div>
               </FadeInWhenVisible>
             </div>
@@ -565,7 +666,7 @@ export default function Home() {
 
                 <FadeInWhenVisible delay={400}>
                   <div className="hidden sm:flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                    <Link to="/gallery" className="btn bg-[rgb(var(--fg))] text-[rgb(var(--bg))] px-6 sm:px-8 py-2.5 sm:py-3 rounded-full hover:scale-105 transition-transform text-sm sm:text-base">
+                    <Link href="/gallery" className="btn bg-[rgb(var(--fg))] text-[rgb(var(--bg))] px-6 sm:px-8 py-2.5 sm:py-3 rounded-full hover:scale-105 transition-transform text-sm sm:text-base">
                       View All Works
                     </Link>
                     <span className="text-xs sm:text-sm text-[rgb(var(--muted-fg))] italic">Updated Monthly</span>
@@ -621,7 +722,7 @@ export default function Home() {
                       
                       return (
                         <div className={`relative overflow-hidden rounded-2xl sm:rounded-3xl shadow-2xl transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] ${containerClass}`}>
-                          <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
+                          <div className="absolute inset-0 bg-gray-900/10 dark:bg-black/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
                           <img
                             src={featuredImage.src}
                             alt={featuredImage.alt}
@@ -633,19 +734,7 @@ export default function Home() {
                           />
                           
                           {/* Floating Info Card */}
-                          <div className="absolute bottom-3 left-3 right-3 sm:bottom-6 sm:left-6 sm:right-6 z-20 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 opacity-0 group-hover:opacity-100">
-                            <div className="bg-white/90 dark:bg-black/80 backdrop-blur-md p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-white/20 shadow-lg">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <h3 className="font-heading text-sm sm:text-base lg:text-lg font-bold text-[rgb(var(--fg))]">{featuredImage.title}</h3>
-                                  <p className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))]">Featured Collection</p>
-                                </div>
-                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[rgb(var(--fg))] flex items-center justify-center text-[rgb(var(--bg))] flex-shrink-0">
-                                  <Maximize2 size={12} className="sm:w-4 sm:h-4" />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                          <FeaturedImageOverlayCard featuredImage={featuredImage} />
                         </div>
                       )
                     })()}
@@ -732,13 +821,13 @@ export default function Home() {
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
                 <Link 
-                  to="/contact" 
+                  href="/contact" 
                   className="btn bg-[rgb(var(--primary))] text-white px-6 sm:px-8 lg:px-10 py-3 sm:py-4 lg:py-5 rounded-full text-sm sm:text-base lg:text-lg hover:scale-105 hover:shadow-xl hover:shadow-[rgb(var(--primary))]/20 transition-all duration-300"
                 >
                   Get in Touch
                 </Link>
                 <Link 
-                  to="/gallery" 
+                  href="/gallery" 
                   className="btn-outline px-6 sm:px-8 lg:px-10 py-3 sm:py-4 lg:py-5 rounded-full text-sm sm:text-base lg:text-lg hover:bg-[rgb(var(--fg))] hover:text-[rgb(var(--bg))] transition-all duration-300"
                 >
                   Explore Gallery
@@ -758,7 +847,7 @@ export default function Home() {
               {/* Brand section - always visible */}
               <div className="space-y-2 md:col-span-2 lg:col-span-1">
                 <img 
-                  src={document.documentElement.classList.contains('dark') ? '/DarkmodeLogo.svg' : '/LightmodeLogo.svg'} 
+                  src={logoSrc}
                   alt="Philip Photography Logo" 
                   className="h-6 w-auto mb-2"
                 />

@@ -19,8 +19,8 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Analytics (optional)
-export const analytics = getAnalytics(app);
+// Initialize Firebase Analytics (optional) - only on client side
+export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
@@ -31,18 +31,20 @@ export const storage = getStorage(app);
 // Initialize Firestore and get a reference to the service
 export const db = getFirestore(app);
 
-// Enable offline persistence and suppress WebSocket termination errors
-enableIndexedDbPersistence(db, {
-  synchronizeTabs: true
-}).catch((err) => {
-  if (err.code === 'failed-precondition') {
-    // Multiple tabs open, persistence can only be enabled in one tab at a time.
-    console.warn('Firestore persistence disabled: Multiple tabs open');
-  } else if (err.code === 'unimplemented') {
-    // The current browser doesn't support persistence.
-    console.warn('Firestore persistence not supported by browser');
-  }
-});
+// Enable offline persistence and suppress WebSocket termination errors (only on client side)
+if (typeof window !== 'undefined') {
+  enableIndexedDbPersistence(db, {
+    synchronizeTabs: true
+  }).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      // Multiple tabs open, persistence can only be enabled in one tab at a time.
+      console.warn('Firestore persistence disabled: Multiple tabs open');
+    } else if (err.code === 'unimplemented') {
+      // The current browser doesn't support persistence.
+      console.warn('Firestore persistence not supported by browser');
+    }
+  });
+}
 
 // Export the app instance
 export default app;

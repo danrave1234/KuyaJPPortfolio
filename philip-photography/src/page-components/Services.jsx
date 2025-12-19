@@ -1,6 +1,7 @@
-import SEO from '../components/SEO'
+'use client'
+
 import { useState } from 'react'
-import FadeInWhenVisible from '../components/FadeInWhenVisible'
+import FadeInWhenVisible from '@/app/components/FadeInWhenVisible'
 
 export default function Services() {
   const [openFAQ, setOpenFAQ] = useState(null)
@@ -9,13 +10,7 @@ export default function Services() {
     setOpenFAQ(openFAQ === index ? null : index)
   }
   return (
-    <>
-      <SEO 
-        title="Wildlife & Bird Photography Services | Batangas, Luzon"
-        description="Professional wildlife and bird photography services based in Batangas, Luzon. Assignments across Batangas, Metro Manila, and Southern Luzon. Ethical, fieldcraft-first approach."
-        keywords="bird photographer Batangas, wildlife photographer Luzon, bird photography services, Metro Manila wildlife photography"
-      />
-      <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
+    <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
         <div className="container-responsive pt-20 sm:pt-24 md:pt-20 lg:pt-24 pb-8 sm:pb-12">
           <header className="mb-8 sm:mb-10 md:mb-12">
             <FadeInWhenVisible>
@@ -330,7 +325,6 @@ export default function Services() {
           </div>
         </div>
       </main>
-    </>
   )
 }
 
