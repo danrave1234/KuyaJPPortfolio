@@ -298,9 +298,17 @@ async function generateSitemap() {
     const imageEntries = generateImageSitemapEntries(images);
     const sitemapXML = generateSitemapXML(imageEntries);
     
-    // Write to public/sitemap.xml
+    // Write to public/sitemap.xml and out/sitemap.xml
     const sitemapPath = path.join(__dirname, '..', 'public', 'sitemap.xml');
+    const outSitemapPath = path.join(__dirname, '..', 'out', 'sitemap.xml');
+    
     fs.writeFileSync(sitemapPath, sitemapXML, 'utf8');
+    
+    // Also write to out directory if it exists (for immediate deployment after build)
+    if (fs.existsSync(path.join(__dirname, '..', 'out'))) {
+      fs.writeFileSync(outSitemapPath, sitemapXML, 'utf8');
+      console.log(`📁 Sitemap also saved to: ${outSitemapPath}`);
+    }
     
     console.log(`✅ Sitemap generated successfully with ${imageEntries.length} image entries`);
     console.log(`📁 Sitemap saved to: ${sitemapPath}`);

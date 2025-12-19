@@ -76,8 +76,7 @@
       }
     ],
     "rewrites": [
-      { "source": "/sitemap.xml", "function": "sitemap" },
-      { "source": "**", "destination": "/index.html" }
+      { "source": "**", "destination": "/404.html" }
     ],
     "cleanUrls": true,
     "trailingSlash": false,

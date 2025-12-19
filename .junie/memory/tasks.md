@@ -48,3 +48,23 @@
     "NEW INSTRUCTION": "WHEN adding a useEffect with state dependencies THEN declare all associated useState hooks before it"
 }
 
+[2025-12-20 00:03] - Updated by Junie - Trajectory analysis
+{
+    "PLAN QUALITY": "near-optimal",
+    "REDUNDANT STEPS": "inspect presentational components",
+    "MISSING STEPS": "verify dynamic route metadata,check canonical and social meta,assess performance/next-image usage",
+    "BOTTLENECK": "Dynamic gallery pages lack per-item metadata verification.",
+    "PROJECT NOTE": "Consider moving sitemap generation to app/sitemap.ts for build-time freshness and simplicity.",
+    "NEW INSTRUCTION": "WHEN auditing dynamic Next.js routes THEN implement generateMetadata for per-item title and description"
+}
+
+[2025-12-20 00:10] - Updated by Junie - Trajectory analysis
+{
+    "PLAN QUALITY": "near-optimal",
+    "REDUNDANT STEPS": "inspect components",
+    "MISSING STEPS": "run build, validate page metadata",
+    "BOTTLENECK": "No post-change verification via build to catch SEO/runtime issues.",
+    "PROJECT NOTE": "Dynamic slug logic should match sitemap generation; you aligned it via generateSlug.",
+    "NEW INSTRUCTION": "WHEN modifying Next.js metadata or dynamic route files THEN run build and verify affected pages"
+}
+
