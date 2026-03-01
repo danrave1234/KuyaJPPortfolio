@@ -63,15 +63,15 @@ export default function Footer() {
           <div className="space-y-2">
             <div className="text-[10px] uppercase tracking-[0.25em]">Social</div>
             <div className="flex items-center gap-3 sm:gap-4">
-              <a href="https://www.instagram.com/jpmorada_/" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="Instagram">
+              <a href="https://www.instagram.com/jpmorada_/" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-[var(--t-base)]" aria-label="Instagram">
                 <Instagram size={16} className="sm:w-[18px] sm:h-[18px]" />
                 <span className="text-xs sm:text-sm hidden sm:inline">Instagram</span>
               </a>
-              <a href="https://www.facebook.com/john.morada.red" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="Facebook">
+              <a href="https://www.facebook.com/john.morada.red" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-[var(--t-base)]" aria-label="Facebook">
                 <Facebook size={16} className="sm:w-[18px] sm:h-[18px]" />
                 <span className="text-xs sm:text-sm hidden sm:inline">Facebook</span>
               </a>
-              <a href="https://x.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-300" aria-label="X (formerly Twitter)">
+              <a href="https://x.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-[var(--t-base)]" aria-label="X (formerly Twitter)">
                 <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                 </svg>
@@ -85,7 +85,7 @@ export default function Footer() {
           <span className="text-xs sm:text-sm text-center sm:text-left">© {new Date().getFullYear()} All rights reserved.</span>
           <button
             onClick={handleAdminAccess}
-            className="opacity-0 hover:opacity-100 transition-opacity duration-300 text-xs text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] cursor-pointer"
+            className="opacity-0 hover:opacity-100 transition-opacity duration-[var(--t-fast)] text-xs text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] cursor-pointer"
             title="Admin Access"
             aria-label="Admin Access"
           >
@@ -96,6 +96,13 @@ export default function Footer() {
     </footer>
   )
 }
+
+
+
+
+
+
+
 
 
 

@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/src/contexts/AuthContext'
 import { ThemeProvider } from '@/src/components/ThemeProvider'
+import ThemeWrapper from '@/app/components/ThemeWrapper'
 import Navbar from '@/app/components/Navbar'
 import ConditionalFooter from '@/app/components/ConditionalFooter'
 import BackToTop from '@/app/components/BackToTop'
@@ -64,8 +65,8 @@ export const metadata = {
   other: {
     'geo.region': 'PH',
     'geo.placename': 'Batangas, Luzon, Philippines',
-    'geo.position': '14.7943;120.8786',
-    'ICBM': '14.7943, 120.8786',
+    'geo.position': '13.7565;121.0583',
+    'ICBM': '13.7565, 121.0583',
   },
 }
 
@@ -77,6 +78,8 @@ export const viewport = {
 }
 
 export default function RootLayout({ children }) {
+  const initialTheme = null
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -87,11 +90,14 @@ export default function RootLayout({ children }) {
               (function() {
                 try {
                   const theme = localStorage.getItem('theme');
-                  const isDark = theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
-                  if (isDark) {
-                    document.documentElement.classList.add('dark');
+                  const mode = localStorage.getItem('mode');
+                  const validThemes = ['birdlife', 'astro', 'landscape'];
+                  const validModes = ['light', 'dark'];
+                  const resolvedMode = validModes.includes(mode) ? mode : 'dark';
+                  if (theme && validThemes.includes(theme)) {
+                    document.documentElement.className = 'theme-' + theme + ' ' + resolvedMode;
                   } else {
-                    document.documentElement.classList.remove('dark');
+                    document.documentElement.className = resolvedMode;
                   }
                 } catch (e) {}
               })();
@@ -151,14 +157,14 @@ export default function RootLayout({ children }) {
               telephone: '',
               address: {
                 '@type': 'PostalAddress',
-                addressLocality: 'Bulacan',
+                addressLocality: 'Batangas',
                 addressRegion: 'Luzon',
                 addressCountry: 'Philippines',
               },
               geo: {
                 '@type': 'GeoCoordinates',
-                latitude: '14.7943',
-                longitude: '120.8786',
+                latitude: '13.7565',
+                longitude: '121.0583',
               },
               sameAs: [
                 'https://www.instagram.com/jpmorada_/',
@@ -185,16 +191,16 @@ export default function RootLayout({ children }) {
               logo: 'https://jpmorada.photography/LightmodeLogo.png',
               address: {
                 '@type': 'PostalAddress',
-                addressLocality: 'Bulacan',
+                addressLocality: 'Batangas',
                 addressRegion: 'Luzon',
                 addressCountry: 'PH',
               },
               geo: {
                 '@type': 'GeoCoordinates',
-                latitude: 14.7943,
-                longitude: 120.8786,
+                latitude: 13.7565,
+                longitude: 121.0583,
               },
-              areaServed: ['Bulacan', 'Metro Manila', 'Central Luzon'],
+              areaServed: ['Batangas', 'Metro Manila', 'Southern Luzon'],
               sameAs: [
                 'https://www.instagram.com/jpmorada_/',
                 'https://www.facebook.com/john.morada.red',
@@ -266,20 +272,29 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <ThemeProvider>
+        <ThemeProvider initialTheme={initialTheme}>
           <AuthProvider>
-            <ErrorBoundary>
-              <Navbar />
-              <main>{children}</main>
-              <ConditionalFooter />
-              <BackToTop />
-            </ErrorBoundary>
+            <ThemeWrapper>
+              <ErrorBoundary>
+                <Navbar />
+                <main>{children}</main>
+                <ConditionalFooter />
+                <BackToTop />
+              </ErrorBoundary>
+            </ThemeWrapper>
           </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
   )
 }
+
+
+
+
+
+
+
 
 
 

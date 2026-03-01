@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { uploadMultipleImages, deleteImage, getImagesFromFolder } from '../firebase/storage'
-import { getAdminGalleryImages, searchAdminGalleryImages, clearAdminCache, cleanupAdminCache, uploadWithProgress, deleteImageWithCache, updateImageMetadataWithCache, getAdminFeaturedImages, uploadFeaturedWithProgress, deleteFeaturedImageWithCache, clearFeaturedCache } from '../firebase/admin-api'
+import { getAdminGalleryImages, searchAdminGalleryImages, clearAdminCache, cleanupAdminCache, uploadWithProgress, deleteImageWithCache, updateImageMetadataWithCache, getAdminFeaturedImages, uploadFeaturedWithProgress, deleteFeaturedImageWithCache, clearFeaturedCache, copyBirdlifeToGallery } from '../firebase/admin-api'
 import { signInUser, signOutUser } from '../firebase/auth'
 import { initTheme } from '../theme.js'
 import AnalyticsDashboard from '../components/AnalyticsDashboard'
@@ -40,16 +41,28 @@ import {
 
 export default function Admin() {
   const { user, isAuthenticated, loading } = useAuth()
+
+  const [portalReady, setPortalReady] = useState(false)
+
+  useEffect(() => {
+    setPortalReady(true)
+  }, [])
+
+  const renderInPortal = (node) => {
+    if (!portalReady) return null
+    return createPortal(node, document.body)
+  }
   
   // Initialize theme on component mount
   useEffect(() => {
     initTheme()
   }, [])
-  
+
   const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [files, setFiles] = useState([])
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
+  const [isCopying, setIsCopying] = useState(false)
   
   // Debug: Log message changes
   useEffect(() => {
@@ -76,7 +89,18 @@ export default function Admin() {
   const [uploadLocation, setUploadLocation] = useState('')
   const [uploadTimeTaken, setUploadTimeTaken] = useState('')
   const [uploadHistory, setUploadHistory] = useState('')
-  
+  const [activeTheme, setActiveTheme] = useState('birdlife') // Default theme for admin operations
+
+  // Apply photography category color theme to root whenever activeTheme changes
+  useEffect(() => {
+    const root = document.documentElement
+    root.classList.remove('theme-birdlife', 'theme-astro', 'theme-landscape')
+    root.classList.add(`theme-${activeTheme}`)
+    return () => {
+      root.classList.remove('theme-birdlife', 'theme-astro', 'theme-landscape')
+    }
+  }, [activeTheme])
+
   // Featured gallery state
   const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard', 'gallery', 'featured'
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -200,7 +224,8 @@ export default function Admin() {
 
   // Load gallery images with comprehensive caching
   const loadGalleryImages = async (page = 1, searchQuery = '') => {
-    const cacheKey = getCacheKey(page, searchQuery);
+    const themePath = `gallery/${activeTheme}`;
+    const cacheKey = getCacheKey(page, searchQuery) + `-${activeTheme}`;
     
     // Check cache first
     if (isCacheValid(cacheKey)) {
@@ -209,7 +234,7 @@ export default function Admin() {
         setGalleryImages(cachedData.images);
         setCurrentPage(page);
         setHasMore(cachedData.hasMore);
-        setMessage(`Loaded ${cachedData.images.length} images from cache (page ${page})`);
+        setMessage(`Loaded ${cachedData.images.length} images from cache (page ${page}) for ${activeTheme}`);
         return;
       }
     }
@@ -220,9 +245,9 @@ export default function Admin() {
     try {
       let result;
       if (searchQuery.trim()) {
-        result = await searchAdminGalleryImages('gallery', searchQuery, page, 50);
+        result = await searchAdminGalleryImages(themePath, searchQuery, page, 50);
       } else {
-        result = await getAdminGalleryImages('gallery', page, 50);
+        result = await getAdminGalleryImages(themePath, page, 50);
       }
       
       if (result.success) {
@@ -241,9 +266,9 @@ export default function Admin() {
         setHasMore(result.pagination?.hasMore || false);
         
         if (searchQuery.trim()) {
-          setMessage(`Found ${result.images.length} images for "${searchQuery}"`);
+          setMessage(`Found ${result.images.length} images for "${searchQuery}" in ${activeTheme}`);
         } else {
-          setMessage(`Loaded ${result.images.length} images from page ${page}`);
+          setMessage(`Loaded ${result.images.length} images from page ${page} in ${activeTheme}`);
         }
       } else {
         setMessage(`Failed to load images: ${result.error}`);
@@ -255,6 +280,14 @@ export default function Admin() {
       setLoadingMore(false);
     }
   }
+
+  // Reload images when activeTheme changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadGalleryImages(1, searchQuery);
+      loadFeaturedImages();
+    }
+  }, [activeTheme, isAuthenticated]);
 
   // Load more images for pagination
   const loadMoreImages = async () => {
@@ -307,10 +340,10 @@ export default function Admin() {
   const loadFeaturedImages = async () => {
     setUploading(true)
     try {
-      const result = await getAdminFeaturedImages()
+      const result = await getImagesFromFolder(`featured/${activeTheme}`)
       if (result.success) {
         setFeaturedImages(result.images)
-        setMessage(`Loaded ${result.images.length} featured images`)
+        setMessage(`Loaded ${result.images.length} featured images for ${activeTheme}`)
       } else {
         setMessage(`Error loading featured images: ${result.error}`)
       }
@@ -500,7 +533,7 @@ export default function Admin() {
     try {
       setMessage('Checking for existing images to replace...')
       
-      const result = await uploadWithProgress(files, (progress) => {
+      const result = await uploadWithProgress(files, `gallery/${activeTheme}`, (progress) => {
         setMessage(`Uploading... ${Math.round(progress)}%`)
       }, uploadTitle.trim(), uploadDescription.trim(), uploadScientificName.trim(), uploadLocation.trim(), uploadTimeTaken.trim(), uploadHistory.trim())
       
@@ -539,12 +572,12 @@ export default function Admin() {
     try {
       setMessage('Checking for existing images to replace...')
       
-      const result = await uploadFeaturedWithProgress(files, (progress) => {
+      const result = await uploadFeaturedWithProgress(files, `featured/${activeTheme}`, (progress) => {
         setMessage(`Uploading featured image... ${Math.round(progress)}%`)
       }, featuredUploadTitle.trim(), featuredUploadDescription.trim())
       
       if (result.success) {
-        setMessage(`Successfully uploaded featured image "${featuredUploadTitle}"!`)
+        setMessage(`Successfully uploaded featured image "${featuredUploadTitle}" to ${activeTheme}!`)
         setFiles([])
         setFeaturedUploadTitle('')
         setFeaturedUploadDescription('')
@@ -562,6 +595,8 @@ export default function Admin() {
       setUploading(false)
     }
   }
+
+  // Removed legacy migration handler
 
   // Handle image deletion with cache invalidation
   const handleDeleteSelected = async () => {
@@ -793,6 +828,24 @@ export default function Admin() {
     }
   }, [])
 
+  // Copy gallery/birdlife -> gallery handler
+  const handleCopyBirdlife = async () => {
+    try {
+      setIsCopying(true)
+      setMessage('Starting copy from gallery/birdlife/ to gallery/...')
+      const result = await copyBirdlifeToGallery('gallery/birdlife/', 'gallery/')
+      if (result?.success) {
+        setMessage(`Copied ${result.copied}/${result.total} objects from gallery/birdlife/ to gallery/. ${result.errors?.length ? `Errors: ${result.errors.length}` : ''}`)
+      } else {
+        setMessage(`Copy failed: ${result?.error || 'Unknown error'}`)
+      }
+    } catch (e) {
+      setMessage(`Copy failed: ${e?.message || String(e)}`)
+    } finally {
+      setIsCopying(false)
+    }
+  }
+
   if (loading) {
     return (
       <>
@@ -818,78 +871,76 @@ export default function Admin() {
     return (
       <>
         {/* SEO handled by Next.js metadata API */}
-        <div className="min-h-screen bg-[rgb(var(--bg))] flex items-center justify-center p-4">
-        <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl max-w-md w-full border border-[rgb(var(--muted))]/20">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-[rgb(var(--primary))] rounded-2xl mx-auto mb-4 flex items-center justify-center">
-              <Settings className="w-8 h-8 text-white" />
+        <div className="min-h-screen bg-[rgb(var(--bg))] flex items-center justify-center px-6">
+          <div className="w-full max-w-sm">
+
+            {/* Header */}
+            <div className="mb-10">
+              <p className="text-xs uppercase tracking-widest text-[rgb(var(--muted))] mb-3">John Philip Morada Photography</p>
+              <h1 className="text-2xl font-heading font-semibold text-[rgb(var(--fg))] leading-snug">
+                Admin Access
+              </h1>
+              <div className="mt-4 w-8 border-t-2 border-[rgb(var(--primary))]"></div>
             </div>
-            <h1 className="text-3xl font-bold font-heading text-[rgb(var(--fg))]">
-              Admin Portal
-            </h1>
-            <p className="text-[rgb(var(--muted))] mt-2 font-medium">John Philip Morada Photography</p>
-          </div>
-          
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-[rgb(var(--fg))]">
-                Email Address
-              </label>
-              <div className="relative">
-              <input
+
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div>
+                <label className="block text-xs uppercase tracking-wider text-[rgb(var(--muted))] mb-2">
+                  Email
+                </label>
+                <input
                   type="email"
                   value={loginForm.email}
                   onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
-                  className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
-                  placeholder="admin@example.com"
-                required
-              />
+                  className="w-full px-0 py-2 bg-transparent border-b border-[rgb(var(--muted))]/40 focus:outline-none focus:border-[rgb(var(--primary))] text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))]/50 text-sm transition-colors duration-150"
+                  placeholder="your@email.com"
+                  required
+                />
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-[rgb(var(--fg))]">
-                Password
-              </label>
-              <div className="relative">
-              <input
-                type="password"
+
+              <div>
+                <label className="block text-xs uppercase tracking-wider text-[rgb(var(--muted))] mb-2">
+                  Password
+                </label>
+                <input
+                  type="password"
                   value={loginForm.password}
                   onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
-                  className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
+                  className="w-full px-0 py-2 bg-transparent border-b border-[rgb(var(--muted))]/40 focus:outline-none focus:border-[rgb(var(--primary))] text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))]/50 text-sm transition-colors duration-150"
                   placeholder="••••••••"
-                required
-              />
+                  required
+                />
               </div>
-            </div>
-            
-            <button
-              type="submit"
-              disabled={uploading}
-              className="w-full bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 disabled:bg-[rgb(var(--muted))]/50 text-white py-3 px-6 rounded-xl font-semibold transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl disabled:transform-none disabled:shadow-md"
-            >
-              {uploading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Signing in...
-                </div>
-              ) : (
-                'Sign In to Dashboard'
-              )}
-            </button>
-          </form>
-          
-          {message && (
-            <div className={`mt-6 p-4 rounded-xl text-sm font-medium ${
-              typeof message === 'string' && message.includes('Success') 
-                ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700' 
-                : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700'
-            }`}>
-              {typeof message === 'string' ? message : JSON.stringify(message)}
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={uploading}
+                  className="w-full bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/85 disabled:opacity-50 text-white py-2.5 px-6 text-sm font-medium tracking-wide transition-colors duration-150 disabled:cursor-not-allowed"
+                >
+                  {uploading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-3.5 h-3.5 border border-white/40 border-t-white rounded-full animate-spin"></div>
+                      Signing in…
+                    </span>
+                  ) : (
+                    'Sign In'
+                  )}
+                </button>
+              </div>
+            </form>
+
+            {message && (
+              <p className={`mt-6 text-xs ${
+                typeof message === 'string' && message.includes('Success')
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-red-500 dark:text-red-400'
+              }`}>
+                {typeof message === 'string' ? message : JSON.stringify(message)}
+              </p>
+            )}
           </div>
-          )}
         </div>
-      </div>
       </>
     )
   }
@@ -1034,15 +1085,6 @@ export default function Admin() {
                 <Menu size={20} />
               </button>
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="inline-flex items-center gap-2 text-[rgb(var(--primary))] bg-[rgb(var(--primary))]/10 px-2 py-1 rounded-full text-xs font-semibold">
-                    <ShieldCheck size={14} />
-                    Admin · Gallery Ops
-                  </span>
-                  <span className="text-[rgb(var(--muted))] text-xs">
-                    {galleryImages.length} photos • {featuredImages.length} featured
-                  </span>
-                </div>
                 <h1 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">
                   {navigationItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
                 </h1>
@@ -1056,20 +1098,45 @@ export default function Admin() {
             </div>
             
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => setActiveTab('gallery')}
-                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-[rgb(var(--primary))]/10 text-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/20 transition-colors duration-200"
-              >
-                <Grid3X3 size={16} />
-                Gallery
-              </button>
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-[rgb(var(--primary))] text-white hover:bg-[rgb(var(--primary))]/90 transition-colors duration-200 shadow-md"
-              >
-                <Upload size={16} />
-                Upload
-              </button>
+              <div className="flex items-center gap-2 px-2 py-2 bg-[rgb(var(--muted))]/10 rounded-lg">
+                <Palette size={16} className="text-[rgb(var(--primary))]" />
+                <div className="flex items-center gap-1 p-1 rounded-lg bg-[rgb(var(--bg))]/60 border border-[rgb(var(--muted))]/20">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTheme('birdlife')}
+                    className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 ${
+                      activeTheme === 'birdlife'
+                        ? 'bg-[rgb(var(--primary))] text-white shadow'
+                        : 'text-[rgb(var(--fg))] hover:bg-[rgb(var(--muted))]/15'
+                    }`}
+                  >
+                    Birdlife
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTheme('astro')}
+                    className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 ${
+                      activeTheme === 'astro'
+                        ? 'bg-[rgb(var(--primary))] text-white shadow'
+                        : 'text-[rgb(var(--fg))] hover:bg-[rgb(var(--muted))]/15'
+                    }`}
+                  >
+                    Astro
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTheme('landscape')}
+                    className={`px-2.5 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 ${
+                      activeTheme === 'landscape'
+                        ? 'bg-[rgb(var(--primary))] text-white shadow'
+                        : 'text-[rgb(var(--fg))] hover:bg-[rgb(var(--muted))]/15'
+                    }`}
+                  >
+                    Landscape
+                  </button>
+                </div>
+              </div>
+              {/* Removed legacy migration button */}
               <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-[rgb(var(--muted))]/10 rounded-lg">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                 <span className="text-sm font-medium text-[rgb(var(--fg))]">
@@ -1118,6 +1185,15 @@ export default function Admin() {
                     >
                       <Star size={18} className="text-[rgb(var(--primary))]" />
                       Featured
+                    </button>
+                    <button
+                      onClick={handleCopyBirdlife}
+                      disabled={isCopying}
+                      className={`inline-flex items-center gap-2 px-4 py-3 rounded-xl font-semibold transition-all duration-200 border ${isCopying ? 'opacity-70 cursor-not-allowed bg-[rgb(var(--muted))]/10 text-[rgb(var(--muted))]' : 'bg-[rgb(var(--bg))] text-[rgb(var(--fg))] border-[rgb(var(--muted))]/30 hover:border-[rgb(var(--primary))]/40 hover:bg-[rgb(var(--muted))]/10'}`}
+                      title="Copy all images from birdlife/ to gallery/"
+                    >
+                      <RefreshCw size={18} className="text-[rgb(var(--primary))]" />
+                      {isCopying ? 'Copying…' : 'Copy birdlife → gallery'}
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-3">
@@ -1294,26 +1370,19 @@ export default function Admin() {
             <div className="space-y-4">
               {/* Gallery Management */}
         <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl rounded-3xl border border-[rgb(var(--muted))]/20 shadow-xl overflow-hidden">
-          <div className="p-0">
             {/* Sticky Controls */}
-            <div className="sticky top-0 z-20 px-4 lg:px-6 py-1.5 bg-[rgb(var(--bg))]/95 backdrop-blur-xl border-b border-[rgb(var(--muted))]/20 space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
+            <div className="sticky top-0 z-20 px-4 lg:px-6 py-3 bg-[rgb(var(--bg))]/95 backdrop-blur-xl border-b border-[rgb(var(--muted))]/20 space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
                   <h3 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">Gallery controls</h3>
                   <p className="text-[rgb(var(--muted))] text-sm">Upload, curate, and bulk edit your photo collection</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="inline-flex items-center gap-2 bg-[rgb(var(--primary))]/10 text-[rgb(var(--primary))] px-3 py-1.5 rounded-full text-sm font-semibold">
-                    <ImageIcon size={16} />
+                  <span className="inline-flex items-center gap-2 bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))] px-3 py-1.5 rounded-full text-sm font-semibold">
+                    <ImageIcon size={16} className="text-[rgb(var(--primary))]" />
                     {galleryImages.length} images
-                  </span>
-                  <span className="inline-flex items-center gap-2 bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))] px-3 py-1.5 rounded-full text-sm font-semibold">
-                    <Palette size={16} className="text-[rgb(var(--primary))]" />
+                    <span className="text-[rgb(var(--muted))]">•</span>
                     {seriesCount} series
-                  </span>
-                  <span className="inline-flex items-center gap-2 bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))] px-3 py-1.5 rounded-full text-sm font-semibold">
-                    <Star size={16} className="text-[rgb(var(--primary))]" />
-                    {featuredImages.length} featured
                   </span>
                 </div>
               </div>
@@ -1368,37 +1437,12 @@ export default function Admin() {
                     {searchQuery.trim() ? 'Search' : 'Load All'}
                   </button>
                   <button
-                    onClick={() => loadGalleryImages(1, searchQuery)}
-                    className="inline-flex items-center gap-2 bg-[rgb(var(--muted))]/10 hover:bg-[rgb(var(--muted))]/20 text-[rgb(var(--fg))] px-4 py-3 rounded-xl font-medium transition-all duration-200"
-                    title="Refresh gallery"
-                  >
-                    <RefreshCw size={16} />
-                    Refresh
-                  </button>
-                  <button
                     onClick={() => setShowUploadModal(true)}
                     className="inline-flex items-center gap-2 bg-[rgb(var(--primary))]/10 hover:bg-[rgb(var(--primary))]/20 text-[rgb(var(--primary))] px-4 py-3 rounded-xl font-semibold transition-all duration-200"
                   >
                     <Upload size={16} />
                     Upload
                   </button>
-                  {selectedImages.size > 0 ? (
-                    <button
-                      onClick={deselectAllImages}
-                      className="inline-flex items-center gap-2 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 text-[rgb(var(--fg))] px-4 py-3 rounded-xl font-medium transition-all duration-200"
-                    >
-                      <X size={16} />
-                      Clear ({selectedImages.size})
-                    </button>
-                  ) : (
-                    <button
-                      onClick={selectAllImages}
-                      className="inline-flex items-center gap-2 bg-[rgb(var(--primary))]/10 hover:bg-[rgb(var(--primary))]/20 text-[rgb(var(--primary))] px-4 py-3 rounded-xl font-medium transition-all duration-200"
-                    >
-                      <Check size={16} />
-                      Select All
-                    </button>
-                  )}
                   {selectedImages.size > 0 && (
                     <button
                       onClick={() => setShowDeleteConfirm(true)}
@@ -1408,6 +1452,52 @@ export default function Admin() {
                       Delete ({selectedImages.size})
                     </button>
                   )}
+
+                  <details className="relative">
+                    <summary className="list-none inline-flex items-center gap-2 bg-[rgb(var(--muted))]/10 hover:bg-[rgb(var(--muted))]/20 text-[rgb(var(--fg))] px-4 py-3 rounded-xl font-medium transition-all duration-200 cursor-pointer">
+                      <Settings size={16} className="text-[rgb(var(--primary))]" />
+                      More
+                    </summary>
+                    <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-[rgb(var(--muted))]/20 bg-[rgb(var(--bg))]/95 backdrop-blur-xl shadow-xl p-2 z-30">
+                      <button
+                        onClick={() => loadGalleryImages(1, searchQuery)}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[rgb(var(--muted))]/10 text-sm font-medium text-[rgb(var(--fg))]"
+                        title="Refresh gallery"
+                      >
+                        <RefreshCw size={16} />
+                        Refresh
+                      </button>
+
+                      <button
+                        onClick={() => clearPaginationCache()}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[rgb(var(--muted))]/10 text-sm font-medium text-[rgb(var(--fg))]"
+                        title="Clear pagination cache"
+                      >
+                        <Trash2 size={16} className="opacity-70" />
+                        Clear cache
+                      </button>
+
+                      <div className="h-px bg-[rgb(var(--muted))]/20 my-1" />
+
+                      {selectedImages.size > 0 ? (
+                        <button
+                          onClick={deselectAllImages}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[rgb(var(--muted))]/10 text-sm font-medium text-[rgb(var(--fg))]"
+                        >
+                          <X size={16} />
+                          Clear selection ({selectedImages.size})
+                        </button>
+                      ) : (
+                        <button
+                          onClick={selectAllImages}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[rgb(var(--muted))]/10 text-sm font-medium text-[rgb(var(--fg))]"
+                        >
+                          <Check size={16} />
+                          Select all
+                        </button>
+                      )}
+                    </div>
+                  </details>
                 </div>
               </div>
             </div>
@@ -1423,13 +1513,6 @@ export default function Admin() {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => clearPaginationCache()}
-                    className="text-xs text-[rgb(var(--muted))] hover:text-[rgb(var(--fg))] px-3 py-2 rounded-lg bg-[rgb(var(--muted))]/10 hover:bg-[rgb(var(--muted))]/20 transition-colors duration-200"
-                    title="Clear pagination cache"
-                  >
-                    Clear Cache
-                  </button>
                   <button
                     onClick={() => loadGalleryImages(currentPage - 1, searchQuery.trim())}
                     disabled={currentPage <= 1 || uploading}
@@ -1648,7 +1731,6 @@ export default function Admin() {
                 )}
               </div>
             )}
-          </div>
         </div>
 
         {/* Status Message */}
@@ -1711,9 +1793,9 @@ export default function Admin() {
             </div>
           </div>
         )}
-
+      
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
+      {showDeleteConfirm && renderInPortal(
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-[rgb(var(--bg))]/95 backdrop-blur-xl p-4 rounded-3xl shadow-2xl max-w-md w-full border border-[rgb(var(--muted))]/20">
             <div className="flex items-center gap-3 mb-4">
@@ -2004,7 +2086,7 @@ export default function Admin() {
         )}
 
         {/* Upload Modal */}
-        {showUploadModal && (
+        {showUploadModal && renderInPortal(
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             {/* Backdrop */}
             <div 
@@ -2281,7 +2363,7 @@ export default function Admin() {
         )}
 
       {/* Edit Image Modal */}
-      {editingImage && (
+      {editingImage && renderInPortal(
         <div 
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4"
           onClick={handleCancelEdit}

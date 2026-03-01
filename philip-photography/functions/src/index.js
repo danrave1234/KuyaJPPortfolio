@@ -62,121 +62,131 @@ exports.sitemap = functions.region('asia-southeast1').https.onRequest(async (req
   try {
     const baseUrl = 'https://jpmorada.photography';
     const lastmod = new Date().toISOString().split('T')[0];
-
     const bucket = admin.storage().bucket();
-    const folderPath = 'gallery';
 
-    // List all files in the gallery folder
-    const [files] = await bucket.getFiles({ prefix: `${folderPath}/`, delimiter: '/' });
-    const validFiles = files.filter(file => {
-      const name = file.name.split('/').pop();
-      return name && name.includes('.') && /(jpg|jpeg|png|gif|webp|svg)$/i.test(name);
-    });
-    
-    console.log(`Sitemap: Found ${validFiles.length} valid files in gallery folder`);
+    // Theme folders with their correct SEO labels
+    const themes = [
+      { folder: 'gallery/birdlife', label: 'Wildlife Photography' },
+      { folder: 'gallery/astro',    label: 'Astrophotography' },
+      { folder: 'gallery/landscape', label: 'Landscape Photography' },
+    ];
 
-    // Build basic pages
+    // Build static pages
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n` +
       `<!-- Generated at: ${new Date().toISOString()} -->\n` +
       `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n` +
       `        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n\n` +
       `  <!-- Homepage -->\n` +
       `  <url>\n` +
-      `    <loc>${baseUrl}/</loc>\n` +
+      `    <loc>${baseUrl}</loc>\n` +
       `    <lastmod>${lastmod}</lastmod>\n` +
-      `    <changefreq>weekly</changefreq>\n` +
-      `    <priority>1.0</priority>\n` +
       `  </url>\n\n` +
       `  <!-- Gallery Page -->\n` +
       `  <url>\n` +
       `    <loc>${baseUrl}/gallery</loc>\n` +
       `    <lastmod>${lastmod}</lastmod>\n` +
-      `    <changefreq>weekly</changefreq>\n` +
-      `    <priority>0.9</priority>\n` +
+      `  </url>\n\n` +
+      `  <!-- Gallery Category Pages -->\n` +
+      `  <url>\n` +
+      `    <loc>${baseUrl}/gallery/birdlife</loc>\n` +
+      `    <lastmod>${lastmod}</lastmod>\n` +
+      `  </url>\n\n` +
+      `  <url>\n` +
+      `    <loc>${baseUrl}/gallery/astro</loc>\n` +
+      `    <lastmod>${lastmod}</lastmod>\n` +
+      `  </url>\n\n` +
+      `  <url>\n` +
+      `    <loc>${baseUrl}/gallery/landscape</loc>\n` +
+      `    <lastmod>${lastmod}</lastmod>\n` +
+      `  </url>\n\n` +
+      `  <!-- Services Page -->\n` +
+      `  <url>\n` +
+      `    <loc>${baseUrl}/services</loc>\n` +
+      `    <lastmod>${lastmod}</lastmod>\n` +
       `  </url>\n\n` +
       `  <!-- About Page -->\n` +
       `  <url>\n` +
       `    <loc>${baseUrl}/about</loc>\n` +
       `    <lastmod>${lastmod}</lastmod>\n` +
-      `    <changefreq>monthly</changefreq>\n` +
-      `    <priority>0.8</priority>\n` +
       `  </url>\n\n` +
       `  <!-- Contact Page -->\n` +
       `  <url>\n` +
       `    <loc>${baseUrl}/contact</loc>\n` +
       `    <lastmod>${lastmod}</lastmod>\n` +
-      `    <changefreq>monthly</changefreq>\n` +
-      `    <priority>0.7</priority>\n` +
       `  </url>\n\n` +
       `  <!-- Individual Gallery Images (live) -->\n`;
 
-    // Fetch metadata in parallel to enrich entries
-    const metaList = await Promise.all(validFiles.map(async (file) => {
+    // Scan each theme subfolder separately
+    for (const { folder, label } of themes) {
+      let files = [];
       try {
-        const [metadata] = await file.getMetadata();
-        const custom = metadata.metadata || metadata.customMetadata || {};
-        const filename = file.name.split('/').pop();
-        const title = custom.title || filename.replace(/\.[^/.]+$/, ""); // Remove file extension
-        const scientificName = custom.scientificName || '';
-        const description = custom.description || '';
-        const location = custom.location || '';
-        
-        // Generate clean slug using title, scientific name, and series number
-        // Extract series number from filename for clean URLs like "philippine-coucal-centropus-viridis-1"
-        const filenameWithoutExt = filename.replace(/\.[^/.]+$/, "");
-        const numberMatch = filenameWithoutExt.match(/_(\d+)$/);
-        const seriesNumber = numberMatch ? numberMatch[1] : '1';
-        
-        // Create clean ID using just the series number
-        const cleanId = seriesNumber;
-        const slug = generateSlugServer(title, scientificName, cleanId);
-        const url = `${baseUrl}/gallery/${slug}`;
-        // Escape XML characters for proper XML parsing
-        const escapedTitle = escapeXml(scientificName ? `${title} (${scientificName}) - Wildlife Photography` : `${title} - Wildlife Photography`);
-        const escapedCaption = escapeXml(description || (location ? `Wildlife photograph of ${title} captured in ${location}` : `Wildlife photograph of ${title}`));
-        
-        return {
-          url,
-          title: escapedTitle,
-          caption: escapedCaption,
-          lastmod: lastmod
-        };
+        const [result] = await bucket.getFiles({ prefix: `${folder}/` });
+        files = result.filter(file => {
+          const name = file.name.split('/').pop();
+          return name && name.includes('.') && /(jpg|jpeg|png|gif|webp|svg)$/i.test(name);
+        });
+        console.log(`Sitemap: Found ${files.length} files in ${folder}`);
       } catch (e) {
-        console.error(`Error processing file ${file.name} for sitemap:`, e);
-        return null;
+        console.error(`Sitemap: Failed to list ${folder}:`, e);
+        continue;
       }
-    }));
 
-    const validEntries = metaList.filter(Boolean);
-    console.log(`Sitemap: Generated ${validEntries.length} gallery entries`);
-    
-    for (const entry of validEntries) {
-      xml += `  <url>\n` +
-             `    <loc>${entry.url}</loc>\n` +
-             `    <lastmod>${entry.lastmod}</lastmod>\n` +
-             `    <changefreq>monthly</changefreq>\n` +
-             `    <priority>0.8</priority>\n` +
-             `    <image:image>\n` +
-             `      <image:loc>${entry.url}</image:loc>\n` +
-             `      <image:title>${entry.title}</image:title>\n` +
-             `      <image:caption>${entry.caption}</image:caption>\n` +
-             `    </image:image>\n` +
-             `  </url>\n\n`;
+      const metaList = await Promise.all(files.map(async (file) => {
+        try {
+          const [metadata] = await file.getMetadata();
+          const custom = metadata.metadata || metadata.customMetadata || {};
+          const filename = file.name.split('/').pop();
+          const title = custom.title || filename.replace(/\.[^/.]+$/, '');
+          const scientificName = custom.scientificName || '';
+          const description = custom.description || '';
+          const location = custom.location || '';
+
+          const filenameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+          const numberMatch = filenameWithoutExt.match(/_(\d+)$/);
+          const seriesNumber = numberMatch ? numberMatch[1] : '1';
+
+          const slug = generateSlugServer(title, scientificName, seriesNumber);
+          const url = `${baseUrl}/gallery/${slug}`;
+          const bucketName = bucket.name;
+          const encodedPath = encodeURIComponent(file.name);
+          const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
+
+          const escapedTitle = escapeXml(scientificName ? `${title} (${scientificName}) - ${label}` : `${title} - ${label}`);
+          const escapedCaption = escapeXml(description || (location ? `${label} photo of ${title} captured in ${location}` : `${label} photo of ${title}`));
+
+          return { url, imageUrl, title: escapedTitle, caption: escapedCaption, lastmod };
+        } catch (e) {
+          console.error(`Sitemap: Error processing ${file.name}:`, e);
+          return null;
+        }
+      }));
+
+      for (const entry of metaList.filter(Boolean)) {
+        xml += `  <url>\n` +
+               `    <loc>${entry.url}</loc>\n` +
+               `    <lastmod>${entry.lastmod}</lastmod>\n` +
+               `    <image:image>\n` +
+               `      <image:loc>${entry.imageUrl}</image:loc>\n` +
+               `      <image:title>${entry.title}</image:title>\n` +
+               `      <image:caption>${entry.caption}</image:caption>\n` +
+               `    </image:image>\n` +
+               `  </url>\n\n`;
+      }
     }
 
     xml += `</urlset>\n`;
 
     res.set('Content-Type', 'application/xml');
-    // Temporarily disable cache for testing - remove this in production
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
+    res.set('Cache-Control', 'public, max-age=3600, s-maxage=3600'); // 1 hour cache
+    res.set('X-Robots-Tag', 'noindex');
     res.status(200).send(xml);
   } catch (error) {
     console.error('Error generating dynamic sitemap:', error);
     res.status(500).send('');
   }
 });
+
+// Removed legacy migration endpoint (migrateGalleryRootToBirdlife)
 
 // Cloud Function to get all gallery images in a single request (asia-southeast1)
 exports.getGalleryImages = functions.region('asia-southeast1').https.onRequest(async (req, res) => {
@@ -420,11 +430,15 @@ exports.searchGalleryImages = functions.region('asia-southeast1').https.onReques
         const description = (img.description || '').toLowerCase();
         const alt = (img.alt || '').toLowerCase();
         const name = (img.name || '').toLowerCase();
-        
-        return title.includes(query) || 
-               description.includes(query) || 
-               alt.includes(query) || 
-               name.includes(query);
+        const scientificName = (img.scientificName || '').toLowerCase();
+        const location = (img.location || '').toLowerCase();
+
+        return title.includes(query) ||
+               description.includes(query) ||
+               alt.includes(query) ||
+               name.includes(query) ||
+               scientificName.includes(query) ||
+               location.includes(query);
       });
     }
 
@@ -588,6 +602,58 @@ exports.getAdminGalleryImages = functions.region('asia-southeast1').https.onRequ
   }
 });
 
+// Admin endpoint: Copy all files from birdlife/ to gallery/
+exports.copyBirdlifeToGallery = functions.region('asia-southeast1').https.onRequest(async (req, res) => {
+  // Enable CORS for your frontend domain
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ success: false, error: 'Method not allowed. Use POST.' });
+    return;
+  }
+
+  try {
+    const bucket = admin.storage().bucket();
+    const sourcePrefix = (req.query.sourcePrefix || req.body?.sourcePrefix || 'birdlife/').replace(/^\/*/, '');
+    let destPrefix = (req.query.destPrefix || req.body?.destPrefix || 'gallery/').replace(/^\/*/, '');
+
+    // Ensure prefixes end with /
+    const from = sourcePrefix.endsWith('/') ? sourcePrefix : `${sourcePrefix}/`;
+    const to = destPrefix.endsWith('/') ? destPrefix : `${destPrefix}/`;
+
+    // List all files under source
+    const [files] = await bucket.getFiles({ prefix: from });
+    const copyOps = [];
+    let copied = 0;
+    let skipped = 0;
+    const errors = [];
+
+    for (const file of files) {
+      // Skip directory placeholders
+      if (file.name.endsWith('/')) { skipped++; continue; }
+      const destPath = file.name.replace(from, to);
+      try {
+        await file.copy(bucket.file(destPath));
+        copied++;
+      } catch (err) {
+        errors.push({ file: file.name, error: err.message || String(err) });
+      }
+    }
+
+    res.json({ success: true, sourcePrefix: from, destPrefix: to, copied, skipped, total: files.length, errors });
+  } catch (error) {
+    console.error('Error in copyBirdlifeToGallery:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Admin search endpoint with more detailed results
 exports.searchAdminGalleryImages = functions.region('asia-southeast1').https.onRequest(async (req, res) => {
   // Enable CORS for your frontend domain
@@ -676,11 +742,15 @@ exports.searchAdminGalleryImages = functions.region('asia-southeast1').https.onR
         const description = (img.description || '').toLowerCase();
         const alt = (img.alt || '').toLowerCase();
         const name = (img.name || '').toLowerCase();
-        
-        return title.includes(query) || 
-               description.includes(query) || 
-               alt.includes(query) || 
-               name.includes(query);
+        const scientificName = (img.scientificName || '').toLowerCase();
+        const location = (img.location || '').toLowerCase();
+
+        return title.includes(query) ||
+               description.includes(query) ||
+               alt.includes(query) ||
+               name.includes(query) ||
+               scientificName.includes(query) ||
+               location.includes(query);
       });
     }
 

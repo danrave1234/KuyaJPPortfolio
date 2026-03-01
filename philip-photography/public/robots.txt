@@ -1,14 +1,5 @@
-# Allow all search engines to crawl the entire site
 User-agent: *
 Allow: /
-
-# Sitemap location
-Sitemap: https://jpmorada.photography/sitemap.xml
-
-# Crawl-delay (optional, helps with server load)
-Crawl-delay: 1
-
-# Disallow admin area from search engines
-User-agent: *
 Disallow: /admin
 
+Sitemap: https://jpmorada.photography/sitemap.xml

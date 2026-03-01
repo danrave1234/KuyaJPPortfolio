@@ -3,6 +3,73 @@
 // Admin API service for gallery management with caching
 const functionsURL = 'https://asia-southeast1-kuyajp-portfolio.cloudfunctions.net';
 
+// Known themes
+const THEMES = ['birdlife', 'astro', 'landscape'];
+
+// Helper: remove keys from storage by exact keys
+function removeKeys(keys = []) {
+  try {
+    keys.forEach(k => {
+      try { sessionStorage.removeItem(k) } catch {}
+      try { localStorage.removeItem(k) } catch {}
+    })
+  } catch {}
+}
+
+// Helper: remove storage keys that include a suffix (for search caches etc.)
+function removeKeysBySuffix(suffix) {
+  try {
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i);
+      if (key && key.includes(suffix)) {
+        sessionStorage.removeItem(key);
+      }
+    }
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.includes(suffix)) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch {}
+}
+
+// Helper: clear gallery caches for a specific theme
+function clearThemeGalleryCaches(theme) {
+  if (!theme || !THEMES.includes(theme)) {
+    // If unknown theme, clear for all
+    THEMES.forEach(t => clearThemeGalleryCaches(t));
+    return;
+  }
+  const suffix = `-${theme}`;
+  removeKeys([
+    `gallery-artwork-cache${suffix}`,
+    `gallery-artwork-cache-timestamp${suffix}`,
+    `gallery-artwork-page${suffix}`,
+    `gallery-artwork-order${suffix}`,
+    `gallery-artwork-dimensions${suffix}`,
+    `gallery-artwork-session${suffix}`,
+  ]);
+  // Remove search caches for this theme
+  removeKeysBySuffix(suffix);
+}
+
+// Helper: clear featured caches for a specific theme
+function clearThemeFeaturedCaches(theme) {
+  if (!theme || !THEMES.includes(theme)) {
+    THEMES.forEach(t => clearThemeFeaturedCaches(t));
+    return;
+  }
+  const suffix = `-${theme}`;
+  removeKeys([
+    `featured-gallery-cache${suffix}`,
+    `featured-gallery-cache-timestamp${suffix}`,
+    `featured-gallery-session${suffix}`,
+  ]);
+}
+
+// Removed legacy migration helper (migrateLegacyGalleryToBirdlife)
+
 // Featured Gallery Functions
 export const getFeaturedImages = async () => {
   try {
@@ -77,11 +144,36 @@ export const getAdminFeaturedImages = async () => {
   }
 };
 
+// Copy storage folder contents via Cloud Function
+export const copyBirdlifeToGallery = async (sourcePrefix = 'birdlife/', destPrefix = 'gallery/') => {
+  try {
+    const response = await fetch(`${functionsURL}/copyBirdlifeToGallery?sourcePrefix=${encodeURIComponent(sourcePrefix)}&destPrefix=${encodeURIComponent(destPrefix)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourcePrefix, destPrefix })
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`HTTP ${response.status}: ${text}`);
+    }
+    const data = await response.json();
+    // Clear relevant caches after copy for the birdlife theme
+    try {
+      clearThemeGalleryCaches('birdlife');
+      clearThemeFeaturedCaches('birdlife');
+    } catch {}
+    return data;
+  } catch (error) {
+    console.error('Error copying birdlife to gallery:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const clearFeaturedCache = () => {
+  // Admin cache
   sessionStorage.removeItem('admin-featured-cache');
-  localStorage.removeItem('featured-gallery-cache');
-  localStorage.removeItem('featured-gallery-cache-timestamp');
-  sessionStorage.removeItem('featured-gallery-session');
+  // Frontend per-theme caches
+  THEMES.forEach(t => clearThemeFeaturedCaches(t));
 };
 
 // Helper function to find and delete existing images before replacement
@@ -266,26 +358,33 @@ export const cleanupAdminCache = () => {
 };
 
 // Upload progress tracking with replacement handling
-export const uploadWithProgress = async (files, onProgress, seriesTitle = '', seriesDescription = '', scientificName = '', location = '', timeTaken = '', history = '') => {
+export const uploadWithProgress = async (files, folder = 'gallery', onProgress, seriesTitle = '', seriesDescription = '', scientificName = '', location = '', timeTaken = '', history = '') => {
   try {
     // Clear relevant caches when uploading
     clearAdminCache();
     
     // Handle image replacement before uploading
-    const replacedCount = await handleImageReplacement('gallery', files, seriesTitle);
+    const replacedCount = await handleImageReplacement(folder, files, seriesTitle);
     if (replacedCount > 0) {
       console.log(`Replaced ${replacedCount} existing gallery images`);
     }
     
     // Call your existing upload function with all metadata
     const { uploadMultipleImages } = await import('./storage.js');
-    const result = await uploadMultipleImages(files, 'gallery', seriesTitle, seriesDescription, scientificName, location, timeTaken, history);
+    const result = await uploadMultipleImages(files, folder, seriesTitle, seriesDescription, scientificName, location, timeTaken, history);
     
-    // Clear gallery caches too since new images are added
-    sessionStorage.removeItem('gallery-artwork-session');
-    localStorage.removeItem('gallery-artwork-cache');
-    localStorage.removeItem('gallery-artwork-order');
-    
+    // Clear theme-specific caches
+    const theme = (folder && folder.split('/')[1]) || '';
+    clearThemeGalleryCaches(theme);
+    if (theme) {
+      // Home page gallery caches
+      removeKeys([
+        `home-gallery-session-${theme}`,
+        `home-gallery-cache-${theme}`,
+        `home-gallery-cache-timestamp-${theme}`,
+      ]);
+    }
+
     return result;
   } catch (error) {
     console.error('Error uploading images:', error);
@@ -294,24 +393,25 @@ export const uploadWithProgress = async (files, onProgress, seriesTitle = '', se
 };
 
 // Featured gallery upload function with replacement handling
-export const uploadFeaturedWithProgress = async (files, onProgress, seriesTitle = '', seriesDescription = '') => {
+export const uploadFeaturedWithProgress = async (files, folder = 'featured', onProgress, seriesTitle = '', seriesDescription = '') => {
   try {
     // Clear featured caches when uploading
     clearFeaturedCache();
     
     // Handle image replacement before uploading
-    const replacedCount = await handleImageReplacement('featured', files, seriesTitle);
+    const replacedCount = await handleImageReplacement(folder, files, seriesTitle);
     if (replacedCount > 0) {
       console.log(`Replaced ${replacedCount} existing featured images`);
     }
     
     // Call your existing upload function with featured folder
     const { uploadMultipleImages } = await import('./storage.js');
-    const result = await uploadMultipleImages(files, 'featured', seriesTitle, seriesDescription);
+    const result = await uploadMultipleImages(files, folder, seriesTitle, seriesDescription);
     
-    // Clear all featured caches since new images are added
-    clearFeaturedCache();
-    
+    // Clear featured caches for specific theme as well
+    const theme = (folder && folder.split('/')[1]) || '';
+    clearThemeFeaturedCaches(theme);
+
     return result;
   } catch (error) {
     console.error('Error uploading featured images:', error);
@@ -337,10 +437,9 @@ export const updateImageMetadataWithCache = async (imagePath, title, description
       updatedAt: new Date().toISOString()
     });
     
-    // Clear gallery caches too since metadata is updated
-    sessionStorage.removeItem('gallery-artwork-session');
-    localStorage.removeItem('gallery-artwork-cache');
-    localStorage.removeItem('gallery-artwork-order');
+    // Clear theme-specific caches since metadata is updated
+    const themeMatch = (imagePath || '').match(/^gallery\/(birdlife|astro|landscape)\//);
+    clearThemeGalleryCaches(themeMatch ? themeMatch[1] : null);
     
     return result;
   } catch (error) {
@@ -359,10 +458,9 @@ export const deleteImageWithCache = async (imagePath) => {
     const { deleteImage } = await import('./storage.js');
     const result = await deleteImage(imagePath);
     
-    // Clear gallery caches too since images are removed
-    sessionStorage.removeItem('gallery-artwork-session');
-    localStorage.removeItem('gallery-artwork-cache');
-    localStorage.removeItem('gallery-artwork-order');
+    // Clear theme-specific caches since images are removed
+    const themeMatch = (imagePath || '').match(/^gallery\/(birdlife|astro|landscape)\//);
+    clearThemeGalleryCaches(themeMatch ? themeMatch[1] : null);
     
     return result;
   } catch (error) {
@@ -381,8 +479,9 @@ export const deleteFeaturedImageWithCache = async (imagePath) => {
     const { deleteImage } = await import('./storage.js');
     const result = await deleteImage(imagePath);
     
-    // Clear all featured caches since images are removed
-    clearFeaturedCache();
+    // Clear featured caches for the theme
+    const themeMatch = (imagePath || '').match(/^featured\/(birdlife|astro|landscape)\//);
+    clearThemeFeaturedCaches(themeMatch ? themeMatch[1] : null);
     
     return result;
   } catch (error) {

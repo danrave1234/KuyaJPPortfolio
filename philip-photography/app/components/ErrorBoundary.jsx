@@ -30,7 +30,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300 flex items-center justify-center p-2 sm:p-4 pt-20 sm:pt-24">
+        <div className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-[var(--t-base)] flex items-center justify-center p-2 sm:p-4 pt-20 sm:pt-24">
           <div className="w-full max-w-2xl mx-auto">
             <div className="text-center">
               <div className="mb-4 sm:mb-6">
@@ -64,7 +64,7 @@ class ErrorBoundary extends React.Component {
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center items-center mb-4 sm:mb-6 px-2">
                 <button
                   onClick={this.handleReset}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 text-sm"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-[var(--t-fast)] shadow-lg hover:shadow-xl transform hover:scale-105 text-sm"
                 >
                   <RefreshCw size={16} />
                   Try Again
@@ -72,7 +72,7 @@ class ErrorBoundary extends React.Component {
                 
                 <Link
                   href="/"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[rgb(var(--bg))] hover:bg-gray-100 dark:hover:bg-gray-800 text-[rgb(var(--fg))] border border-gray-300 dark:border-gray-600 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-200 hover:shadow-lg text-sm"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[rgb(var(--bg))] hover:bg-gray-100 dark:hover:bg-gray-800 text-[rgb(var(--fg))] border border-gray-300 dark:border-gray-600 px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-[var(--t-fast)] hover:shadow-lg text-sm"
                 >
                   <Home size={16} />
                   Go Home
@@ -86,13 +86,13 @@ class ErrorBoundary extends React.Component {
                 <div className="flex flex-wrap gap-2 sm:gap-3 justify-center text-xs">
                   <Link
                     href="/contact"
-                    className="text-[rgb(var(--primary))] hover:text-[rgb(var(--primary))]/80 hover:underline transition-colors duration-200"
+                    className="text-[rgb(var(--primary))] hover:text-[rgb(var(--primary))]/80 hover:underline transition-colors duration-[var(--t-fast)]"
                   >
                     Contact Us
                   </Link>
                   <button
                     onClick={() => window.location.reload()}
-                    className="text-[rgb(var(--primary))] hover:text-[rgb(var(--primary))]/80 hover:underline transition-colors duration-200"
+                    className="text-[rgb(var(--primary))] hover:text-[rgb(var(--primary))]/80 hover:underline transition-colors duration-[var(--t-fast)]"
                   >
                     Refresh Page
                   </button>
@@ -109,6 +109,13 @@ class ErrorBoundary extends React.Component {
 }
 
 export default ErrorBoundary
+
+
+
+
+
+
+
 
 
 

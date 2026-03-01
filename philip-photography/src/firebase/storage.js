@@ -17,6 +17,19 @@ export const uploadImage = async (file, path = 'gallery', newFileName = null, cu
     const metadata = {
       customMetadata: {
         ...customMetadata,
+        // Tag genre based on the folder structure (e.g., gallery/astro, featured/landscape)
+        genre: (() => {
+          try {
+            const segments = String(path || '').split('/');
+            if (segments.length >= 2 && (segments[0] === 'gallery' || segments[0] === 'featured')) {
+              return segments[1] || '';
+            }
+            if (['birdlife', 'astro', 'landscape'].includes(segments[0])) {
+              return segments[0];
+            }
+          } catch {}
+          return '';
+        })(),
         originalName: file.name, // Keep original name for reference
       }
     };
@@ -64,6 +77,18 @@ export const uploadMultipleImages = async (files, path = 'gallery', seriesTitle 
         location: location,
         timeTaken: timeTaken,
         history: history,
+        genre: (() => {
+          try {
+            const segments = String(path || '').split('/');
+            if (segments.length >= 2 && (segments[0] === 'gallery' || segments[0] === 'featured')) {
+              return segments[1] || '';
+            }
+            if (['birdlife', 'astro', 'landscape'].includes(segments[0])) {
+              return segments[0];
+            }
+          } catch {}
+          return '';
+        })(),
         likes: '0', // Initialize likes to 0
         isSeries: files.length > 1 ? 'true' : 'false', // Store as string
         seriesIndex: files.length > 1 ? String(index + 1) : '1', // Store as string

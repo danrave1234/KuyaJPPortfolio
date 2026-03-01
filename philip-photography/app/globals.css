@@ -35,11 +35,11 @@
     to { opacity: 1; transform: scale(1.15); }
   }
 
-  .animate-fadeIn { animation: fadeIn 0.8s ease-out forwards; }
-  .animate-slideUp { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .animate-fadeIn { animation: fadeIn var(--t-base) ease-out forwards; }
+  .animate-slideUp { animation: slideUp var(--t-base) cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   .animate-zoomIn { animation: subtleZoom 20s ease-out forwards; }
-  .animate-heroReveal { animation: heroReveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-  .animate-slideDown { animation: slideDown 2s cubic-bezier(0.77, 0, 0.175, 1) infinite; }
+  .animate-heroReveal { animation: heroReveal var(--t-base) cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .animate-slideDown { animation: slideDown var(--t-slow) cubic-bezier(0.77, 0, 0.175, 1) infinite; }
   
   .delay-100 { animation-delay: 100ms; }
   .delay-200 { animation-delay: 200ms; }
@@ -60,6 +60,39 @@
     --track-body: 0.01em;
     --track-paragraph: 0.008em;
     --track-small: 0.02em;
+
+    /* Fluid timing and motion distances using clamp() */
+    /* Transition/animation durations scale with viewport for smoother feel */
+    --t-fast: clamp(160ms, 1.2vw, 260ms);
+    --t-base: clamp(240ms, 1.8vw, 420ms);
+    --t-slow: clamp(500ms, 3.5vw, 900ms);
+    /* Subtle motion distances that scale with viewport */
+    --shift-xs: clamp(2px, 0.4vw, 6px);
+    --shift-sm: clamp(6px, 0.8vw, 14px);
+    --shift-md: clamp(10px, 1.2vw, 22px);
+
+    /* Fluid typography using clamp() */
+    --fs-xs: clamp(0.75rem, 0.72rem + 0.15vw, 0.875rem);
+    --fs-sm: clamp(0.875rem, 0.84rem + 0.25vw, 1rem);
+    --fs-base: clamp(1rem, 0.95rem + 0.35vw, 1.125rem);
+    --fs-lg: clamp(1.125rem, 1.02rem + 0.8vw, 1.5rem);
+    --fs-xl: clamp(1.25rem, 1.05rem + 1.2vw, 2rem);
+    --fs-2xl: clamp(1.5rem, 1.2rem + 1.8vw, 2.5rem);
+    --fs-3xl: clamp(1.875rem, 1.4rem + 2.5vw, 3.5rem);
+    --fs-display: clamp(2.25rem, 1.6rem + 4vw, 5rem);
+    --fs-hero: clamp(2.75rem, 2rem + 6vw, 7rem);
+
+    /* Line-height presets */
+    --lh-tight: 1.1;
+    --lh-snug: 1.2;
+    --lh-normal: 1.5;
+
+    /* Fluid image sizing presets */
+    --img-xs: clamp(120px, 24vw, 220px);
+    --img-sm: clamp(160px, 32vw, 320px);
+    --img-md: clamp(220px, 42vw, 480px);
+    --img-lg: clamp(320px, 52vw, 640px);
+    --img-hero-h: clamp(280px, 55vh, 860px);
   }
   :root {
     /* Dawn Mist (warm, photo-friendly light theme) */
@@ -79,6 +112,61 @@
     --primary: 56 189 149;  /* #38BD95 - natural teal accent */
     --bg-accent: 20 28 44;  /* #141C2C - lighter midnight blue */
     --bg-blue: 24 32 56;    /* #182038 - subtle blue glow */
+    color-scheme: dark;
+  }
+
+  /* Birdlife Theme (fresh greens + airy highlights) */
+  :root.theme-birdlife {
+    --bg: 242 251 247;      /* #F2FBF7 - airy mint-white */
+    --fg: 16 42 36;         /* #102A24 - deep evergreen text */
+    --muted: 76 107 98;     /* #4C6B62 - subdued foliage */
+    --primary: 31 122 90;   /* #1F7A5A - leaf emerald */
+    --bg-accent: 191 232 209;/* #BFE8D1 - soft leaf glow */
+    color-scheme: light;
+  }
+  :root.theme-birdlife.dark {
+    --bg: 7 22 17;          /* #071611 - deep forest */
+    --fg: 234 247 241;      /* #EAF7F1 - soft feather-white */
+    --muted: 138 176 163;   /* #8AB0A3 - cool sage */
+    --primary: 68 209 154;  /* #44D19A - vibrant emerald */
+    --bg-accent: 20 58 47;  /* #143A2F - mossy surface */
+    color-scheme: dark;
+  }
+
+  /* Astro Theme (cosmic inks + aurora accents) */
+  :root.theme-astro {
+    --bg: 247 246 255;      /* #F7F6FF - lunar paper */
+    --fg: 22 22 43;         /* #16162B - ink */
+    --muted: 85 92 122;     /* #555C7A - slate */
+    --primary: 91 92 255;   /* #5B5CFF - electric indigo */
+    --bg-accent: 216 210 255;/* #D8D2FF - nebula mist */
+    color-scheme: light;
+  }
+  :root.theme-astro.dark {
+    --bg: 7 8 20;           /* #070814 - deep space */
+    --fg: 242 244 255;      /* #F2F4FF - starlight */
+    --muted: 154 160 195;   /* #9AA0C3 - twilight slate */
+    --primary: 87 214 255;  /* #57D6FF - cyan glow */
+    --bg-accent: 107 44 255;/* #6B2CFF - nebula purple */
+    --bg-blue: 18 24 52;    /* #121834 - subtle blue glow */
+    color-scheme: dark;
+  }
+
+  /* Landscape Theme (sunlit earth + alpine water) */
+  :root.theme-landscape {
+    --bg: 255 246 232;      /* #FFF6E8 - warm parchment */
+    --fg: 43 31 20;         /* #2B1F14 - rich brown text */
+    --muted: 110 91 74;     /* #6E5B4A - soil */
+    --primary: 192 107 43;  /* #C06B2B - sunset terracotta */
+    --bg-accent: 61 140 203;/* #3D8CCB - lake blue */
+    color-scheme: light;
+  }
+  :root.theme-landscape.dark {
+    --bg: 11 18 14;         /* #0B120E - pine night */
+    --fg: 242 246 243;      /* #F2F6F3 - fog */
+    --muted: 154 168 159;   /* #9AA89F - lichen */
+    --primary: 224 138 58;  /* #E08A3A - campfire amber */
+    --bg-accent: 82 197 140;/* #52C58C - alpine green */
     color-scheme: dark;
   }
   body {
@@ -677,7 +765,37 @@
     .responsive-text-8xl { font-size: 8rem; }
     .responsive-text-9xl { font-size: 10rem; }
   }
+
+  /* Fluid clamp()-based typography */
+  .text-fluid-xs { font-size: var(--fs-xs); }
+  .text-fluid-sm { font-size: var(--fs-sm); }
+  .text-fluid-base { font-size: var(--fs-base); }
+  .text-fluid-lg { font-size: var(--fs-lg); }
+  .text-fluid-xl { font-size: var(--fs-xl); }
+  .text-fluid-2xl { font-size: var(--fs-2xl); }
+  .text-fluid-3xl { font-size: var(--fs-3xl); }
+  .text-fluid-display { font-size: var(--fs-display); line-height: var(--lh-tight); }
+  .text-fluid-hero { font-size: var(--fs-hero); line-height: var(--lh-tight); }
+
+  /* Line-height helpers matched to fluid type */
+  .leading-fluid-tight { line-height: var(--lh-tight); }
+  .leading-fluid-snug { line-height: var(--lh-snug); }
+  .leading-fluid-normal { line-height: var(--lh-normal); }
+
+  /* Fluid image helpers */
+  .img-fluid-xs { width: var(--img-xs); height: auto; }
+  .img-fluid-sm { width: var(--img-sm); height: auto; }
+  .img-fluid-md { width: var(--img-md); height: auto; }
+  .img-fluid-lg { width: var(--img-lg); height: auto; }
+  .max-h-hero { max-height: var(--img-hero-h); }
 }
+
+
+
+
+
+
+
 
 
 

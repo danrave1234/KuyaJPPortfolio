@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photography Portfolio Template</title>
+    <style>
+        /* --- CSS VARIABLES (THEMING) --- */
+        :root {
+            /* Default/Base Colors */
+            --bg-color: #1a1a1a;
+            --text-color: #f0f0f0;
+            --accent-color: #888;
+            --panel-width: 33.333%;
+            --transition-speed: 0.6s;
+        }
+
+        /* Theme: Birdlife (Forest/Nature) */
+        body.theme-birdlife {
+            --bg-color: #1e2f23;
+            --text-color: #e8f5e9;
+            --accent-color: #4caf50;
+        }
+
+        /* Theme: Astro (Space/Dark) */
+        body.theme-astro {
+            --bg-color: #0b0d17;
+            --text-color: #e0e7ff;
+            --accent-color: #7c4dff;
+        }
+
+        /* Theme: Landscape (Earth/Sunset) */
+        body.theme-landscape {
+            --bg-color: #2d241e;
+            --text-color: #fff3e0;
+            --accent-color: #ff9800;
+        }
+
+        /* --- GLOBAL STYLES --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow-x: hidden;
+            transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+        }
+
+        /* --- LANDING SPLIT LAYOUT --- */
+        .split-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 10;
+            transition: transform var(--transition-speed) ease-in-out;
+        }
+
+        /* When a theme is active, move the split screen up out of view */
+        body.active-view .split-container {
+            transform: translateY(-100%);
+        }
+
+        .split-panel {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: flex var(--transition-speed) ease, opacity 0.3s ease;
+            overflow: hidden;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .split-panel:last-child { border-right: none; }
+
+        /* Hover Effect */
+        .split-container:hover .split-panel { opacity: 0.5; }
+        .split-container .split-panel:hover { opacity: 1; flex: 1.5; }
+
+        /* Panel Backgrounds (Gradients for pure CSS visual) */
+        .split-panel.birdlife { background: linear-gradient(to bottom, #2c3e50, #4caf50); }
+        .split-panel.astro    { background: linear-gradient(to bottom, #000000, #434343); }
+        .split-panel.landscape{ background: linear-gradient(to bottom, #cc5333, #23074d); }
+
+        .split-panel h2 {
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            z-index: 2;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        /* --- MAIN CONTENT LAYOUT --- */
+        .main-content {
+            position: relative;
+            min-height: 100vh;
+            padding: 40px;
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.8s ease 0.4s, transform 0.8s ease 0.4s;
+            pointer-events: none; /* Disable clicks when hidden */
+        }
+
+        body.active-view .main-content {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        /* Navigation */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 60px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 20px;
+        }
+
+        .logo { font-size: 1.5rem; font-weight: bold; }
+
+        .back-btn {
+            padding: 10px 20px;
+            background: transparent;
+            border: 1px solid var(--text-color);
+            color: var(--text-color);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+        .back-btn:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        /* Hero Text */
+        .hero {
+            max-width: 800px;
+            margin: 0 auto 60px auto;
+            text-align: center;
+        }
+        .hero h1 { font-size: 3.5rem; margin-bottom: 20px; color: var(--accent-color); }
+        .hero p { font-size: 1.2rem; line-height: 1.6; opacity: 0.8; }
+
+        /* Gallery Grid */
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.05);
+            height: 250px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.3);
+            transition: transform 0.3s ease;
+        }
+        .card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.1); }
+
+    </style>
+</head>
+<body>
+
+<!-- LANDING PAGE: 3 SPLIT OPTIONS -->
+<div class="split-container" id="landing">
+    <div class="split-panel birdlife" onclick="selectTheme('birdlife')">
+        <h2>Birdlife</h2>
+    </div>
+    <div class="split-panel astro" onclick="selectTheme('astro')">
+        <h2>Astro</h2>
+    </div>
+    <div class="split-panel landscape" onclick="selectTheme('landscape')">
+        <h2>Landscape</h2>
+    </div>
+</div>
+
+<!-- MAIN WEBSITE CONTENT -->
+<main class="main-content">
+    <nav>
+        <div class="logo">MY PORTFOLIO</div>
+        <button class="back-btn" onclick="resetTheme()">Change Gallery</button>
+    </nav>
+
+    <section class="hero">
+        <h1 id="hero-title">Gallery Title</h1>
+        <p id="hero-desc">Description of the selected photography category.</p>
+    </section>
+
+    <div class="gallery">
+        <!-- Placeholders for images -->
+        <div class="card">Image 1</div>
+        <div class="card">Image 2</div>
+        <div class="card">Image 3</div>
+        <div class="card">Image 4</div>
+        <div class="card">Image 5</div>
+        <div class="card">Image 6</div>
+    </div>
+</main>
+
+<script>
+    // Data for each theme
+    const contentData = {
+        birdlife: {
+            title: "Avian Wonders",
+            desc: "Capturing the elegance and freedom of birds in their natural habitat. From the dense rainforests to the open skies."
+        },
+        astro: {
+            title: "Deep Space",
+            desc: "Exploring the cosmos through long-exposure photography. Nebulas, star trails, and the infinite void."
+        },
+        landscape: {
+            title: "Earthly Horizons",
+            desc: "The raw beauty of mountains, valleys, and oceans. Chasing light across the most dramatic landscapes on Earth."
+        }
+    };
+
+    function selectTheme(theme) {
+        // 1. Add theme class to body for color changes
+        document.body.className = `active-view theme-${theme}`;
+
+        // 2. Update text content dynamically
+        const data = contentData[theme];
+        document.getElementById('hero-title').innerText = data.title;
+        document.getElementById('hero-desc').innerText = data.desc;
+    }
+
+    function resetTheme() {
+        // Remove all classes to revert to default state
+        document.body.className = '';
+    }
+</script>
+</body>
+</html>

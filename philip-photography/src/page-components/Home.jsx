@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState, useRef } from 'react'
 import { ChevronRight, User, X, ChevronLeft, ChevronRight as ChevronRightIcon, Maximize2, Minimize2, Heart, ArrowDown } from 'lucide-react'
+import { useTheme, THEME_CONTENT } from '@/src/contexts/ThemeContext'
 import { getImagesFromFolder } from '../firebase/storage'
 import { getFeaturedImages } from '../firebase/admin-api'
 import { trackImageView, trackGalleryNavigation } from '../services/analytics'
@@ -95,12 +96,25 @@ function FeaturedImageOverlayCard({ featuredImage }) {
 }
 
 export default function Home() {
+  const { theme, mounted } = useTheme()
+  // Keep SSR stable: until mounted, render using baseline 'birdlife'
+  const currentTheme = mounted && theme ? theme : 'birdlife'
+  const content = THEME_CONTENT[currentTheme]
+
   const [active, setActive] = useState(null)
   const [imageDimensions, setImageDimensions] = useState({})
   const [landscapeImages, setLandscapeImages] = useState([])
   const [firebaseImages, setFirebaseImages] = useState([])
   const [loading, setLoading] = useState(true)
   
+  // Theme images mapping
+  const THEME_IMAGES = {
+    birdlife: '/Hero.jpg',
+    astro: '/AstroHero.jpg',
+    landscape: '/LandscapeHero.jpg'
+  }
+  const heroImage = THEME_IMAGES[currentTheme] || THEME_IMAGES.birdlife
+
   // Featured images state
   const [featuredImages, setFeaturedImages] = useState([])
   const [featuredLoading, setFeaturedLoading] = useState(true)
@@ -135,8 +149,19 @@ export default function Home() {
   useEffect(() => {
     const loadFirebaseImages = async () => {
       try {
+        setLoading(true)
+        // Clear previous gallery state to avoid showing stale images during theme switch
+        setFirebaseImages([])
+        setLandscapeImages([])
+        setUseAllImages(false)
+        const currentTheme = theme || 'birdlife' // Default fallback
+        const cacheKey = `home-gallery-session-${currentTheme}`
+        const storageKey = `home-gallery-cache-${currentTheme}`
+        const timestampKey = `home-gallery-cache-timestamp-${currentTheme}`
+        const folderPath = `gallery/${currentTheme}`
+
         // 1. Check browser cache first (sessionStorage for immediate loads)
-        const sessionCache = sessionStorage.getItem('home-gallery-session')
+        const sessionCache = sessionStorage.getItem(cacheKey)
         if (sessionCache) {
           const parsedImages = JSON.parse(sessionCache)
           setFirebaseImages(parsedImages)
@@ -147,8 +172,8 @@ export default function Home() {
         }
 
         // 2. Check localStorage cache (persistent across sessions)
-        const cachedImages = localStorage.getItem('home-gallery-cache')
-        const cacheTimestamp = localStorage.getItem('home-gallery-cache-timestamp')
+        const cachedImages = localStorage.getItem(storageKey)
+        const cacheTimestamp = localStorage.getItem(timestampKey)
         const now = Date.now()
         const cacheExpiry = 7 * 24 * 60 * 60 * 1000 // 7 days
 
@@ -158,13 +183,14 @@ export default function Home() {
           // Process cached images immediately to populate landscapeImages
           processImagesForCarousel(parsedImages)
           // Also store in sessionStorage for faster subsequent loads
-          sessionStorage.setItem('home-gallery-session', cachedImages)
+          sessionStorage.setItem(cacheKey, cachedImages)
           setLoading(false)
           return
         }
 
-        // 3. Fetch from Firebase with HTTP caching headers
-        const result = await getImagesFromFolder('gallery')
+        // 3. Fetch from Firebase with HTTP caching headers (strict theme folder only)
+        const result = await getImagesFromFolder(folderPath)
+
         if (result.success) {
           const imagesWithIds = result.images.map((img, index) => ({
             id: index + 1,
@@ -175,15 +201,16 @@ export default function Home() {
           
           // Store in both caches
           const imagesJson = JSON.stringify(imagesWithIds)
-          localStorage.setItem('home-gallery-cache', imagesJson)
-          localStorage.setItem('home-gallery-cache-timestamp', now.toString())
-          sessionStorage.setItem('home-gallery-session', imagesJson)
+          localStorage.setItem(storageKey, imagesJson)
+          localStorage.setItem(timestampKey, now.toString())
+          sessionStorage.setItem(cacheKey, imagesJson)
           
           setFirebaseImages(imagesWithIds)
           // Process fresh images to populate landscapeImages
           processImagesForCarousel(imagesWithIds)
         } else {
           console.error('Failed to load Firebase images:', result.error)
+          // Fallback or empty state handling could go here
         }
       } catch (error) {
         console.error('Error loading Firebase images:', error)
@@ -193,14 +220,23 @@ export default function Home() {
     }
 
     loadFirebaseImages()
-  }, [])
+  }, [theme])
 
-  // Load featured images from Firebase Storage
+  // Load featured images from Firebase Storage (Theme Aware)
   useEffect(() => {
     const loadFeaturedImages = async () => {
       try {
+        setFeaturedLoading(true)
+        // Clear previous featured state to prevent cross-theme bleed
+        setFeaturedImages([])
+        const currentTheme = theme || 'birdlife'
+        const folderPath = `featured/${currentTheme}`
+        const cacheKey = `featured-gallery-session-${currentTheme}`
+        const storageKey = `featured-gallery-cache-${currentTheme}`
+        const timestampKey = `featured-gallery-cache-timestamp-${currentTheme}`
+
         // Check session cache first
-        const sessionCache = sessionStorage.getItem('featured-gallery-session')
+        const sessionCache = sessionStorage.getItem(cacheKey)
         if (sessionCache) {
           const parsedImages = JSON.parse(sessionCache)
           setFeaturedImages(parsedImages)
@@ -209,23 +245,25 @@ export default function Home() {
         }
 
         // Check localStorage cache
-        const cachedImages = localStorage.getItem('featured-gallery-cache')
-        const cacheTimestamp = localStorage.getItem('featured-gallery-cache-timestamp')
+        const cachedImages = localStorage.getItem(storageKey)
+        const cacheTimestamp = localStorage.getItem(timestampKey)
         const now = Date.now()
         const cacheExpiry = 7 * 24 * 60 * 60 * 1000 // 7 days
 
         if (cachedImages && cacheTimestamp && (now - parseInt(cacheTimestamp)) < cacheExpiry) {
           const parsedImages = JSON.parse(cachedImages)
           setFeaturedImages(parsedImages)
-          sessionStorage.setItem('featured-gallery-session', cachedImages)
+          sessionStorage.setItem(cacheKey, cachedImages)
           setFeaturedLoading(false)
           return
         }
 
-        // Fetch from Firebase using the new function
-        const result = await getFeaturedImages()
-        if (result.success) {
-          const imagesWithIds = result.images.map((img, index) => ({
+        // Fetch from Firebase using theme-specific folder path (strict, no legacy fallbacks)
+        const result = await getImagesFromFolder(folderPath)
+        let imagesToUse = (result.success && Array.isArray(result.images)) ? result.images : []
+        
+        if (imagesToUse.length > 0) {
+          const imagesWithIds = imagesToUse.map((img, index) => ({
             id: index + 1,
             src: img.src,
             title: img.title || img.name,
@@ -234,23 +272,24 @@ export default function Home() {
           
           // Store in both caches
           const imagesJson = JSON.stringify(imagesWithIds)
-          localStorage.setItem('featured-gallery-cache', imagesJson)
-          localStorage.setItem('featured-gallery-cache-timestamp', now.toString())
-          sessionStorage.setItem('featured-gallery-session', imagesJson)
+          localStorage.setItem(storageKey, imagesJson)
+          localStorage.setItem(timestampKey, now.toString())
+          sessionStorage.setItem(cacheKey, imagesJson)
           
           setFeaturedImages(imagesWithIds)
         } else {
-          console.error('Failed to load featured images:', result.error)
+          setFeaturedImages([])
         }
       } catch (error) {
         console.error('Error loading featured images:', error)
+        setFeaturedImages([])
       } finally {
         setFeaturedLoading(false)
       }
     }
 
     loadFeaturedImages()
-  }, [])
+  }, [theme])
 
   // Process images to populate landscape images for future use (optional)
   const processImagesForCarousel = (images) => {
@@ -311,7 +350,20 @@ export default function Home() {
 
   // Get single featured image with auto-fit container
   const getFeaturedImage = () => {
-    if (featuredLoading || featuredImages.length === 0) return null
+    if (featuredLoading) return null
+    
+    // If no featured images found, fallback to the theme's hero image
+    if (featuredImages.length === 0) {
+      return {
+        id: `hero-${currentTheme}-fallback`,
+        src: THEME_IMAGES[currentTheme] || THEME_IMAGES.birdlife,
+        title: content.title,
+        alt: content.title,
+        description: content.desc,
+        aspectRatio: 1.5,
+        isPortrait: false
+      }
+    }
     
     const image = featuredImages[0] // Only take the first image
     const dimensions = featuredImageDimensions[image.id]
@@ -362,7 +414,7 @@ export default function Home() {
           {/* Background Blurred Image to fill empty space */}
           <div className="absolute inset-0 z-0">
             <img 
-              src="/Hero.jpg" 
+              src={heroImage} 
               alt="Background Blur" 
               className="w-full h-full object-cover blur-3xl scale-110 brightness-75" 
             />
@@ -384,9 +436,9 @@ export default function Home() {
           {/* Centered Image Container to ensure full height visibility */}
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden z-0">
             <img
-              src="/Hero.jpg"
+              src={heroImage}
               alt="Photographer hero"
-              className="h-full w-auto max-w-none animate-zoomIn"
+              className="h-full max-h-none w-auto max-w-none animate-zoomIn"
               style={{ 
                 animationDuration: '3s', 
                 animationFillMode: 'forwards',
@@ -400,29 +452,29 @@ export default function Home() {
           
           <div className="absolute inset-0 flex flex-col items-center justify-center z-20 px-4">
             <div className="text-center max-w-5xl mx-auto">
-              <h1 className="font-heading text-2xl xs:text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl font-bold text-white drop-shadow-2xl mb-4 sm:mb-6 opacity-0 animate-heroReveal" style={{ letterSpacing: '0.05em' }}>
-                John Philip Morada
+              <h1 className="font-heading text-fluid-hero leading-fluid-tight font-bold text-white drop-shadow-2xl mb-4 sm:mb-6 animate-heroReveal" style={{ letterSpacing: '0.05em' }}>
+                {content.title}
               </h1>
-              <div className="w-16 sm:w-24 h-0.5 sm:h-1 bg-white/80 mx-auto mb-4 sm:mb-8 rounded-full opacity-0 animate-heroReveal delay-200"></div>
-              <p className="font-body text-white/90 max-w-2xl mx-auto text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl font-light leading-relaxed opacity-0 animate-heroReveal delay-300 tracking-wide px-2">
-                Capturing the soul of Philippine wildlife,<br className="hidden sm:block" /> one frame at a time.
+              <div className="w-16 sm:w-24 h-0.5 sm:h-1 bg-white/80 mx-auto mb-4 sm:mb-8 rounded-full animate-heroReveal delay-200"></div>
+              <p className="font-body text-white/90 max-w-2xl mx-auto text-fluid-lg leading-fluid-normal font-light animate-heroReveal delay-300 tracking-wide px-2">
+                {content.desc}
               </p>
               
-              <div className="mt-6 sm:mt-8 lg:mt-12 opacity-0 animate-heroReveal delay-500">
+              <div className="mt-6 sm:mt-8 lg:mt-12 animate-heroReveal delay-500">
                 <Link 
                   href="/gallery" 
-                  className="group relative inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-md border border-white/30 rounded-full text-white overflow-hidden transition-all duration-300 hover:bg-white hover:text-black hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
+                  className="group relative inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 py-3 sm:py-4 bg-white/10 backdrop-blur-md border border-white/30 rounded-full text-white overflow-hidden transition-all duration-[var(--t-base)] hover:bg-white hover:text-black hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
                   onClick={() => trackGalleryNavigation('main', 'view_gallery_link')}
                 >
                   <span className="text-xs sm:text-sm lg:text-base font-medium tracking-widest uppercase">View Gallery</span>
-                  <ChevronRight size={16} className="sm:w-[18px] sm:h-[18px] transition-transform duration-300 group-hover:translate-x-1" />
+                  <ChevronRight size={16} className="sm:w-[18px] sm:h-[18px] transition-transform duration-[var(--t-fast)] group-hover:translate-x-1" />
                 </Link>
               </div>
             </div>
           </div>
           
           {/* Scroll Indicator */}
-          <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-20 animate-bounce opacity-0 animate-heroReveal delay-700 hidden sm:flex flex-col items-center gap-2">
+          <div className="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-20 animate-bounce animate-heroReveal delay-700 hidden sm:flex flex-col items-center gap-2">
             <span className="text-white/50 text-[10px] uppercase tracking-[0.2em]">Explore</span>
             <ArrowDown className="text-white/50" size={20} />
           </div>
@@ -544,15 +596,15 @@ export default function Home() {
               <FadeInWhenVisible>
                 <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-[rgb(var(--primary))]/10 text-[rgb(var(--primary))] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-2 sm:mb-6 w-fit">
                   <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[rgb(var(--primary))] animate-pulse" />
-                  About The Photographer
+                  {content.about?.tag || "About The Photographer"}
                 </div>
                 
                 <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight mb-2 sm:mb-6 text-[rgb(var(--fg))]">
-                  John Philip Morada
+                  {content.about?.title || "John Philip Morada"}
                 </h2>
                 
                 <p className="text-sm sm:text-base md:text-lg lg:text-xl text-[rgb(var(--muted-fg))] leading-relaxed mb-6 sm:mb-8 max-w-2xl font-light">
-                  Based in the Philippines, I specialize in capturing the raw, unscripted moments of wildlife. My work is a testament to patience, waiting for the perfect interplay of light and nature's true stories.
+                  {content.about?.bio || "Based in the Philippines, I specialize in capturing the raw, unscripted moments of wildlife. My work is a testament to patience, waiting for the perfect interplay of light and nature's true stories."}
                 </p>
               </FadeInWhenVisible>
 
@@ -563,9 +615,9 @@ export default function Home() {
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[rgb(var(--primary))]/10 flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-[rgb(var(--primary))] group-hover:text-white transition-colors duration-300">
                       <Heart size={16} className="sm:w-5 sm:h-5 text-[rgb(var(--primary))] group-hover:text-white" />
                     </div>
-                    <h4 className="font-heading text-base sm:text-lg font-bold mb-1.5 sm:mb-2 text-[rgb(var(--fg))]">My Philosophy</h4>
+                    <h4 className="font-heading text-base sm:text-lg font-bold mb-1.5 sm:mb-2 text-[rgb(var(--fg))]">{content.about?.philosophy?.title || "My Philosophy"}</h4>
                     <p className="text-xs sm:text-sm text-[rgb(var(--fg))] dark:text-[rgb(var(--muted-fg))] leading-relaxed opacity-80 dark:opacity-100">
-                      I believe every image should advocate for conservation. By showing the beauty of our wildlife, I hope to inspire protection.
+                      {content.about?.philosophy?.text || "I believe every image should advocate for conservation. By showing the beauty of our wildlife, I hope to inspire protection."}
                     </p>
                   </div>
                 </FadeInWhenVisible>
@@ -575,9 +627,9 @@ export default function Home() {
                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[rgb(var(--primary))]/10 flex items-center justify-center mb-3 sm:mb-4 group-hover:bg-[rgb(var(--primary))] group-hover:text-white transition-colors duration-300">
                       <User size={16} className="sm:w-5 sm:h-5 text-[rgb(var(--primary))] group-hover:text-white" />
                     </div>
-                    <h4 className="font-heading text-base sm:text-lg font-bold mb-1.5 sm:mb-2 text-[rgb(var(--fg))]">My Approach</h4>
+                    <h4 className="font-heading text-base sm:text-lg font-bold mb-1.5 sm:mb-2 text-[rgb(var(--fg))]">{content.about?.approach?.title || "My Approach"}</h4>
                     <p className="text-xs sm:text-sm text-[rgb(var(--fg))] dark:text-[rgb(var(--muted-fg))] leading-relaxed opacity-80 dark:opacity-100">
-                      Respect for the subject comes first. I use long lenses and careful fieldcraft to document without disturbing natural behavior.
+                      {content.about?.approach?.text || "Respect for the subject comes first. I use long lenses and careful fieldcraft to document without disturbing natural behavior."}
                     </p>
                   </div>
                 </FadeInWhenVisible>
@@ -624,16 +676,15 @@ export default function Home() {
                 <FadeInWhenVisible>
                   <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                     <span className="h-[1px] w-8 sm:w-12 bg-[rgb(var(--primary))]" />
-                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[rgb(var(--primary))]">Selected Works</span>
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[rgb(var(--primary))]">{content.experience?.tag || "Selected Works"}</span>
                   </div>
                   
                   <h2 className="font-heading text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight text-[rgb(var(--fg))] mb-2 sm:mb-3">
-                    Moments in <span className="text-[rgb(var(--primary))] italic">Time</span>
+                    {content.experience?.title || "Moments in"} <span className="text-[rgb(var(--primary))] italic">{content.experience?.titleHighlight || "Time"}</span>
                   </h2>
                   
                   <p className="text-[rgb(var(--muted-fg))] leading-relaxed text-xs sm:text-sm md:text-base">
-                    Photography is more than just clicking a shutter; it's about anticipation. 
-                    From the elusive Philippine Eagle to the vibrant sunbirds, each image represents hours of silent observation.
+                    {content.experience?.desc || "Photography is more than just clicking a shutter; it's about anticipation. From the elusive Philippine Eagle to the vibrant sunbirds, each image represents hours of silent observation."}
                   </p>
                 </FadeInWhenVisible>
 
@@ -642,24 +693,24 @@ export default function Home() {
                   {/* Mobile: Compact inline design */}
                   <div className="sm:hidden flex items-center justify-evenly py-3 border-y border-[rgb(var(--muted))]/20">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-lg font-bold text-[rgb(var(--fg))]">10<span className="text-[rgb(var(--primary))]">+</span></span>
-                      <span className="text-[9px] text-[rgb(var(--muted-fg))] uppercase tracking-wider">Years</span>
+                      <span className="text-lg font-bold text-[rgb(var(--fg))]">{content.experience?.stats?.years || "10"}<span className="text-[rgb(var(--primary))]">+</span></span>
+                      <span className="text-[9px] text-[rgb(var(--muted-fg))] uppercase tracking-wider">{content.experience?.stats?.yearsLabel || "Years"}</span>
                     </div>
                     <div className="h-4 w-px bg-[rgb(var(--muted))]/30"></div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-lg font-bold text-[rgb(var(--fg))]">500<span className="text-[rgb(var(--primary))]">+</span></span>
-                      <span className="text-[9px] text-[rgb(var(--muted-fg))] uppercase tracking-wider">Species</span>
+                      <span className="text-lg font-bold text-[rgb(var(--fg))]">{content.experience?.stats?.count || "500"}<span className="text-[rgb(var(--primary))]">+</span></span>
+                      <span className="text-[9px] text-[rgb(var(--muted-fg))] uppercase tracking-wider">{content.experience?.stats?.countLabel || "Species"}</span>
                     </div>
                   </div>
                   {/* Desktop: Original grid design */}
                   <div className="hidden sm:flex items-center justify-evenly py-4 sm:py-6 lg:py-8 border-y border-[rgb(var(--muted))]/20">
                     <div className="text-center">
-                      <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[rgb(var(--fg))] mb-1">10<span className="text-[rgb(var(--primary))]">+</span></div>
-                      <div className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] uppercase tracking-wider">Years Active</div>
+                      <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[rgb(var(--fg))] mb-1">{content.experience?.stats?.years || "10"}<span className="text-[rgb(var(--primary))]">+</span></div>
+                      <div className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] uppercase tracking-wider">{content.experience?.stats?.yearsLabel || "Years Active"}</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[rgb(var(--fg))] mb-1">500<span className="text-[rgb(var(--primary))]">+</span></div>
-                      <div className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] uppercase tracking-wider">Species Logged</div>
+                      <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[rgb(var(--fg))] mb-1">{content.experience?.stats?.count || "500"}<span className="text-[rgb(var(--primary))]">+</span></div>
+                      <div className="text-[10px] sm:text-xs text-[rgb(var(--muted-fg))] uppercase tracking-wider">{content.experience?.stats?.countLabel || "Species Logged"}</div>
                     </div>
                   </div>
                 </FadeInWhenVisible>
@@ -682,13 +733,6 @@ export default function Home() {
                     <div className="text-center">
                       <div className="w-8 h-8 border-2 border-[rgb(var(--primary))]/30 border-t-[rgb(var(--primary))] rounded-full animate-spin mx-auto mb-2"></div>
                       <div className="text-[rgb(var(--muted-fg))] text-sm">Loading masterpiece...</div>
-                    </div>
-                  </div>
-                ) : featuredImages.length === 0 ? (
-                  <div className="flex items-center justify-center aspect-[4/3] bg-[rgb(var(--muted))]/5 rounded-3xl border border-[rgb(var(--muted))]/20">
-                    <div className="text-center">
-                      <div className="text-[rgb(var(--muted-fg))] text-sm mb-2">No Featured Image</div>
-                      <div className="text-[rgb(var(--muted))] text-xs">Upload an image to 'featured' folder</div>
                     </div>
                   </div>
                 ) : (
@@ -752,7 +796,7 @@ export default function Home() {
                     <div className="pointer-events-none absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[rgb(var(--bg))] to-transparent z-10" />
                     <div className="pointer-events-none absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[rgb(var(--bg))] to-transparent z-10" />
                     
-                    {loading || (allPhotographs.length > 0 && landscapeImages.length === 0) ? (
+                    {loading || (allPhotographs.length > 0 && landscapeImages.length === 0 && !useAllImages) ? (
                       <div className="flex gap-6 justify-center">
                         {[1, 2, 3, 4].map((i) => (
                           <div key={i} className="flex-shrink-0 w-64 h-40 rounded-2xl overflow-hidden bg-[rgb(var(--muted))]/10 animate-pulse" />
@@ -1346,9 +1390,9 @@ function ModalViewer({ active, setActive, allArtworks }) {
 
               {/* Title Section */}
               <div className="mb-4 sm:mb-6 lg:mb-10">
-                <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold leading-[1.1] mb-1 sm:mb-2 lg:mb-3 text-[rgb(var(--fg))]">
+                <h2 className="text-xl sm:text-2xl lg:text-4xl font-bold leading-[1.1] mb-1 sm:mb-2 lg:mb-3 text-[rgb(var(--fg))]">
                   {active.art.title}
-                </h1>
+                </h2>
                 {active.art.scientificName && (
                   <p className="text-sm sm:text-base lg:text-xl text-[rgb(var(--primary))] italic font-serif opacity-90">
                     {active.art.scientificName}

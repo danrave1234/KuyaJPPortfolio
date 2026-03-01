@@ -1,22 +1,35 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useState, useRef, Suspense } from 'react'
+import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ArrowRight, Search, Heart, Filter } from 'lucide-react'
 import { getGalleryImages, searchGalleryImages } from '../firebase/api'
+import { useTheme } from '@/src/contexts/ThemeContext'
 import { analytics } from '../firebase/config'
 import { logEvent } from 'firebase/analytics'
 import { trackImageView, trackGalleryNavigation } from '../services/analytics'
 import { generateSlug, extractIdFromSlug } from '@/app/utils/slugify'
 
-// Simple cache restoration function
-const getCachedArtworks = () => {
+// Helper to get current active theme (falls back to birdlife)
+const getActiveThemeKey = () => {
+  if (typeof window === 'undefined') return 'birdlife'
   try {
-    // Check localStorage cache first
-    const cachedArtworks = localStorage.getItem('gallery-artwork-cache')
-    const cacheTimestamp = localStorage.getItem('gallery-artwork-cache-timestamp')
-    const cachedPage = localStorage.getItem('gallery-artwork-page')
-    const cachedDimensions = localStorage.getItem('gallery-artwork-dimensions')
+    const t = localStorage.getItem('theme')
+    if (t && ['birdlife', 'astro', 'landscape'].includes(t)) return t
+  } catch {}
+  return 'birdlife'
+}
+
+// Simple cache restoration function (theme-aware)
+const getCachedArtworks = () => {
+  if (typeof window === 'undefined') return null
+  try {
+    const suffix = `-${getActiveThemeKey()}`
+    // Check localStorage cache first (per-theme)
+    const cachedArtworks = localStorage.getItem(`gallery-artwork-cache${suffix}`)
+    const cacheTimestamp = localStorage.getItem(`gallery-artwork-cache-timestamp${suffix}`)
+    const cachedPage = localStorage.getItem(`gallery-artwork-page${suffix}`)
+    const cachedDimensions = localStorage.getItem(`gallery-artwork-dimensions${suffix}`)
     const now = Date.now()
     const cacheExpiry = 7 * 24 * 60 * 60 * 1000 // 7 days
 
@@ -36,35 +49,47 @@ const getCachedArtworks = () => {
       }
     }
 
-    // Check sessionStorage as backup
-    const sessionCache = sessionStorage.getItem('gallery-artwork-session')
-    const sessionPage = sessionStorage.getItem('gallery-artwork-page')
-    const sessionDimensions = sessionStorage.getItem('gallery-artwork-dimensions')
-    if (sessionCache) {
-      const parsedArtworks = JSON.parse(sessionCache)
-      const parsedPage = sessionPage ? parseInt(sessionPage, 10) : 1
-      const parsedDimensions = sessionDimensions ? JSON.parse(sessionDimensions) : null
-      if (parsedArtworks && Array.isArray(parsedArtworks) && parsedArtworks.length > 0) {
-        return {
-          artworks: parsedArtworks,
-          page: parsedPage,
-          hasMore: true,
-          totalCount: parsedArtworks.length,
-          dimensions: parsedDimensions,
-          fromCache: 'session'
+    // Check sessionStorage as backup (per-theme)
+    try {
+      const sessionCache = sessionStorage.getItem(`gallery-artwork-session${suffix}`)
+      const sessionPage = sessionStorage.getItem(`gallery-artwork-page${suffix}`)
+      const sessionDimensions = sessionStorage.getItem(`gallery-artwork-dimensions${suffix}`)
+      if (sessionCache) {
+        const parsedArtworks = JSON.parse(sessionCache)
+        const parsedPage = sessionPage ? parseInt(sessionPage, 10) : 1
+        const parsedDimensions = sessionDimensions ? JSON.parse(sessionDimensions) : null
+        if (parsedArtworks && Array.isArray(parsedArtworks) && parsedArtworks.length > 0) {
+          return {
+            artworks: parsedArtworks,
+            page: parsedPage,
+            hasMore: true,
+            totalCount: parsedArtworks.length,
+            dimensions: parsedDimensions,
+            fromCache: 'session'
+          }
         }
       }
-    }
+    } catch {}
   } catch (e) {
     console.warn('Error reading cache:', e)
   }
   return null
 }
 
-export default function Gallery({ slug: imageSlug }) {
+export default function Gallery({ slug: imageSlug, category }) {
   const router = useRouter()
   const params = useParams()
-  const actualSlug = imageSlug || params?.slug || null
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const queryImageSlug = searchParams.get('image')
+  const actualSlug = queryImageSlug || imageSlug || params?.slug || null
+  const { theme, mounted } = useTheme()
+  // Keep SSR stable: until mounted, stick to baseline 'birdlife'
+  // If a category prop is provided (from a category-specific page), use it directly
+  const currentTheme = category || ((mounted && theme) ? theme : 'birdlife')
+  const folderPath = `gallery/${currentTheme}`
+  const keySuffix = `-${currentTheme}`
+  // Strict theme mode: no legacy fallbacks
   
   // Helper function to save scroll position
   const saveScrollPosition = () => {
@@ -89,11 +114,16 @@ export default function Gallery({ slug: imageSlug }) {
   }, [])
   
   const [active, setActive] = useState(null) // { art, idx }
+
+  // Prevent a click-open from being immediately closed/re-opened while the URL query param is updating.
+  // Without this guard, the sequence can look like: open on `/gallery` -> URL updates -> open again on `/gallery?image=...`.
+  const pendingOpenSlugRef = useRef(null)
   const [imageDimensions, setImageDimensions] = useState(() => {
     // Pre-load dimensions from cache if available
+    if (typeof window === 'undefined') return {}
     try {
-      const cachedDimensions = sessionStorage.getItem('gallery-artwork-dimensions') || 
-                               localStorage.getItem('gallery-artwork-dimensions')
+      const cachedDimensions = sessionStorage.getItem(`gallery-artwork-dimensions${keySuffix}`) || 
+                               localStorage.getItem(`gallery-artwork-dimensions${keySuffix}`)
       if (cachedDimensions) {
         const parsed = JSON.parse(cachedDimensions)
         return parsed
@@ -180,7 +210,9 @@ export default function Gallery({ slug: imageSlug }) {
   const handleImageClick = (art, idx = 0) => {
     // Save current scroll position
     const currentScroll = window.scrollY || document.documentElement.scrollTop
-    sessionStorage.setItem('gallery-scrollY', String(currentScroll))
+    try {
+      sessionStorage.setItem('gallery-scrollY', String(currentScroll))
+    } catch {}
     
     // Extract series number from the image for clean URLs
     let seriesNumber = '1';
@@ -198,8 +230,18 @@ export default function Gallery({ slug: imageSlug }) {
     }
     
     const slug = generateSlug(art.title, art.scientificName, seriesNumber);
-    router.push(`/gallery/${slug}`)
+
+    // Mark as a user-initiated open so URL-sync effects don't fight this transition.
+    pendingOpenSlugRef.current = slug;
+
+    // Open immediately, then update the URL.
     setActive({ art, idx });
+    
+    // Store the current page so closing the modal returns here
+    try { sessionStorage.setItem('gallery-back-url', pathname) } catch {}
+
+    // Navigate to the clean SEO-friendly URL for this photo
+    router.push(`/gallery/${slug}`, { scroll: false })
   };
 
   // Handle modal close with URL routing
@@ -207,22 +249,29 @@ export default function Gallery({ slug: imageSlug }) {
     // Don't save current scroll position here because it might be 0 due to ScrollToTop
     // We rely on the position saved when the image was clicked
     setActive(null);
+    pendingOpenSlugRef.current = null
     const savedScroll = sessionStorage.getItem('gallery-scrollY')
-    router.push('/gallery')
+    
+    // Return to the gallery page the user came from
+    let backUrl = '/gallery'
+    try {
+      const stored = sessionStorage.getItem('gallery-back-url')
+      if (stored) backUrl = stored
+    } catch {}
+
+    router.push(backUrl, { scroll: false })
   };
 
-  // Handle browser back/forward buttons
+  // Sync active state with URL slug (handles back/forward navigation)
   useEffect(() => {
-    const handlePopState = () => {
-      if (!actualSlug) {
-        // Returning to /gallery: ensure we keep/restored scroll
-        saveScrollPosition()
-        setActive(null);
-      }
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [actualSlug]);
+    // If a click just initiated an open, there can be a brief moment where `active` is set
+    // but `actualSlug` is still empty (before `router.push` is reflected in `useSearchParams`).
+    // Don't treat that as a signal to close.
+    if (!actualSlug && active) {
+      if (pendingOpenSlugRef.current) return
+      setActive(null);
+    }
+  }, [actualSlug, active]);
 
   // Save scroll position before page unload (refresh/close)
   useEffect(() => {
@@ -248,6 +297,11 @@ export default function Gallery({ slug: imageSlug }) {
   // Open modal on direct URL access
   useEffect(() => {
     if (actualSlug && artworks.length > 0 && !active) {
+      // If the user just clicked an image, `handleImageClick` already opened the modal.
+      // This effect can run before that state update commits, which can look like a second open.
+      if (pendingOpenSlugRef.current === actualSlug) {
+        return
+      }
       const image = findImageBySlug(actualSlug, artworks);
       if (image) {
         if (image.targetIndex !== undefined) {
@@ -258,6 +312,9 @@ export default function Gallery({ slug: imageSlug }) {
           const idx = artworks.findIndex(art => art.id === image.id);
           setActive({ art: image, idx: idx >= 0 ? idx : 0 });
         }
+
+        // We've now reacted to the URL; clear any stale click guard.
+        pendingOpenSlugRef.current = null
       }
     }
   }, [actualSlug, artworks]);
@@ -300,8 +357,8 @@ export default function Gallery({ slug: imageSlug }) {
       const sorted = sortFilter === 'most-liked' ? sortByLikes([...artworks]) : artworks;
       setArtworks(sorted);
     } else if (!debouncedQuery && sortFilter === 'default') {
-      // Reset to original order when filter is reset - reload from cache or API
-      const sessionCache = sessionStorage.getItem('gallery-artwork-session');
+      // Reset to original order when filter is reset - reload from cache or API (theme-specific)
+      const sessionCache = sessionStorage.getItem(`gallery-artwork-session${keySuffix}`);
       if (sessionCache) {
         try {
           const parsedArtworks = JSON.parse(sessionCache);
@@ -353,8 +410,8 @@ export default function Gallery({ slug: imageSlug }) {
     }
     
     try {
-      // Check cache for search results
-      const cacheKey = `search-${searchQuery}-${page}`;
+      // Check cache for search results (per-theme)
+      const cacheKey = `search-${searchQuery}-${page}${keySuffix}`;
       const cachedResults = sessionStorage.getItem(`gallery-search-${cacheKey}`);
       
       if (cachedResults) {
@@ -373,7 +430,7 @@ export default function Gallery({ slug: imageSlug }) {
         return;
       }
 
-      const result = await searchGalleryImages('gallery', searchQuery, page, 20);
+      const result = await searchGalleryImages(folderPath, searchQuery, page, 20);
       if (result.success) {
         // Group search results by series like the main gallery
         const groupedResults = groupImagesBySeries(result.images);
@@ -468,6 +525,16 @@ export default function Gallery({ slug: imageSlug }) {
     
     const loadInitialImages = async () => {
       try {
+        // Reset state on theme change to avoid stale content flash
+        if (isMounted) {
+          setGalleryLoading(true)
+          setArtworks([])
+          setCurrentPage(1)
+          setHasMore(true)
+          setSearchResults([])
+          setSearchPage(1)
+          setSearchHasMore(false)
+        }
         // Check cache first
         const cachedData = getCachedArtworks()
         
@@ -484,8 +551,8 @@ export default function Gallery({ slug: imageSlug }) {
           return
         }
 
-        // Fetch fresh data from Firebase Functions API
-        const result = await getGalleryImages('gallery', 1, 20);
+        // Fetch fresh data from Firebase Functions API (theme-specific)
+        const result = await getGalleryImages(folderPath, 1, 20);
         if (result.success) {
           // Group images by series first, then shuffle
           const groupedImages = groupImagesBySeries(result.images)
@@ -494,11 +561,11 @@ export default function Gallery({ slug: imageSlug }) {
           // Store in cache
           const artworksJson = JSON.stringify(shuffled)
           const now = Date.now()
-          localStorage.setItem('gallery-artwork-cache', artworksJson)
-          localStorage.setItem('gallery-artwork-cache-timestamp', now.toString())
-          localStorage.setItem('gallery-artwork-page', '1')
-          sessionStorage.setItem('gallery-artwork-session', artworksJson)
-          sessionStorage.setItem('gallery-artwork-page', '1')
+          localStorage.setItem(`gallery-artwork-cache${keySuffix}`, artworksJson)
+          localStorage.setItem(`gallery-artwork-cache-timestamp${keySuffix}`, now.toString())
+          localStorage.setItem(`gallery-artwork-page${keySuffix}`, '1')
+          sessionStorage.setItem(`gallery-artwork-session${keySuffix}`, artworksJson)
+          sessionStorage.setItem(`gallery-artwork-page${keySuffix}`, '1')
           // Note: dimensions will be cached as images load via handleImageLoad
           
           if (isMounted) {
@@ -528,7 +595,7 @@ export default function Gallery({ slug: imageSlug }) {
     return () => {
       isMounted = false
     }
-  }, []) // Empty dependency array - run only once
+  }, [folderPath]) // Reload when theme folder changes
 
   // Preload images for instant display - removed because it preloads wrong images
   // Images load individually as they render, which is actually faster and more efficient
@@ -619,7 +686,7 @@ export default function Gallery({ slug: imageSlug }) {
     setLoadingMore(true);
     try {
       const nextPage = currentPage + 1;
-      const result = await getGalleryImages('gallery', nextPage, 20);
+      const result = await getGalleryImages(folderPath, nextPage, 20);
       
       if (result.success && result.images.length > 0) {
         const newGroupedImages = groupImagesBySeries(result.images);
@@ -634,12 +701,12 @@ export default function Gallery({ slug: imageSlug }) {
           const now = Date.now();
           
           // Update all cache layers
-          sessionStorage.setItem('gallery-artwork-session', artworksJson);
-          sessionStorage.setItem('gallery-artwork-page', nextPage.toString());
-          localStorage.setItem('gallery-artwork-cache', artworksJson);
-          localStorage.setItem('gallery-artwork-cache-timestamp', now.toString());
-          localStorage.setItem('gallery-artwork-page', nextPage.toString());
-          localStorage.setItem('gallery-artwork-order', artworksJson);
+          sessionStorage.setItem(`gallery-artwork-session${keySuffix}`, artworksJson);
+          sessionStorage.setItem(`gallery-artwork-page${keySuffix}`, nextPage.toString());
+          localStorage.setItem(`gallery-artwork-cache${keySuffix}`, artworksJson);
+          localStorage.setItem(`gallery-artwork-cache-timestamp${keySuffix}`, now.toString());
+          localStorage.setItem(`gallery-artwork-page${keySuffix}`, nextPage.toString());
+          localStorage.setItem(`gallery-artwork-order${keySuffix}`, artworksJson);
           // Note: dimensions will be cached as new images load via handleImageLoad
           
           return updatedArtworks;
@@ -883,8 +950,8 @@ export default function Gallery({ slug: imageSlug }) {
       // Cache dimensions along with artworks
       try {
         const dimensionsJson = JSON.stringify(newDimensions)
-        localStorage.setItem('gallery-artwork-dimensions', dimensionsJson)
-        sessionStorage.setItem('gallery-artwork-dimensions', dimensionsJson)
+        localStorage.setItem(`gallery-artwork-dimensions${keySuffix}`, dimensionsJson)
+        sessionStorage.setItem(`gallery-artwork-dimensions${keySuffix}`, dimensionsJson)
       } catch (e) {
         console.warn('Failed to cache dimensions:', e)
       }
@@ -935,25 +1002,27 @@ export default function Gallery({ slug: imageSlug }) {
                 {/* Primary title with emphasized accent */}
                 <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl" style={{ letterSpacing: '0.18em', fontKerning: 'none', fontVariantLigatures: 'none' }}>
                   <span className="inline-block" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.25)' }}>
-                    Wildlife
+                    {currentTheme === 'birdlife' ? 'Birdlife' : currentTheme === 'astro' ? 'Astro' : 'Landscape'}
                     <span className="mt-2 block h-[4px] w-full bg-[rgb(var(--primary))] rounded-full" />
                   </span>
                 </span>
                 {/* Secondary title with colored emphasis on LENS */}
                 <span className="block text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl opacity-95" style={{ letterSpacing: '0.16em', fontKerning: 'none', fontVariantLigatures: 'none' }}>
-                  Through My <span style={{ color: 'rgb(var(--primary))', letterSpacing: '0.18em', fontKerning: 'none', fontVariantLigatures: 'none' }}>Lens</span>
+                  Gallery <span style={{ color: 'rgb(var(--primary))', letterSpacing: '0.18em', fontKerning: 'none', fontVariantLigatures: 'none' }}>Collection</span>
                 </span>
                 
               </h1>
               <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
                 <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">
-                  Field Notes & Wild Encounters
+                  {currentTheme === 'birdlife' ? 'Feathers & Flight' : currentTheme === 'astro' ? 'Stars & Nebulae' : 'Light & Land'}
                 </div>
               </div>
             </div>
             <div className="lg:col-span-5 lg:self-end">
               <p className="text-[rgb(var(--muted))] text-sm sm:text-base md:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-5 transition-colors duration-300">
-                A collection of my wildlife and nature photos that show the beauty of the natural world. I spent a lot of time waiting and watching to get these shots.
+                {currentTheme === 'birdlife' && 'A curated collection of avian moments — behavior, light, and quiet drama in the wild.'}
+                {currentTheme === 'astro' && 'Deep sky frames of the night — nebulas, star fields, and the silent motion of the cosmos.'}
+                {currentTheme === 'landscape' && 'Scenes shaped by time — mountains, coastlines, and the changing moods of light.'}
               </p>
             </div>
           </div>
@@ -1109,7 +1178,7 @@ export default function Gallery({ slug: imageSlug }) {
             return (
               <figure 
                 key={uniqueKey} 
-                className={`group cursor-pointer ${gridClasses} rounded-xl overflow-hidden relative transition-all duration-500 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] hover:z-10`}
+                className={`group cursor-pointer ${gridClasses} rounded-xl overflow-hidden relative`}
                 onClick={() => {
                   // Track image view in analytics
                   if (analytics) {
@@ -1147,7 +1216,7 @@ export default function Gallery({ slug: imageSlug }) {
                   <img
                     src={imageSrc}
                     alt={art.title || ''}
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                    className="w-full h-full object-cover"
                     style={{
                       opacity: loadedImages.has(art.id) ? 1 : 0,
                       transition: 'opacity 0.7s ease-in-out'
@@ -1247,6 +1316,23 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
   if (!active || !active.art) {
     return null
   }
+
+  const getActiveImageSrc = (activeValue) => {
+    if (!activeValue?.art) return null
+
+    if (activeValue.art.isSeries && activeValue.art.images && activeValue.art.images.length > 0) {
+      const currentImage = activeValue.art.images[activeValue.idx]
+      return currentImage?.src || null
+    }
+
+    return activeValue.art.src || activeValue.art.image || null
+  }
+
+  // Keep the previously displayed image visible until the next image has fully loaded.
+  // This prevents the modal image from briefly resizing/reflowing when switching series images.
+  // Initialize from `active` to avoid a one-frame "spinner" flash when first opening the modal.
+  const [displaySrc, setDisplaySrc] = useState(() => getActiveImageSrc(active))
+  const [pendingSrc, setPendingSrc] = useState(null)
 
   const activeRef = useRef(active)
   useEffect(() => { activeRef.current = active }, [active])
@@ -1438,13 +1524,6 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
     }
   }, [setActive])
 
-  const [visible, setVisible] = useState(true)
-  useEffect(() => {
-    setVisible(false)
-    const t = setTimeout(() => setVisible(true), 20)
-    return () => clearTimeout(t)
-  }, [active.idx])
-
   const containerRef = useRef(null)
   const viewerRef = useRef(null)
   const imageRef = useRef(null)
@@ -1602,18 +1681,7 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
   };
 
   // Get the current image source safely
-  const getCurrentImageSrc = () => {
-    if (!active?.art) return null
-    
-    // If it's a series, get the current image from the series array
-    if (active.art.isSeries && active.art.images && active.art.images.length > 0) {
-      const currentImage = active.art.images[active.idx]
-      return currentImage?.src || null
-    }
-    
-    // Otherwise, use the artwork's src
-    return active.art.src || active.art.image || null
-  }
+  const getCurrentImageSrc = () => getActiveImageSrc(active)
 
   // Get the current image data (for series) or artwork data (for single images)
   const getCurrentImageData = () => {
@@ -1638,6 +1706,36 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
   const currentImageSrc = getCurrentImageSrc()
   const currentImageData = getCurrentImageData()
   const hasMultipleImages = active?.art?.isSeries && active?.art?.images?.length > 1
+
+  // Initialize displaySrc on first open, and swap only after the next image is loaded.
+  useEffect(() => {
+    if (!currentImageSrc) return
+
+    // First render/open
+    if (!displaySrc) {
+      setDisplaySrc(currentImageSrc)
+      return
+    }
+
+    // No change
+    if (currentImageSrc === displaySrc) return
+
+    // Start loading the next image, but keep the old one visible.
+    setPendingSrc(currentImageSrc)
+    const img = new Image()
+    img.decoding = 'async'
+    img.src = currentImageSrc
+    img.onload = () => {
+      // Only commit if we're still expecting this src.
+      setDisplaySrc(prev => (prev === currentImageSrc ? prev : currentImageSrc))
+      setPendingSrc(null)
+    }
+    img.onerror = () => {
+      // Fallback: still swap to avoid being stuck.
+      setDisplaySrc(currentImageSrc)
+      setPendingSrc(null)
+    }
+  }, [currentImageSrc, displaySrc])
 
   return (
     <>
@@ -1689,16 +1787,29 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
 
             {/* Image Stage */}
             <div className="flex-1 relative flex items-center justify-center w-full h-full p-0 sm:p-4 md:p-6 lg:p-12 overflow-hidden">
-              {currentImageSrc ? (
-                <img 
-                  ref={imageRef}
-                  src={currentImageSrc} 
-                  alt={active.art.title || ''} 
-                  className={`w-full h-full object-contain transition-all duration-500 shadow-2xl ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
-                  style={{ 
-                    filter: 'drop-shadow(0 20px 50px rgba(0,0,0,0.5))'
-                  }}
-                />
+              {displaySrc ? (
+                <>
+                  <img
+                    ref={imageRef}
+                    src={displaySrc}
+                    alt={active.art.title || ''}
+                    className="w-full h-full object-contain shadow-2xl"
+                    style={{
+                      filter: 'drop-shadow(0 20px 50px rgba(0,0,0,0.5))'
+                    }}
+                    draggable={false}
+                  />
+
+                  {/* Preload layer (kept invisible; swap happens after onload in effect) */}
+                  {pendingSrc && (
+                    <img
+                      src={pendingSrc}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-contain opacity-0 pointer-events-none"
+                      draggable={false}
+                    />
+                  )}
+                </>
               ) : (
                 <div className="text-white/70 dark:text-white/50 flex flex-col items-center">
                   <div className="w-12 h-12 border-2 border-white/30 dark:border-white/20 border-t-white rounded-full animate-spin mb-4" />
@@ -1752,9 +1863,9 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
 
               {/* Title Section */}
               <div className="mb-4 sm:mb-6 lg:mb-10">
-                <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold leading-[1.1] mb-1 sm:mb-2 lg:mb-3 text-[rgb(var(--fg))]">
+                <h2 className="text-xl sm:text-2xl lg:text-4xl font-bold leading-[1.1] mb-1 sm:mb-2 lg:mb-3 text-[rgb(var(--fg))]">
                   {active.art.title}
-                </h1>
+                </h2>
                 {currentImageData?.scientificName && (
                   <p className="text-sm sm:text-base lg:text-xl text-[rgb(var(--primary))] italic font-serif opacity-90">
                     {currentImageData.scientificName}
@@ -1796,7 +1907,7 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
                       <button
                         key={idx}
                         onClick={() => handleImageClick(active.art, idx)}
-                        className={`relative aspect-square rounded-md sm:rounded-lg overflow-hidden transition-all duration-300 bg-gray-100 dark:bg-white/5 flex items-center justify-center ${active.idx === idx ? 'ring-1 sm:ring-2 ring-[rgb(var(--primary))] scale-95 opacity-100' : 'opacity-50 hover:opacity-100 hover:scale-105'}`}
+                        className={`relative aspect-square rounded-md sm:rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5 flex items-center justify-center ${active.idx === idx ? 'ring-1 sm:ring-2 ring-[rgb(var(--primary))] opacity-100' : 'opacity-70 hover:opacity-100'}`}
                       >
                         <img src={img.src} alt="" className="w-full h-full object-contain" />
                       </button>

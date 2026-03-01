@@ -2,13 +2,44 @@
 
 import { useState } from 'react'
 import FadeInWhenVisible from '@/app/components/FadeInWhenVisible'
+import { useTheme, THEME_CONTENT } from '@/src/contexts/ThemeContext'
 
 export default function About() {
+  const { theme } = useTheme()
+  const content = theme ? THEME_CONTENT[theme] : THEME_CONTENT.birdlife
   const [openFAQ, setOpenFAQ] = useState(null)
 
   const toggleFAQ = (index) => {
     setOpenFAQ(openFAQ === index ? null : index)
   }
+
+  // Theme-specific images
+  const THEME_IMAGES = {
+    birdlife: {
+      services: "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1600&auto=format&fit=crop", // Camera kit
+      what: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?q=80&w=1600&auto=format&fit=crop", // Heron
+      why: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1600&auto=format&fit=crop", // Forest fog
+      how: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop", // Path
+      approach: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=1600&auto=format&fit=crop" // Forest sunlight
+    },
+    astro: {
+      services: "/AstroHero.jpg",
+      what: "/AstroHero.jpg",
+      why: "/AstroHero.jpg",
+      how: "/AstroHero.jpg",
+      approach: "/AstroHero.jpg"
+    },
+    landscape: {
+      services: "/LandscapeHero.jpg",
+      what: "/LandscapeHero.jpg",
+      why: "/LandscapeHero.jpg",
+      how: "/LandscapeHero.jpg",
+      approach: "/LandscapeHero.jpg"
+    }
+  }
+
+  const images = THEME_IMAGES[theme] || THEME_IMAGES.birdlife
+
   return (
     <>
     <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
@@ -17,18 +48,20 @@ export default function About() {
           <div className="mb-8 sm:mb-10 md:mb-12">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
               <div className="lg:col-span-7">
-                <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 sm:mb-4 transition-colors duration-300">About the Photographer</div>
+                <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 sm:mb-4 transition-colors duration-300">
+                  {content.about?.tag || "About The Photographer"}
+                </div>
                 <h1 className="font-extrabold text-[rgb(var(--fg))] uppercase leading-[0.9] transition-colors duration-300">
                   {/* Title with accent underline */}
                   <span className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">
                     <span className="inline-block">
-                      Fieldwork
+                      {content.about?.title || "John Philip Morada"}
                       <span className="mt-1 sm:mt-2 block h-[3px] sm:h-[4px] w-full bg-[rgb(var(--primary))] rounded-full" />
                     </span>
                   </span>
                   {/* Subtitle with emphasized LENS */}
                   <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl opacity-90">
-                    Behind the <span className="font-extrabold" style={{ color: 'rgb(var(--primary))' }}>Lens</span>
+                    {content.about?.intro?.subtitle || "Behind the Lens"}
                   </span>
                   
                 </h1>
@@ -38,7 +71,7 @@ export default function About() {
               </div>
               <div className="lg:col-span-5 lg:self-end mt-4 lg:mt-0">
                 <p className="text-[rgb(var(--muted))] text-sm sm:text-base md:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-6 transition-colors duration-300">
-                  I'm a <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>wildlife</span> photographer who loves <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>bird photography</span>, based in <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>Batangas, Luzon (Philippines)</span>. I focus on the small details and natural behaviors of different bird <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>species</span> in their own homes, from big eagles to tiny songbirds. Available for assignments across Batangas, Metro Manila, and Southern Luzon.
+                  {content.about?.intro?.text || content.about?.bio}
                 </p>
               </div>
             </div>
@@ -49,7 +82,7 @@ export default function About() {
         <FadeInWhenVisible delay={100}>
           <section className="prose prose-invert max-w-3xl mt-8 sm:mt-10">
             <p className="text-[rgb(var(--muted-fg))] text-sm sm:text-base md:text-lg leading-relaxed transition-colors duration-300">
-              Years of being out there taught me to be <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>patient</span>, move quietly, and respect the animals' <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>home</span>. Every photo starts way before I press the button by watching the <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>light</span>, learning their <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>habits</span>, and waiting for the perfect moment.
+              {content.about?.intro?.quote}
             </p>
           </section>
         </FadeInWhenVisible>
@@ -61,18 +94,20 @@ export default function About() {
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
               <div className="sm:col-span-1 lg:col-span-6">
                 <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 sm:mb-4 transition-colors duration-300">Services</div>
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300">Wildlife & bird photography services in <span className="font-extrabold" style={{ color: 'rgb(var(--primary))' }}>Batangas • Metro Manila • Southern Luzon</span></h3>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300">
+                  {content.about?.services?.title}
+                </h3>
                 <ul className="list-disc pl-5 space-y-2 text-[rgb(var(--muted-fg))] text-sm sm:text-base">
-                  <li><span className="font-medium text-[rgb(var(--fg))]">Birdlife portraits</span> for print and editorial features</li>
-                  <li><span className="font-medium text-[rgb(var(--fg))]">Conservation/editorial assignments</span> with ethical field practices</li>
-                  <li><span className="font-medium text-[rgb(var(--fg))]">Workshops & guided shoots</span> around Batangas and nearby provinces</li>
+                  {content.about?.services?.items && content.about?.services?.items.map((item, index) => (
+                    <li key={index}><span className="font-medium text-[rgb(var(--fg))]">{item}</span></li>
+                  ))}
                 </ul>
                 <div className="mt-6">
                   <a href="/contact" className="inline-block px-6 py-3 rounded-full border border-[rgb(var(--muted))]/30 hover:border-[rgb(var(--primary))]/50 hover:bg-[rgb(var(--primary))]/5 hover:text-[rgb(var(--fg))] transition-all duration-300 text-sm font-medium">Inquire about availability</a>
                 </div>
               </div>
               <figure className="sm:col-span-1 lg:col-span-6 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300 shadow-lg">
-                <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1600&auto=format&fit=crop" alt="Camera and field kit" className="w-full h-56 sm:h-64 md:h-72 lg:h-80 object-cover hover:scale-105 transition-transform duration-700" loading="lazy" />
+                <img src={images.services} alt="Service highlight" className="w-full h-56 sm:h-64 md:h-72 lg:h-80 object-cover hover:scale-105 transition-transform duration-700" loading="lazy" />
               </figure>
             </section>
           </FadeInWhenVisible>
@@ -82,15 +117,17 @@ export default function About() {
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
               <div className="sm:col-span-1 lg:col-span-6 order-2 lg:order-1">
                 <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 sm:mb-4 transition-colors duration-300">What I Photograph</div>
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300"><span className="font-extrabold" style={{ color: 'rgb(var(--primary))' }}>Birdlife</span> and the quiet drama of the wild</h3>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300">
+                  {content.about?.what?.title}
+                </h3>
                 <p className="text-[rgb(var(--muted-fg))] text-sm sm:text-base leading-relaxed transition-colors duration-300">
-                  I look for moments that most people miss, like when birds are getting ready to fly, quick looks between them, rain on their feathers, and that quiet time before sunrise. My work is slow and I watch carefully, focusing on how they <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>act</span> and where they <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>live</span> rather than dramatic shots.
+                  {content.about?.what?.desc}
                 </p>
               </div>
               <figure className="sm:col-span-1 lg:col-span-6 order-1 lg:order-2 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300 shadow-lg">
                 <img
-                  src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?q=80&w=1600&auto=format&fit=crop"
-                  alt="Heron in mist over forested water"
+                  src={images.what}
+                  alt="Portfolio highlight"
                   className="w-full h-56 sm:h-64 md:h-72 lg:h-80 object-cover hover:scale-105 transition-transform duration-700"
                   loading="lazy"
                 />
@@ -103,17 +140,19 @@ export default function About() {
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
               <figure className="sm:col-span-1 lg:col-span-6 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 lg:order-1 order-2 transition-colors duration-300 shadow-lg">
                 <img
-                  src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1600&auto=format&fit=crop"
-                  alt="Fog drifting through conifer forest"
+                  src={images.why}
+                  alt="Atmospheric shot"
                   className="w-full h-56 sm:h-64 md:h-72 lg:h-80 object-cover hover:scale-105 transition-transform duration-700"
                   loading="lazy"
                 />
               </figure>
               <div className="sm:col-span-1 lg:col-span-6 lg:order-2 order-1">
                 <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 sm:mb-4 transition-colors duration-300">Why I Photograph</div>
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300">To <span className="font-extrabold" style={{ color: 'rgb(var(--primary))' }}>advocate</span> for places that can't speak</h3>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300">
+                  {content.about?.why?.title}
+                </h3>
                 <p className="text-[rgb(var(--muted-fg))] text-sm sm:text-base leading-relaxed transition-colors duration-300">
-                  Photography is how I get people to care. If one photo can make someone stop and feel <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>amazed</span>, then maybe they'll start thinking about <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>protecting</span> and respecting wildlife too.
+                  {content.about?.why?.desc}
                 </p>
               </div>
             </section>
@@ -124,15 +163,17 @@ export default function About() {
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
               <div className="sm:col-span-1 lg:col-span-6 order-2 lg:order-1">
                 <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 sm:mb-4 transition-colors duration-300">How I Work</div>
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300"><span className="font-extrabold" style={{ color: 'rgb(var(--primary))' }}>Fieldcraft</span> over shortcuts</h3>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300">
+                  {content.about?.how?.title}
+                </h3>
                 <p className="text-[rgb(var(--muted-fg))] text-sm sm:text-base leading-relaxed transition-colors duration-300">
-                  I <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>scout</span> locations, <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>read light</span>, and learn patterns. Most shoots begin with long sits, mapping wind and approach, and end quietly. <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>I do not use baiting or recorded calls</span>—anything that causes disturbance. The <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>story</span> matters more than the shot.
+                  {content.about?.how?.desc}
                 </p>
               </div>
               <figure className="sm:col-span-1 lg:col-span-6 order-1 lg:order-2 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 transition-colors duration-300 shadow-lg">
                 <img
-                  src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop"
-                  alt="Forest path leading to a hide"
+                  src={images.how}
+                  alt="Field work"
                   className="w-full h-56 sm:h-64 md:h-72 lg:h-80 object-cover hover:scale-105 transition-transform duration-700"
                   loading="lazy"
                 />
@@ -145,17 +186,19 @@ export default function About() {
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
               <figure className="sm:col-span-1 lg:col-span-6 rounded-2xl overflow-hidden border border-[rgb(var(--muted))]/20 lg:order-1 order-2 transition-colors duration-300 shadow-lg">
                 <img
-                  src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=1600&auto=format&fit=crop"
-                  alt="Dense forest habitat"
+                  src={images.approach}
+                  alt="Habitat shot"
                   className="w-full h-56 sm:h-64 md:h-72 lg:h-80 object-cover hover:scale-105 transition-transform duration-700"
                   loading="lazy"
                 />
               </figure>
               <div className="sm:col-span-1 lg:col-span-6 lg:order-2 order-1">
                 <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-3 sm:mb-4 transition-colors duration-300">Approach & Ethics</div>
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300"><span className="font-extrabold" style={{ color: 'rgb(var(--primary))' }}>Leave no trace</span>, tell the truth</h3>
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[rgb(var(--fg))] mb-4 sm:mb-5 transition-colors duration-300">
+                  {content.about?.philosophy?.title}
+                </h3>
                 <p className="text-[rgb(var(--muted-fg))] text-sm sm:text-base leading-relaxed transition-colors duration-300">
-                  I follow a simple code: <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>subjects first</span>, <span className="font-semibold" style={{ color: 'rgb(var(--primary))' }}>habitat first</span>. I disclose context, avoid manipulation that changes meaning, and favor sequences that show how a moment unfolded.
+                  {content.about?.philosophy?.text}
                 </p>
               </div>
             </section>
@@ -188,7 +231,7 @@ export default function About() {
               </button>
               <div className={`overflow-hidden transition-all duration-300 ${openFAQ === 0 ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div className="px-6 py-4 text-sm text-[rgb(var(--muted-fg))] border-t border-[rgb(var(--muted))]/20">
-                  I specialize in wildlife and bird photography, with a focus on Philippine species. My approach combines patience, fieldcraft, and ethical practices to capture natural behaviors in their habitats.
+                  {content.about?.bio}
                 </div>
               </div>
             </div>
@@ -199,7 +242,7 @@ export default function About() {
                 onClick={() => toggleFAQ(1)}
                 className="w-full px-6 py-4 text-left bg-[rgb(var(--muted))]/5 hover:bg-[rgb(var(--muted))]/10 transition-colors duration-300 flex items-center justify-between"
               >
-                <span className="font-semibold text-[rgb(var(--fg))]">Why do you focus on ethical photography?</span>
+                <span className="font-semibold text-[rgb(var(--fg))]">Why do you focus on this genre?</span>
                 <svg 
                   className={`w-5 h-5 text-[rgb(var(--primary))] transition-transform duration-300 ${openFAQ === 1 ? 'rotate-180' : ''}`}
                   fill="none" 
@@ -211,7 +254,7 @@ export default function About() {
               </button>
               <div className={`overflow-hidden transition-all duration-300 ${openFAQ === 1 ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div className="px-6 py-4 text-sm text-[rgb(var(--muted-fg))] border-t border-[rgb(var(--muted))]/20">
-                  Wildlife conservation is at the heart of my work. I never use baiting, call playback, or any methods that could disturb animals or their natural behaviors. This ensures authentic documentation while protecting the subjects.
+                  {content.about?.why?.desc}
                 </div>
               </div>
             </div>
@@ -222,7 +265,7 @@ export default function About() {
                 onClick={() => toggleFAQ(2)}
                 className="w-full px-6 py-4 text-left bg-[rgb(var(--muted))]/5 hover:bg-[rgb(var(--muted))]/10 transition-colors duration-300 flex items-center justify-between"
               >
-                <span className="font-semibold text-[rgb(var(--fg))]">What equipment do you use?</span>
+                <span className="font-semibold text-[rgb(var(--fg))]">Do you offer workshops?</span>
                 <svg 
                   className={`w-5 h-5 text-[rgb(var(--primary))] transition-transform duration-300 ${openFAQ === 2 ? 'rotate-180' : ''}`}
                   fill="none" 
@@ -234,30 +277,7 @@ export default function About() {
               </button>
               <div className={`overflow-hidden transition-all duration-300 ${openFAQ === 2 ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div className="px-6 py-4 text-sm text-[rgb(var(--muted-fg))] border-t border-[rgb(var(--muted))]/20">
-                  I use professional wildlife photography equipment including long telephoto lenses for bird photography, weather-sealed cameras for field conditions, and specialized gear for ethical wildlife observation.
-                </div>
-              </div>
-            </div>
-
-            {/* FAQ 4 */}
-            <div className="border border-[rgb(var(--muted))]/20 rounded-lg overflow-hidden">
-              <button
-                onClick={() => toggleFAQ(3)}
-                className="w-full px-6 py-4 text-left bg-[rgb(var(--muted))]/5 hover:bg-[rgb(var(--muted))]/10 transition-colors duration-300 flex items-center justify-between"
-              >
-                <span className="font-semibold text-[rgb(var(--fg))]">How can I learn from your approach?</span>
-                <svg 
-                  className={`w-5 h-5 text-[rgb(var(--primary))] transition-transform duration-300 ${openFAQ === 3 ? 'rotate-180' : ''}`}
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <div className={`overflow-hidden transition-all duration-300 ${openFAQ === 3 ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-                <div className="px-6 py-4 text-sm text-[rgb(var(--muted-fg))] border-t border-[rgb(var(--muted))]/20">
-                  I offer small, ethics-first workshops around Batangas and nearby provinces. These sessions focus on fieldcraft, ethical practices, and understanding wildlife behavior. Contact me for workshop dates and availability.
+                  Yes, I offer workshops and guided sessions. Please check the services section or contact me for current schedules and availability.
                 </div>
               </div>
             </div>

@@ -3,8 +3,8 @@ import GalleryClient from '../components/GalleryClient'
 
 export const metadata = {
   ...baseMetadata,
-  title: 'Wildlife & Nature Photography Gallery - John Philip Morada',
-  description: 'Explore the wildlife and nature photography gallery by John Philip Morada. Featuring Philippine wildlife, birds, and nature photography.',
+  title: 'Photography Gallery - John Philip Morada | Wildlife, Astro & Landscape',
+  description: 'Explore the photography gallery of John Philip Morada. Browse wildlife & bird photography, astrophotography, and landscape photography from the Philippines and beyond.',
   alternates: {
     canonical: '/gallery',
   },
@@ -13,7 +13,3 @@ export const metadata = {
 export default function Gallery() {
   return <GalleryClient />
 }
-
-
-
-

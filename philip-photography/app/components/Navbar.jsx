@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { toggleTheme } from '@/src/theme'
-import { Moon, Sun, Menu, X } from 'lucide-react'
+import { useTheme } from '@/src/contexts/ThemeContext'
+import { Moon, Sun, Menu, X, Grid } from 'lucide-react'
 
 export default function Navbar({ activeSection = 'home', scrolled = false }) {
+  const { resetTheme, toggleMode } = useTheme()
   const [isDark, setIsDark] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [localScrolled, setLocalScrolled] = useState(false)
@@ -99,13 +100,13 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
   }
 
   const linkBase = (isActive) =>
-    `relative px-3 py-2 text-sm font-semibold ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'} transition-colors duration-300 opacity-90 hover:opacity-100 after:content-[''] after:absolute after:left-1/2 after:-translate-x-1/2 after:bottom-0 after:h-0.5 after:w-full after:bg-current after:transition-transform after:duration-300 after:origin-center ${isActive ? 'after:scale-x-100' : 'after:scale-x-0 hover:after:scale-x-100'}`;
+    `relative px-3 py-2 text-sm font-semibold ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'} transition-colors duration-[var(--t-base)] opacity-90 hover:opacity-100 after:content-[''] after:absolute after:left-1/2 after:-translate-x-1/2 after:bottom-0 after:h-0.5 after:w-full after:bg-current after:transition-transform after:duration-[var(--t-fast)] after:origin-center ${isActive ? 'after:scale-x-100' : 'after:scale-x-0 hover:after:scale-x-100'}`;
 
   const mobileLinkBase = (isActive) =>
-    `block px-6 py-4 text-base font-semibold transition-all duration-300 rounded-2xl mx-2 my-1 ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white'} hover:bg-gradient-to-r hover:from-[rgb(var(--primary))]/10 hover:to-[rgb(var(--primary))]/5 hover:shadow-md hover:scale-[1.02] ${isActive ? 'bg-gradient-to-r from-[rgb(var(--primary))]/20 to-[rgb(var(--primary))]/10 shadow-lg scale-[1.02]' : ''}`;
+    `block px-6 py-4 text-base font-semibold transition-all duration-[var(--t-base)] rounded-2xl mx-2 my-1 ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white'} hover:bg-gradient-to-r hover:from-[rgb(var(--primary))]/10 hover:to-[rgb(var(--primary))]/5 hover:shadow-md hover:scale-[1.02] ${isActive ? 'bg-gradient-to-r from-[rgb(var(--primary))]/20 to-[rgb(var(--primary))]/10 shadow-lg scale-[1.02]' : ''}`;
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-[var(--t-base)] ${
       showBackground
         ? 'bg-[rgb(var(--bg))]/95 shadow-sm backdrop-blur-md border-b border-gray-200 dark:border-gray-800'
         : 'bg-transparent backdrop-blur-0 border-b border-transparent'
@@ -119,7 +120,7 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
               alt="Philip Photography Logo"
               className="h-8 md:h-10 w-auto"
             />
-            <span className={`font-bold text-lg tracking-wider transition-colors duration-300 ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'}`}>
+            <span className={`font-bold text-lg tracking-wider transition-colors duration-[var(--t-base)] ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'}`}>
               JP MORADA
             </span>
           </Link>
@@ -149,27 +150,44 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
           >Contact</Link>
         </div>
 
-        {/* Desktop Theme Toggle */}
-        <div className="hidden md:flex items-center">
+        {/* Desktop Theme / Mode Controls */}
+        <div className="hidden md:flex items-center gap-2">
           <button
-            className={`p-2 rounded-md transition-colors duration-300 ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'} opacity-70 hover:opacity-100`}
-            onClick={() => toggleTheme()}
+            type="button"
+            className={`inline-flex items-center justify-center h-10 px-4 rounded-md border transition-colors duration-[var(--t-base)] ${showBackground ? 'border-[rgb(var(--fg))] text-[rgb(var(--fg))] hover:bg-[rgb(var(--fg))] hover:text-[rgb(var(--bg))]' : 'border-white text-white hover:bg-white hover:text-black'} text-xs font-bold uppercase tracking-widest`}
+            onClick={() => resetTheme()}
           >
-            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+            Change Gallery
+          </button>
+          <button
+            type="button"
+            className={`inline-flex items-center justify-center h-10 px-4 rounded-md border transition-colors duration-[var(--t-base)] ${showBackground ? 'border-[rgb(var(--fg))] text-[rgb(var(--fg))] hover:bg-[rgb(var(--fg))] hover:text-[rgb(var(--bg))]' : 'border-white text-white hover:bg-white hover:text-black'}`}
+            onClick={() => toggleMode()}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
         </div>
 
-        {/* Mobile Menu Button */}
+        {/* Mobile Controls */}
         <div className="md:hidden flex items-center gap-2">
           <button
-            className={`p-2 rounded-xl transition-all duration-300 ${showBackground ? 'text-[rgb(var(--fg))] hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-white drop-shadow-lg hover:bg-white/10'} opacity-70 hover:opacity-100 hover:scale-105`}
-            onClick={() => toggleTheme()}
-            aria-label="Toggle theme"
+            className={`p-2 rounded-xl transition-all duration-[var(--t-fast)] ${showBackground ? 'text-[rgb(var(--fg))] hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-white drop-shadow-lg hover:bg-white/10'} opacity-70 hover:opacity-100 hover:scale-105`}
+            onClick={() => resetTheme()}
+            aria-label="Change Gallery"
+          >
+            <Grid size={20} />
+          </button>
+          <button
+            type="button"
+            className={`p-2 rounded-xl transition-all duration-[var(--t-fast)] ${showBackground ? 'text-[rgb(var(--fg))] hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-white drop-shadow-lg hover:bg-white/10'} opacity-70 hover:opacity-100 hover:scale-105`}
+            onClick={() => toggleMode()}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
           </button>
           <button
-            className={`flex items-center gap-2 px-3 py-2 rounded-2xl transition-all duration-300 ${showBackground ? 'text-[rgb(var(--fg))] hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-white drop-shadow-lg hover:bg-white/10'} opacity-70 hover:opacity-100 hover:scale-105 ${isMobileMenuOpen ? 'bg-[rgb(var(--primary))]/10' : ''}`}
+            className={`flex items-center gap-2 px-3 py-2 rounded-2xl transition-all duration-[var(--t-base)] ${showBackground ? 'text-[rgb(var(--fg))] hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-white drop-shadow-lg hover:bg-white/10'} opacity-70 hover:opacity-100 hover:scale-105 ${isMobileMenuOpen ? 'bg-[rgb(var(--primary))]/10' : ''}`}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle mobile menu"
           >
@@ -268,6 +286,13 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
     </header>
   )
 }
+
+
+
+
+
+
+
 
 
 

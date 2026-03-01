@@ -1,0 +1,410 @@
+/* SplitLanding.module.css */
+
+/* Core Container */
+.splitContainer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  background-color: #0f172a; /* Deep Slate Blue */
+  transition: transform 1s cubic-bezier(0.76, 0, 0.24, 1);
+  overflow: hidden;
+}
+
+/* Prevent flash: hide if global theme exists but not forced open */
+:global(html.theme-birdlife) .splitContainer:not(.forceOpen),
+:global(html.theme-astro) .splitContainer:not(.forceOpen),
+:global(html.theme-landscape) .splitContainer:not(.forceOpen) {
+  transform: translateY(-100%);
+  pointer-events: none;
+}
+
+/* Slide Up Mechanism (Global State) */
+.hidden {
+  transform: translateY(-100%);
+  pointer-events: none;
+}
+
+.forceOpen {
+  transform: translateY(0) !important;
+  pointer-events: all;
+}
+
+/* Intro Overlay - Floating Title */
+.introOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+  width: 100%;
+  padding: 0 1rem;
+}
+
+.introOverlay.faded {
+  opacity: 0;
+}
+
+.logo {
+  width: 80px;
+  height: auto;
+  margin: 0 auto 1.5rem;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 20px rgba(255,255,255,0.3));
+}
+
+.mainTitle {
+  font-family: var(--font-heading, serif);
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  line-height: 1.1;
+  text-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.subTitle {
+  font-family: var(--font-body, sans-serif);
+  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* The Panels */
+.panel {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  transition: flex 0.8s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s ease;
+  overflow: hidden;
+  cursor: pointer;
+  border-right: 1px solid rgba(255,255,255,0.05);
+}
+
+.panel:last-child {
+  border-right: none;
+}
+
+/* Background Image Handling */
+.panelBg {
+  position: absolute;
+  inset: -20px; /* Slight overscan for parallax/movement */
+  background-size: cover;
+  background-position: center;
+  transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), filter 0.8s ease;
+  filter: grayscale(100%) brightness(0.5) contrast(1.1);
+  transform: scale(1);
+}
+
+.panel:hover .panelBg {
+  /* Explicitly transition all filter props to ensure smoothness */
+  filter: grayscale(0%) brightness(1) contrast(1);
+  transform: scale(1.05);
+}
+
+/* Expanding Effect on Hover */
+.splitContainer:not(:has(.panel.selected)):hover .panel {
+  flex: 0.8; /* Shrink non-hovered */
+}
+
+.splitContainer:not(:has(.panel.selected)) .panel:hover {
+  flex: 2; /* Expand hovered */
+}
+
+/* Content Inside Panel */
+.panelContent {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 3rem;
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.95), transparent);
+  transform: translateY(0);
+  opacity: 0.8;
+  transition: transform 0.6s ease, opacity 0.6s ease;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 50%;
+  pointer-events: none; /* Pass clicks to parent initially */
+}
+
+.panel:hover .panelContent {
+  opacity: 1;
+}
+
+.panelTitle {
+  font-family: var(--font-heading, serif);
+  font-size: clamp(2rem, 3vw, 3.5rem);
+  text-transform: uppercase;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  position: relative;
+  display: inline-block;
+  transform: translateY(10px);
+  transition: transform 0.6s ease;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.panel:hover .panelTitle {
+  transform: translateY(0);
+}
+
+.panelTitle::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  width: 0;
+  height: 3px;
+  background: currentColor; /* Will inherit accent color */
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.panel:hover .panelTitle::after {
+  width: 60px;
+}
+
+.panelDescription {
+  font-family: var(--font-body, sans-serif);
+  font-size: 1rem;
+  color: rgba(255,255,255,0.85);
+  max-width: 400px;
+  line-height: 1.6;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.5s ease 0.1s;
+}
+
+.panel:hover .panelDescription {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.exploreBtn {
+  margin-top: 1.5rem;
+  align-self: flex-start;
+  padding: 0.8rem 2rem;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 2px;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: transparent;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.5s ease 0.2s;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.exploreBtn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  transform: translateX(-101%);
+  transition: transform 0.4s ease;
+  z-index: -1;
+}
+
+.panel:hover .exploreBtn {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.exploreBtn:hover {
+  color: #000;
+  border-color: #fff;
+}
+
+.exploreBtn:hover::before {
+  transform: translateX(0);
+}
+
+/* Specific Theme Styles */
+.birdlife .panelBg { background-image: url('/Hero.jpg'); }
+.birdlife { color: #44d19a; } /* Accent Color */
+
+.astro .panelBg { background-image: url('/AstroHero.jpg'); }
+.astro { color: #7c4dff; }
+
+.landscape .panelBg { background-image: url('/LandscapeHero.jpg'); }
+.landscape { color: #e08a3a; }
+
+/* Selection State: One expands fully */
+.selected {
+  flex: 100 !important;
+  cursor: default;
+  z-index: 10;
+}
+
+.selected .panelBg {
+  filter: grayscale(0%) brightness(1) contrast(1);
+  transform: scale(1);
+}
+
+.selected .panelContent {
+  opacity: 0; /* Hide text when selected to transition to main page smoothly */
+  transition-delay: 0s;
+}
+
+.notSelected {
+  flex: 0.001 !important; /* Almost 0 but keeps DOM rendering structure for a moment */
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+  .splitContainer {
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    height: 100dvh;
+  }
+  
+  /* Compact Header Layout */
+  .introOverlay {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: 100%;
+    padding: 1rem;
+    background: #0f172a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    z-index: 50;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    pointer-events: auto; /* Allow header interaction if needed */
+  }
+
+  .logo {
+    width: 40px;
+    margin: 0 0 0.5rem;
+    filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
+  }
+  
+  .mainTitle {
+    font-size: 1.1rem;
+    margin: 0;
+    line-height: 1.2;
+    letter-spacing: 0.1em;
+    text-shadow: none;
+  }
+  
+  .subTitle {
+    font-size: 0.7rem;
+    margin: 0;
+    opacity: 0.7;
+    letter-spacing: 0.15em;
+  }
+  
+  /* Stacked Panels */
+  .panel {
+    width: 100%;
+    flex: 1;
+    min-height: 15dvh; /* Allow shrinking */
+    border-right: none;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    transition: flex 0.6s cubic-bezier(0.25, 1, 0.5, 1), min-height 0.6s ease, filter 0.4s ease;
+    overflow: hidden; /* Ensure content doesn't spill during transition */
+  }
+
+  .panel:last-child {
+    border-bottom: none;
+  }
+  
+  /* Disable hover accordion on mobile */
+  .splitContainer:not(:has(.panel.selected)):hover .panel { flex: 1; }
+  .splitContainer:not(:has(.panel.selected)) .panel:hover { flex: 1; }
+  
+  /* Simplified Content */
+  .panelContent {
+    position: absolute;
+    inset: 0;
+    height: 100%;
+    width: 100%;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    min-height: 0;
+    transition: opacity 0.4s ease;
+    opacity: 1;
+  }
+  
+  .panelTitle {
+    font-size: 1.8rem;
+    transform: none;
+    margin-bottom: 0;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    transition: font-size 0.4s ease, transform 0.4s ease;
+  }
+  
+  .panelTitle::after {
+    display: none;
+  }
+
+  .panelDescription {
+    display: none; 
+  }
+  
+  .exploreBtn {
+    display: none;
+  }
+
+  .tutorialHint {
+    display: block; /* Show hint initially */
+    bottom: 2rem;
+  }
+}
+
+@media (max-width: 768px) and (max-height: 640px) {
+  .tutorialHint {
+    display: none;
+  }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Tutorial Hint */
+.tutorialHint {
+  position: absolute;
+  bottom: clamp(0.75rem, 3vh, 2rem);
+  width: 100%;
+  text-align: center;
+  z-index: 30;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: clamp(0.65rem, 2.5vw, 0.8rem);
+  pointer-events: none;
+  animation: pulse 3s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}

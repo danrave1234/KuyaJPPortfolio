@@ -399,7 +399,7 @@ export default function AnalyticsDashboard() {
                 </div>
                 <div>
                   <p className="text-[rgb(var(--fg))] font-medium truncate max-w-[200px]" title={image.imagePath}>
-                    {image.imagePath?.split('/').pop()?.replace(/\.[^/.]+$/, "") || 'Unknown Image'}
+                    {decodeURIComponent(image.imagePath ?? '')?.split('/').pop()?.replace(/\.[^/.]+$/, "") || 'Unknown Image'}
                   </p>
                   <p className="text-xs text-[rgb(var(--fg-muted))]">{image.views || 0} views</p>
                 </div>
