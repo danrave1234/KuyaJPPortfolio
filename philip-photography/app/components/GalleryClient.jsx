@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense } from 'react'
-import Gallery from '@/src/page-components/Gallery'
+import Gallery from '@/app/page-components/Gallery'
 
 export default function GalleryClient({ slug = undefined, category = undefined }) {
   return (

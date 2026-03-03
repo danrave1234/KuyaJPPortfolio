@@ -78,3 +78,23 @@
     "NEW INSTRUCTION": "WHEN using Get-Content with -Raw THEN do not include -TotalCount; use one or the other"
 }
 
+[2026-03-02 00:13] - Updated by Junie - Error analysis
+{
+    "TYPE": "invalid args",
+    "TOOL": "bash",
+    "ERROR": "Select-String: parameter -Recurse not found in PowerShell",
+    "ROOT CAUSE": "Used -Recurse directly on Select-String, which PowerShell does not support.",
+    "PROJECT NOTE": "To find '@/src/' imports under app/, enumerate files with Get-ChildItem -Recurse and pipe to Select-String.",
+    "NEW INSTRUCTION": "WHEN performing recursive text search in PowerShell THEN pipe Get-ChildItem -Recurse into Select-String"
+}
+
+[2026-03-02 14:25] - Updated by Junie - Error analysis
+{
+    "TYPE": "env/setup",
+    "TOOL": "-",
+    "ERROR": "Firebase Storage image requests return 412 Precondition Failed",
+    "ROOT CAUSE": "The storage bucket is set to 'kuyajp-portfolio.firebasestorage.app' instead of '<project-id>.appspot.com', producing invalid download URLs.",
+    "PROJECT NOTE": "In .env, set VITE_FIREBASE_STORAGE_BUCKET to kuyajp-portfolio.appspot.com; rebuild so getDownloadURL returns valid URLs.",
+    "NEW INSTRUCTION": "WHEN storageBucket ends with firebasestorage.app THEN replace it with <project-id>.appspot.com"
+}
+

@@ -11,7 +11,7 @@ export const getGalleryImagesHTTP = async (folder = 'gallery', page = 1, limit =
     // Use existing Firebase project functions URL
     const functionsURL = 'https://asia-southeast1-kuyajp-portfolio.cloudfunctions.net';
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
     
     const response = await fetch(`${functionsURL}/getGalleryImages?folder=${folder}&page=${page}&limit=${limit}`, {
       signal: controller.signal
@@ -26,7 +26,7 @@ export const getGalleryImagesHTTP = async (folder = 'gallery', page = 1, limit =
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error('Error fetching gallery images via HTTP:', error);
+    console.warn('Cloud Function unavailable, falling back to direct Storage access:', error.message);
     return { success: false, error: error.message, images: [] };
   }
 };
@@ -38,7 +38,7 @@ export const getGalleryImagesCallable = async (folder = 'gallery', page = 1, lim
     const result = await getGalleryImages({ folder, page, limit });
     return result.data;
   } catch (error) {
-    console.error('Error fetching gallery images via callable:', error);
+    console.warn('Callable function unavailable:', error.message);
     return { success: false, error: error.message, images: [] };
   }
 };
@@ -60,7 +60,7 @@ export const getGalleryImages = async (folder = 'gallery', page = 1, limit = 20)
   // Try callable function first (most secure) with timeout
   const callablePromise = getGalleryImagesCallable(folder, page, limit);
   const callableTimeout = new Promise((_, reject) => 
-    setTimeout(() => reject(new Error('Callable timeout')), 10000)
+    setTimeout(() => reject(new Error('Callable timeout')), 5000)
   );
   
   try {

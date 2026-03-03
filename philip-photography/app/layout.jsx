@@ -1,7 +1,7 @@
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/src/contexts/AuthContext'
-import { ThemeProvider } from '@/src/components/ThemeProvider'
+import { ThemeProvider } from '@/src/contexts/ThemeContext'
 import ThemeWrapper from '@/app/components/ThemeWrapper'
 import Navbar from '@/app/components/Navbar'
 import ConditionalFooter from '@/app/components/ConditionalFooter'

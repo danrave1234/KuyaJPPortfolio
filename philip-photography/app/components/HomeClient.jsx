@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Home from '@/src/page-components/Home'
+import Home from '@/app/page-components/Home'
 import ScrollSnapContainer from './ScrollSnapContainer'
 
 export default function HomeClient() {

@@ -3,12 +3,12 @@
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ArrowRight, Search, Heart, Filter } from 'lucide-react'
-import { getGalleryImages, searchGalleryImages } from '../firebase/api'
+import { getGalleryImages, searchGalleryImages } from '@/src/firebase/api'
 import { useTheme } from '@/src/contexts/ThemeContext'
-import { analytics } from '../firebase/config'
+import { analytics } from '@/src/firebase/config'
 import { logEvent } from 'firebase/analytics'
-import { trackImageView, trackGalleryNavigation } from '../services/analytics'
-import { generateSlug, extractIdFromSlug } from '@/app/utils/slugify'
+import { trackImageView, trackGalleryNavigation } from '@/src/services/analytics'
+import { generateSlug, extractIdFromSlug } from '@/src/utils/slugify'
 
 // Helper to get current active theme (falls back to birdlife)
 const getActiveThemeKey = () => {
@@ -16,7 +16,7 @@ const getActiveThemeKey = () => {
   try {
     const t = localStorage.getItem('theme')
     if (t && ['birdlife', 'astro', 'landscape'].includes(t)) return t
-  } catch {}
+  } catch { }
   return 'birdlife'
 }
 
@@ -69,7 +69,7 @@ const getCachedArtworks = () => {
           }
         }
       }
-    } catch {}
+    } catch { }
   } catch (e) {
     console.warn('Error reading cache:', e)
   }
@@ -90,17 +90,17 @@ export default function Gallery({ slug: imageSlug, category }) {
   const folderPath = `gallery/${currentTheme}`
   const keySuffix = `-${currentTheme}`
   // Strict theme mode: no legacy fallbacks
-  
+
   // Helper function to save scroll position
   const saveScrollPosition = () => {
     const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
     try {
       sessionStorage.setItem('gallery-scrollY', String(currentScroll))
-    } catch {}
+    } catch { }
   }
-  
+
   // IMMEDIATE scroll restoration removed - causes issues with batch loading
-  
+
   // Disable browser's automatic scroll restoration
   useEffect(() => {
     if ('scrollRestoration' in window.history) {
@@ -112,7 +112,7 @@ export default function Gallery({ slug: imageSlug, category }) {
       }
     }
   }, [])
-  
+
   const [active, setActive] = useState(null) // { art, idx }
 
   // Prevent a click-open from being immediately closed/re-opened while the URL query param is updating.
@@ -122,8 +122,8 @@ export default function Gallery({ slug: imageSlug, category }) {
     // Pre-load dimensions from cache if available
     if (typeof window === 'undefined') return {}
     try {
-      const cachedDimensions = sessionStorage.getItem(`gallery-artwork-dimensions${keySuffix}`) || 
-                               localStorage.getItem(`gallery-artwork-dimensions${keySuffix}`)
+      const cachedDimensions = sessionStorage.getItem(`gallery-artwork-dimensions${keySuffix}`) ||
+        localStorage.getItem(`gallery-artwork-dimensions${keySuffix}`)
       if (cachedDimensions) {
         const parsed = JSON.parse(cachedDimensions)
         return parsed
@@ -140,16 +140,16 @@ export default function Gallery({ slug: imageSlug, category }) {
   const hasAttemptedScrollRestoreRef = useRef(false)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
-  
+
   // Filter state
   const [sortFilter, setSortFilter] = useState('default') // 'default', 'most-liked'
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [totalCount, setTotalCount] = useState(0)
-  
+
   // Search state
   const [isSearching, setIsSearching] = useState(false)
   const [isDebouncing, setIsDebouncing] = useState(false)
@@ -160,25 +160,25 @@ export default function Gallery({ slug: imageSlug, category }) {
   // Image lookup function to find image by slug
   const findImageBySlug = (slug, images) => {
     if (!slug || !images) return null;
-    
+
     // Extract series number from the slug (e.g., "philippine-coucal-centropus-viridis-2" -> "2")
     const slugParts = slug.split('-');
     const lastPart = slugParts[slugParts.length - 1];
     const seriesNumber = /^\d+$/.test(lastPart) ? parseInt(lastPart) : 1;
-    
+
     // First, try to find a series group
     const seriesGroup = images.find(img => {
       if (!img.isSeries) return false;
-      
+
       // Generate slug for series (using series number 1 as base)
       const baseSlug = generateSlug(img.title, img.scientificName, '1');
       // Remove the series number from the base slug to match the series
       const seriesSlug = baseSlug.replace(/-1$/, '');
       const inputSeriesSlug = slug.replace(/-\d+$/, '');
-      
+
       return seriesSlug === inputSeriesSlug;
     });
-    
+
     if (seriesGroup && seriesGroup.images && seriesGroup.images.length > 0) {
       // Return the series group with the correct index
       const targetIndex = Math.min(seriesNumber - 1, seriesGroup.images.length - 1);
@@ -187,14 +187,14 @@ export default function Gallery({ slug: imageSlug, category }) {
         targetIndex: targetIndex
       };
     }
-    
+
     // If no series found, look for single images (including separated series items)
     const singleImage = images.find(img => {
       // Generate slug for the image
       const imgSlug = generateSlug(img.title, img.scientificName, '1');
       return imgSlug === slug;
     });
-    
+
     if (singleImage) {
       // Return the single image
       return {
@@ -202,7 +202,7 @@ export default function Gallery({ slug: imageSlug, category }) {
         targetIndex: 0
       };
     }
-    
+
     return null;
   };
 
@@ -212,8 +212,8 @@ export default function Gallery({ slug: imageSlug, category }) {
     const currentScroll = window.scrollY || document.documentElement.scrollTop
     try {
       sessionStorage.setItem('gallery-scrollY', String(currentScroll))
-    } catch {}
-    
+    } catch { }
+
     // Extract series number from the image for clean URLs
     let seriesNumber = '1';
     if (art.isSeries && art.images && art.images[idx]) {
@@ -228,7 +228,7 @@ export default function Gallery({ slug: imageSlug, category }) {
       const match = name.match(/_(\d+)\./);
       if (match) seriesNumber = match[1];
     }
-    
+
     const slug = generateSlug(art.title, art.scientificName, seriesNumber);
 
     // Mark as a user-initiated open so URL-sync effects don't fight this transition.
@@ -236,9 +236,9 @@ export default function Gallery({ slug: imageSlug, category }) {
 
     // Open immediately, then update the URL.
     setActive({ art, idx });
-    
+
     // Store the current page so closing the modal returns here
-    try { sessionStorage.setItem('gallery-back-url', pathname) } catch {}
+    try { sessionStorage.setItem('gallery-back-url', pathname) } catch { }
 
     // Navigate to the clean SEO-friendly URL for this photo
     router.push(`/gallery/${slug}`, { scroll: false })
@@ -251,13 +251,13 @@ export default function Gallery({ slug: imageSlug, category }) {
     setActive(null);
     pendingOpenSlugRef.current = null
     const savedScroll = sessionStorage.getItem('gallery-scrollY')
-    
+
     // Return to the gallery page the user came from
     let backUrl = '/gallery'
     try {
       const stored = sessionStorage.getItem('gallery-back-url')
       if (stored) backUrl = stored
-    } catch {}
+    } catch { }
 
     router.push(backUrl, { scroll: false })
   };
@@ -277,14 +277,14 @@ export default function Gallery({ slug: imageSlug, category }) {
   useEffect(() => {
     // Save on beforeunload (refresh/close)
     window.addEventListener('beforeunload', saveScrollPosition);
-    
+
     // Also save periodically while scrolling (debounced)
     let scrollTimeout;
     const handleScroll = () => {
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(saveScrollPosition, 200);
     };
-    
+
     window.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
@@ -330,7 +330,7 @@ export default function Gallery({ slug: imageSlug, category }) {
       setSearchPage(1);
       setSearchHasMore(false);
     }
-    
+
     const handle = setTimeout(() => {
       setDebouncedQuery(query.trim());
       setIsDebouncing(false);
@@ -377,7 +377,7 @@ export default function Gallery({ slug: imageSlug, category }) {
     const cleanupSearchCache = () => {
       const now = Date.now();
       const cacheExpiry = 30 * 60 * 1000; // 30 minutes
-      
+
       for (let i = 0; i < sessionStorage.length; i++) {
         const key = sessionStorage.key(i);
         if (key && key.startsWith('gallery-search-')) {
@@ -393,14 +393,14 @@ export default function Gallery({ slug: imageSlug, category }) {
         }
       }
     };
-    
+
     cleanupSearchCache();
   }, []);
 
   // Search function with caching
   const performSearch = async (searchQuery, page = 1) => {
     setIsSearching(true);
-    
+
     // Track search in analytics
     if (analytics && searchQuery.trim()) {
       logEvent(analytics, 'search', {
@@ -408,17 +408,17 @@ export default function Gallery({ slug: imageSlug, category }) {
         page_number: page
       })
     }
-    
+
     try {
       // Check cache for search results (per-theme)
       const cacheKey = `search-${searchQuery}-${page}${keySuffix}`;
       const cachedResults = sessionStorage.getItem(`gallery-search-${cacheKey}`);
-      
+
       if (cachedResults) {
         const parsedResults = JSON.parse(cachedResults);
         // Apply sort filter to cached results
         const sortedCachedResults = sortFilter === 'most-liked' ? sortByLikes(parsedResults.images) : parsedResults.images;
-        
+
         if (page === 1) {
           setSearchResults(sortedCachedResults);
         } else {
@@ -435,7 +435,7 @@ export default function Gallery({ slug: imageSlug, category }) {
         // Group search results by series like the main gallery
         const groupedResults = groupImagesBySeries(result.images);
         const shuffled = shuffleArray(groupedResults);
-        
+
         // Cache search results
         const cacheData = {
           images: shuffled,
@@ -443,10 +443,10 @@ export default function Gallery({ slug: imageSlug, category }) {
           timestamp: Date.now()
         };
         sessionStorage.setItem(`gallery-search-${cacheKey}`, JSON.stringify(cacheData));
-        
+
         // Apply sort filter to search results
         const sortedResults = sortFilter === 'most-liked' ? sortByLikes(shuffled) : shuffled;
-        
+
         if (page === 1) {
           setSearchResults(sortedResults);
         } else {
@@ -461,11 +461,11 @@ export default function Gallery({ slug: imageSlug, category }) {
       setIsSearching(false);
     }
   };
-  
+
   // Function to group images by series (using metadata)
   const groupImagesBySeries = (images) => {
     const groups = {};
-    
+
     images.forEach(img => {
       if (img.isSeries && img.title) {
         // Group by title for series
@@ -514,15 +514,15 @@ export default function Gallery({ slug: imageSlug, category }) {
         };
       }
     });
-    
+
     const result = Object.values(groups);
     return result;
   }
-  
+
   // Simple loading logic - run only once
   useEffect(() => {
     let isMounted = true
-    
+
     const loadInitialImages = async () => {
       try {
         // Reset state on theme change to avoid stale content flash
@@ -537,7 +537,7 @@ export default function Gallery({ slug: imageSlug, category }) {
         }
         // Check cache first
         const cachedData = getCachedArtworks()
-        
+
         if (cachedData) {
           if (isMounted) {
             setArtworks(cachedData.artworks)
@@ -557,7 +557,7 @@ export default function Gallery({ slug: imageSlug, category }) {
           // Group images by series first, then shuffle
           const groupedImages = groupImagesBySeries(result.images)
           const shuffled = shuffleArray(groupedImages)
-          
+
           // Store in cache
           const artworksJson = JSON.stringify(shuffled)
           const now = Date.now()
@@ -567,7 +567,7 @@ export default function Gallery({ slug: imageSlug, category }) {
           sessionStorage.setItem(`gallery-artwork-session${keySuffix}`, artworksJson)
           sessionStorage.setItem(`gallery-artwork-page${keySuffix}`, '1')
           // Note: dimensions will be cached as images load via handleImageLoad
-          
+
           if (isMounted) {
             setArtworks(shuffled)
             setCurrentPage(1)
@@ -606,11 +606,11 @@ export default function Gallery({ slug: imageSlug, category }) {
     // Check if we are returning from modal (state has restoreScroll)
     const state = window.history.state?.usr; // React Router stores state in usr
     const shouldRestore = hasAttemptedScrollRestoreRef.current === false || (state && state.restoreScroll);
-    
+
     if (!shouldRestore || !isInitialized || imageSlug) {
       return
     }
-    
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
     if (artworks.length === 0) {
       return
@@ -627,15 +627,15 @@ export default function Gallery({ slug: imageSlug, category }) {
     const scrollPosition = parseInt(savedScrollY, 10)
     let hasRestored = false
     let isCancelled = false
-    
+
     let attempts = 0
-    const maxAttempts = 15 
+    const maxAttempts = 15
 
     // Cancel restoration if user interacts
     const cancelRestoration = () => {
       isCancelled = true
     }
-    
+
     window.addEventListener('wheel', cancelRestoration, { passive: true })
     window.addEventListener('touchmove', cancelRestoration, { passive: true })
     window.addEventListener('keydown', cancelRestoration, { passive: true })
@@ -643,20 +643,20 @@ export default function Gallery({ slug: imageSlug, category }) {
     // Fine-tune the scroll position as the page grows
     const fineTuneScroll = () => {
       if (hasRestored || isCancelled) return
-      
+
       attempts++
-      
+
       const currentHeight = Math.max(
         document.body.scrollHeight,
         document.documentElement.scrollHeight
       )
-      
+
       // If we can scroll to the position, do it
       if (currentHeight >= scrollPosition) {
         window.scrollTo(0, scrollPosition)
         hasRestored = true // Assume success to prevent fighting the user
       }
-      
+
       if (!hasRestored && attempts < maxAttempts) {
         setTimeout(fineTuneScroll, 100)
       } else {
@@ -669,7 +669,7 @@ export default function Gallery({ slug: imageSlug, category }) {
 
     // Start fine-tuning immediately
     fineTuneScroll()
-    
+
     // Cleanup on unmount (or re-run)
     return () => {
       window.removeEventListener('wheel', cancelRestoration)
@@ -678,28 +678,28 @@ export default function Gallery({ slug: imageSlug, category }) {
     }
 
   }, [isInitialized, imageSlug, artworks.length])
-  
+
   // Load more images function for infinite scroll with caching
   const loadMoreImages = async () => {
     if (loadingMore || !hasMore) return;
-    
+
     setLoadingMore(true);
     try {
       const nextPage = currentPage + 1;
       const result = await getGalleryImages(folderPath, nextPage, 20);
-      
+
       if (result.success && result.images.length > 0) {
         const newGroupedImages = groupImagesBySeries(result.images);
         const newShuffled = shuffleArray(newGroupedImages);
-        
+
         // Update state with new images
         setArtworks(prev => {
           const updatedArtworks = [...prev, ...newShuffled];
-          
+
           // Update all caches with the complete gallery state
           const artworksJson = JSON.stringify(updatedArtworks);
           const now = Date.now();
-          
+
           // Update all cache layers
           sessionStorage.setItem(`gallery-artwork-session${keySuffix}`, artworksJson);
           sessionStorage.setItem(`gallery-artwork-page${keySuffix}`, nextPage.toString());
@@ -708,10 +708,10 @@ export default function Gallery({ slug: imageSlug, category }) {
           localStorage.setItem(`gallery-artwork-page${keySuffix}`, nextPage.toString());
           localStorage.setItem(`gallery-artwork-order${keySuffix}`, artworksJson);
           // Note: dimensions will be cached as new images load via handleImageLoad
-          
+
           return updatedArtworks;
         });
-        
+
         setCurrentPage(nextPage);
         setHasMore(result.pagination?.hasMore || false);
       } else {
@@ -769,7 +769,7 @@ export default function Gallery({ slug: imageSlug, category }) {
       observer.disconnect();
     };
   }, [currentPage, hasMore, loadingMore, debouncedQuery, searchHasMore, isSearching, searchPage, isDebouncing, artworks.length]);
-  
+
   // Shuffle function to randomize artwork order for chaotic layout
   const shuffleArray = (array) => {
     const shuffled = [...array]
@@ -788,16 +788,16 @@ export default function Gallery({ slug: imageSlug, category }) {
       return bLikes - aLikes // Sort descending (most liked first)
     })
   }
-  
+
   // Apply sorting filter to artworks
   const sortedArtworks = sortFilter === 'most-liked' ? sortByLikes([...artworks]) : artworks
-  
+
   // Use artworks from Firebase instead of hardcoded array
   const shuffledArtworks = sortedArtworks
-  
+
   // Use search results if searching, otherwise use regular artworks
   const displayedArtworks = debouncedQuery.trim() ? searchResults : shuffledArtworks;
-  
+
   // Separate series photos into individual items
   const separatedArtworks = displayedArtworks.flatMap(art => {
     if (art.isSeries && art.images && art.images.length > 1) {
@@ -848,24 +848,24 @@ export default function Gallery({ slug: imageSlug, category }) {
       return [art];
     }
   });
-  
+
   // Deduplicate separated artworks based on unique identifier
   const deduplicatedArtworks = separatedArtworks.filter((art, index, array) => {
     const uniqueKey = art.src || art.id;
-    return array.findIndex(item => 
+    return array.findIndex(item =>
       (item.src || item.id) === uniqueKey
     ) === index;
   });
-  
+
   // Add loading skeleton items when loading more (these will be interleaved by grid-flow-dense)
   const artworksWithSkeletons = loadingMore
-    ? [...deduplicatedArtworks, ...Array.from({ length: 6 }, (_, i) => ({ 
-        id: `skeleton-${i}`, 
-        isSkeleton: true,
-        src: null
-      }))]
+    ? [...deduplicatedArtworks, ...Array.from({ length: 6 }, (_, i) => ({
+      id: `skeleton-${i}`,
+      isSkeleton: true,
+      src: null
+    }))]
     : deduplicatedArtworks;
-    
+
   // Hardcoded artworks removed - now using Firebase Storage images
 
   const getBentoSize = (artwork, index) => {
@@ -873,7 +873,7 @@ export default function Gallery({ slug: imageSlug, category }) {
     if (artwork.composite) {
       return 'small'
     }
-    
+
     // Handle skeleton placeholders - use varied sizes for better layout
     if (artwork.isSkeleton) {
       const sizes = ['small', 'small', 'small', 'medium', 'large', 'wide'];
@@ -884,16 +884,16 @@ export default function Gallery({ slug: imageSlug, category }) {
       }, 0) : index;
       return sizes[Math.abs(hash) % sizes.length];
     }
-    
+
     const dimensions = imageDimensions[artwork.id]
-    
+
     // If image hasn't loaded yet, use small as default
     if (!dimensions) {
       return 'small' // Default size until dimensions load
     }
-    
+
     const { aspectRatio } = dimensions
-    
+
     // Smart grid assignment based on aspect ratio with randomization
     if (aspectRatio < 0.8) {
       // Portrait - always use medium (1 column, 2 rows)
@@ -908,7 +908,7 @@ export default function Gallery({ slug: imageSlug, category }) {
         a = ((a << 5) - a) + b.charCodeAt(0);
         return a & a;
       }, 0) : Math.random() * 1000;
-      
+
       // 10% chance for large, 90% chance for small
       return Math.abs(hash) % 10 < 1 ? 'large' : 'small'
     }
@@ -917,13 +917,13 @@ export default function Gallery({ slug: imageSlug, category }) {
 
   const handleImageLoad = (id, naturalWidth, naturalHeight) => {
     const aspectRatio = naturalWidth / naturalHeight
-    
+
     // Find the artwork to determine grid size
     const artwork = deduplicatedArtworks.find(art => art.id === id)
     let gridSize = 'unknown'
     if (artwork) {
       const dimensions = { width: naturalWidth, height: naturalHeight, aspectRatio }
-      
+
       // Apply the same logic as getBentoSize
       if (aspectRatio < 0.8) {
         gridSize = 'medium (portrait)'
@@ -939,14 +939,14 @@ export default function Gallery({ slug: imageSlug, category }) {
         gridSize = isLarge ? 'large (square/landscape - featured!)' : 'small (square/landscape)'
       }
     }
-    
+
     // Update dimensions and trigger re-render
     setImageDimensions(prev => {
       const newDimensions = {
         ...prev,
         [id]: { width: naturalWidth, height: naturalHeight, aspectRatio }
       }
-      
+
       // Cache dimensions along with artworks
       try {
         const dimensionsJson = JSON.stringify(newDimensions)
@@ -955,7 +955,7 @@ export default function Gallery({ slug: imageSlug, category }) {
       } catch (e) {
         console.warn('Failed to cache dimensions:', e)
       }
-      
+
       return newDimensions
     })
     setLoadedImages(prev => new Set([...prev, id]))
@@ -975,11 +975,11 @@ export default function Gallery({ slug: imageSlug, category }) {
       // Simulate aspect ratio detection for uploaded images
       const mockAspectRatio = Math.random() * 2 + 0.5 // Random aspect ratio between 0.5 and 2.5
       let size = 'small'
-      
+
       if (mockAspectRatio > 1.8) size = 'wide'
       else if (mockAspectRatio > 1.3) size = 'large'
       else if (mockAspectRatio < 0.8) size = 'medium'
-      
+
       return {
         ...img,
         size,
@@ -993,320 +993,320 @@ export default function Gallery({ slug: imageSlug, category }) {
     <>
       {/* SEO handled by Next.js metadata API */}
       <main className="min-h-screen bg-[rgb(var(--bg))] transition-colors duration-300">
-      <div className="container-responsive pt-20 sm:pt-24 md:pt-20 lg:pt-24 pb-6 sm:pb-8">
-        <div className="mb-6 sm:mb-8 md:mb-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
-            <div className="lg:col-span-7">
-              <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-2 sm:mb-3 transition-colors duration-300">Feature Portfolio</div>
-              <h1 className="font-extrabold text-[rgb(var(--fg))] uppercase leading-[0.9] transition-colors duration-300" style={{ letterSpacing: '0.20em', fontKerning: 'none', fontVariantLigatures: 'none' }}>
-                {/* Primary title with emphasized accent */}
-                <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl" style={{ letterSpacing: '0.18em', fontKerning: 'none', fontVariantLigatures: 'none' }}>
-                  <span className="inline-block" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.25)' }}>
-                    {currentTheme === 'birdlife' ? 'Birdlife' : currentTheme === 'astro' ? 'Astro' : 'Landscape'}
-                    <span className="mt-2 block h-[4px] w-full bg-[rgb(var(--primary))] rounded-full" />
+        <div className="container-responsive pt-20 sm:pt-24 md:pt-20 lg:pt-24 pb-6 sm:pb-8">
+          <div className="mb-6 sm:mb-8 md:mb-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+              <div className="lg:col-span-7">
+                <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] mb-2 sm:mb-3 transition-colors duration-300">Feature Portfolio</div>
+                <h1 className="font-extrabold text-[rgb(var(--fg))] uppercase leading-[0.9] transition-colors duration-300" style={{ letterSpacing: '0.20em', fontKerning: 'none', fontVariantLigatures: 'none' }}>
+                  {/* Primary title with emphasized accent */}
+                  <span className="block text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl" style={{ letterSpacing: '0.18em', fontKerning: 'none', fontVariantLigatures: 'none' }}>
+                    <span className="inline-block" style={{ textShadow: '0 2px 12px rgba(0,0,0,0.25)' }}>
+                      {currentTheme === 'birdlife' ? 'Birdlife' : currentTheme === 'astro' ? 'Astro' : 'Landscape'}
+                      <span className="mt-2 block h-[4px] w-full bg-[rgb(var(--primary))] rounded-full" />
+                    </span>
                   </span>
-                </span>
-                {/* Secondary title with colored emphasis on LENS */}
-                <span className="block text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl opacity-95" style={{ letterSpacing: '0.16em', fontKerning: 'none', fontVariantLigatures: 'none' }}>
-                  Gallery <span style={{ color: 'rgb(var(--primary))', letterSpacing: '0.18em', fontKerning: 'none', fontVariantLigatures: 'none' }}>Collection</span>
-                </span>
-                
-              </h1>
-              <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
-                <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">
-                  {currentTheme === 'birdlife' ? 'Feathers & Flight' : currentTheme === 'astro' ? 'Stars & Nebulae' : 'Light & Land'}
-                </div>
-              </div>
-            </div>
-            <div className="lg:col-span-5 lg:self-end">
-              <p className="text-[rgb(var(--muted))] text-sm sm:text-base md:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-5 transition-colors duration-300">
-                {currentTheme === 'birdlife' && 'A curated collection of avian moments — behavior, light, and quiet drama in the wild.'}
-                {currentTheme === 'astro' && 'Deep sky frames of the night — nebulas, star fields, and the silent motion of the cosmos.'}
-                {currentTheme === 'landscape' && 'Scenes shaped by time — mountains, coastlines, and the changing moods of light.'}
-              </p>
-            </div>
-          </div>
-          <div className="mt-4 sm:mt-6 h-px w-full bg-[rgb(var(--muted))]/20 transition-colors duration-300" />
-        </div>
+                  {/* Secondary title with colored emphasis on LENS */}
+                  <span className="block text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl opacity-95" style={{ letterSpacing: '0.16em', fontKerning: 'none', fontVariantLigatures: 'none' }}>
+                    Gallery <span style={{ color: 'rgb(var(--primary))', letterSpacing: '0.18em', fontKerning: 'none', fontVariantLigatures: 'none' }}>Collection</span>
+                  </span>
 
-        {/* Search and description row */}
-        <div className="mb-8 flex items-center justify-center">
-          <div className="w-full max-w-3xl">
-            <div className="flex gap-3 items-center">
-              {/* Search Input */}
-              <div className="flex-1">
-                <label htmlFor="gallery-search" className="sr-only">Search artworks</label>
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 sm:pl-4">
-                    <Search size={16} className="sm:w-[18px] sm:h-[18px] text-[rgb(var(--muted))] transition-colors duration-300" />
+                </h1>
+                <div className="mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-[rgb(var(--muted))]/20 transition-colors duration-300">
+                  <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] text-[rgb(var(--muted))] transition-colors duration-300">
+                    {currentTheme === 'birdlife' ? 'Feathers & Flight' : currentTheme === 'astro' ? 'Stars & Nebulae' : 'Light & Land'}
                   </div>
-                  <input
-                    id="gallery-search"
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search by title or description..."
-                    className="w-full rounded-full bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 pl-10 sm:pl-12 pr-4 sm:pr-5 py-2 sm:py-3 text-sm sm:text-base text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] shadow-sm focus:outline-none focus:ring-4 focus:ring-[rgb(var(--primary))]/25 hover:border-[rgb(var(--muted))]/40 transition-colors duration-300"
-                  />
                 </div>
               </div>
-              
-              {/* Filter Dropdown */}
-              <div className="relative">
-                <select
-                  value={sortFilter}
-                  onChange={(e) => setSortFilter(e.target.value)}
-                  className="appearance-none bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-full px-4 py-2 sm:py-3 pr-8 text-sm sm:text-base text-[rgb(var(--fg))] focus:outline-none focus:ring-4 focus:ring-[rgb(var(--primary))]/25 hover:border-[rgb(var(--muted))]/40 transition-colors duration-300 cursor-pointer"
-                >
-                  <option value="default">All</option>
-                  <option value="most-liked">Most Liked</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                  <Filter size={14} className="text-[rgb(var(--muted))] transition-colors duration-300" />
-                </div>
+              <div className="lg:col-span-5 lg:self-end">
+                <p className="text-[rgb(var(--muted))] text-sm sm:text-base md:text-lg leading-relaxed lg:border-l lg:border-[rgb(var(--muted))]/20 lg:pl-5 transition-colors duration-300">
+                  {currentTheme === 'birdlife' && 'A curated collection of avian moments — behavior, light, and quiet drama in the wild.'}
+                  {currentTheme === 'astro' && 'Deep sky frames of the night — nebulas, star fields, and the silent motion of the cosmos.'}
+                  {currentTheme === 'landscape' && 'Scenes shaped by time — mountains, coastlines, and the changing moods of light.'}
+                </p>
               </div>
             </div>
-            
-            {(debouncedQuery || sortFilter !== 'default') && (
-              <div className="mt-2 text-center text-sm text-[rgb(var(--muted))] transition-colors duration-300">
-                {debouncedQuery && (
-                  <span>
-                    {isSearching || isDebouncing ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <div className="w-4 h-4 border-2 border-[rgb(var(--muted))]/30 border-t-[rgb(var(--muted))] rounded-full animate-spin"></div>
-                        Searching...
-                      </span>
-                    ) : (
-                      `Showing ${deduplicatedArtworks.length} results`
-                    )}
-                  </span>
-                )}
-                {sortFilter !== 'default' && !debouncedQuery && (
-                  <span>Sorted by {sortFilter === 'most-liked' ? 'Most Liked' : 'Default'}</span>
-                )}
-              </div>
-            )}
+            <div className="mt-4 sm:mt-6 h-px w-full bg-[rgb(var(--muted))]/20 transition-colors duration-300" />
           </div>
-        </div>
 
-        {galleryLoading && !isInitialized ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[100px] md:auto-rows-[160px] lg:auto-rows-[240px] xl:auto-rows-[320px] mb-6 grid-flow-dense">
-            {[
-              'large','small','medium','wide','small','large','small','medium','small','wide','small','medium'
-            ].map((size, i) => {
-              const gridClasses = size === 'large' ? 'col-span-2 row-span-2' :
-                                   size === 'wide' ? 'col-span-2 row-span-1' :
-                                   size === 'medium' ? 'col-span-1 row-span-2' : 
-                                   'col-span-1 row-span-1'
-              return (
-                <div key={i} className={`${gridClasses} rounded-lg overflow-hidden relative border border-gray-200 dark:border-[rgb(var(--muted))]/10`}>
-                  <div className="absolute inset-0 animate-pulse bg-gray-100 dark:bg-[rgb(var(--muted))]/20" />
-                </div>
-              )
-            })}
-          </div>
-        ) : shuffledArtworks.length === 0 ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <p className="text-[rgb(var(--muted-fg))] transition-colors duration-300">No images found in Firebase Storage</p>
-            </div>
-          </div>
-        ) : debouncedQuery && deduplicatedArtworks.length === 0 && !isSearching && !isDebouncing ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <p className="text-[rgb(var(--muted-fg))] transition-colors duration-300">No results for "{debouncedQuery}"</p>
-            </div>
-          </div>
-        ) : (isSearching || isDebouncing) ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[100px] md:auto-rows-[160px] lg:auto-rows-[240px] xl:auto-rows-[320px] mb-6 grid-flow-dense">
-            {[
-              'large','small','medium','wide','small','large','small','medium','small','wide','small','medium'
-            ].map((size, i) => {
-              const gridClasses = size === 'large' ? 'col-span-2 row-span-2' :
-                                   size === 'wide' ? 'col-span-2 row-span-1' :
-                                   size === 'medium' ? 'col-span-1 row-span-2' : 
-                                   'col-span-1 row-span-1'
-              return (
-                <div key={i} className={`${gridClasses} rounded-lg overflow-hidden relative border border-gray-200 dark:border-[rgb(var(--muted))]/10`}>
-                  <div className="absolute inset-0 animate-pulse bg-gray-100 dark:bg-[rgb(var(--muted))]/20" />
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[100px] md:auto-rows-[160px] lg:auto-rows-[240px] xl:auto-rows-[320px] mb-6 grid-flow-dense animate-fadeIn">
-            {artworksWithSkeletons.map((art, i) => {
-            // Handle skeleton placeholders
-            if (art.isSkeleton) {
-              const size = getBentoSize(art, i)
-              const gridClasses = size === 'large' ? 'col-span-2 row-span-2' : 
-                                 size === 'wide' ? 'col-span-2 row-span-1' :
-                                 size === 'medium' ? 'col-span-1 row-span-2' : 
-                                 'col-span-1 row-span-1'
-              return (
-                <div key={`skeleton-${i}`} className={`${gridClasses} rounded-lg overflow-hidden relative border border-gray-200 dark:border-[rgb(var(--muted))]/10`}>
-                  <div className="absolute inset-0 animate-pulse bg-gray-100 dark:bg-[rgb(var(--muted))]/20" />
-                </div>
-              )
-            }
-            
-            const size = getBentoSize(art, i)
-            
-            const gridClasses = size === 'large' ? 'col-span-2 row-span-2' : 
-                               size === 'wide' ? 'col-span-2 row-span-1' :
-                               size === 'medium' ? 'col-span-1 row-span-2' : 
-                               'col-span-1 row-span-1'
-          
-            // Defensive: skip items without an image
-            const imageSrc = typeof art.src === 'string' ? art.src : null
-
-            if (!imageSrc) {
-              return null
-            }
-
-
-            // Create a stable key that doesn't change - include series info for uniqueness
-            const uniqueKey = `${art.id || 'unknown'}-${art.seriesIndex || i}-${i}`.replace(/[^a-zA-Z0-9-_]/g, '-');
-            
-            // Determine overlay height based on image orientation
-            const dimensions = imageDimensions[art.id]
-            const aspectRatio = dimensions?.aspectRatio || 1
-            // Portrait images (< 1) get 15% height, landscape images (>= 1) get very small 5% height
-            const overlayHeight = aspectRatio < 1 ? 'h-[15%]' : 'h-[5%]'
-            const isLandscape = aspectRatio >= 1
-            
-            return (
-              <figure 
-                key={uniqueKey} 
-                className={`group cursor-pointer ${gridClasses} rounded-xl overflow-hidden relative`}
-                onClick={() => {
-                  // Track image view in analytics
-                  if (analytics) {
-                    logEvent(analytics, 'view_item', {
-                      item_id: art.id,
-                      item_name: art.title,
-                      item_category: 'photography',
-                      item_variant: art.isSeries ? 'series' : 'single'
-                    })
-                  }
-
-                  // Track image view with custom analytics
-                  trackImageView({
-                    id: art.id,
-                    title: art.title,
-                    path: art.src,
-                    isFeatured: false
-                  }, {
-                    isSeries: art.isSeries,
-                    seriesIndex: i,
-                    galleryType: 'main'
-                  });
-
-                  // If this is a separated series item, use the complete series data
-                  if (art.completeSeriesData) {
-                    // Use the complete series data directly with URL routing
-                    handleImageClick(art.completeSeriesData, art.seriesIndex - 1);
-                  } else {
-                    // For single images, open normally with URL routing
-                    handleImageClick(art, 0);
-                  }
-                }}
-              >
-                <div className="w-full h-full relative overflow-hidden bg-gray-900">
-                  <img
-                    src={imageSrc}
-                    alt={art.title || ''}
-                    className="w-full h-full object-cover"
-                    style={{
-                      opacity: loadedImages.has(art.id) ? 1 : 0,
-                      transition: 'opacity 0.7s ease-in-out'
-                    }}
-                    onLoad={(e) => {
-                      const { naturalWidth, naturalHeight } = e.target
-                      handleImageLoad(art.id, naturalWidth, naturalHeight)
-                      // Small delay to ensure smooth fade-in
-                      setTimeout(() => {
-                        setLoadedImages(prev => new Set([...prev, art.id]))
-                      }, 50)
-                    }}
-                  />
-                  
-                  
-                  {/* Elegant Gradient Overlay - Always visible on mobile, hover on desktop */}
-                  <div className={`absolute inset-0 bg-gradient-to-t ${isLandscape ? 'from-black/60 via-black/5' : 'from-black/90 via-black/20'} to-transparent transition-opacity duration-500 opacity-100 md:opacity-0 md:group-hover:opacity-100`} />
-                  
-                  {/* Content Overlay - Smaller for landscape, normal for portrait on mobile */}
-                  <div className={`absolute bottom-0 left-0 right-0 ${overlayHeight} md:h-auto ${isLandscape ? 'px-2 py-1' : 'p-1.5'} md:p-4 transition-all duration-500 ease-out transform translate-y-0 opacity-100 md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 flex items-end`}>
-                    <div className={`flex flex-col gap-0 md:gap-1 w-full ${isLandscape ? 'px-1' : ''}`}>
-                      <span className={`${isLandscape ? 'text-[5px]' : 'text-[7px]'} md:text-[10px] font-mono tracking-widest text-white/60 uppercase`}>
-                        {String(i + 1).padStart(2, '0')} — {art.isSeries ? 'Series' : 'Single'}
-                      </span>
-                      <h3 className={`text-white font-medium ${isLandscape ? 'text-[8px]' : 'text-[10px]'} md:text-sm lg:text-base leading-tight tracking-wide drop-shadow-md line-clamp-1 md:line-clamp-2`}>
-                        {art.title}
-                      </h3>
-                      {art.scientificName && (
-                        <p className={`text-white/70 ${isLandscape ? 'text-[7px]' : 'text-[9px]'} md:text-xs italic font-serif mt-0 md:mt-0.5 tracking-wide line-clamp-1`}>
-                          {art.scientificName}
-                        </p>
-                      )}
+          {/* Search and description row */}
+          <div className="mb-8 flex items-center justify-center">
+            <div className="w-full max-w-3xl">
+              <div className="flex gap-3 items-center">
+                {/* Search Input */}
+                <div className="flex-1">
+                  <label htmlFor="gallery-search" className="sr-only">Search artworks</label>
+                  <div className="relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 sm:pl-4">
+                      <Search size={16} className="sm:w-[18px] sm:h-[18px] text-[rgb(var(--muted))] transition-colors duration-300" />
                     </div>
+                    <input
+                      id="gallery-search"
+                      type="text"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Search by title or description..."
+                      className="w-full rounded-full bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 pl-10 sm:pl-12 pr-4 sm:pr-5 py-2 sm:py-3 text-sm sm:text-base text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] shadow-sm focus:outline-none focus:ring-4 focus:ring-[rgb(var(--primary))]/25 hover:border-[rgb(var(--muted))]/40 transition-colors duration-300"
+                    />
                   </div>
                 </div>
-              </figure>
-            )
-          })}
-          </div>
-        )}
-        
-        {/* End of gallery indicator */}
-        {!hasMore && deduplicatedArtworks.length > 0 && !loadingMore && (
-          <div className="flex justify-center items-center py-8">
-            <span className="text-[rgb(var(--muted-fg))] text-sm transition-colors duration-300">You've reached the end of the gallery</span>
-          </div>
-        )}
 
-        {/* Gallery Statistics */}
-        <div className="text-center mb-8 sm:mb-12" data-gallery-stats>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8 mb-6 sm:mb-8">
-            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-md sm:rounded-lg p-3 sm:p-4 md:p-6 transition-colors duration-300">
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[rgb(var(--fg))] mb-1 sm:mb-2 transition-colors duration-300">
-                {deduplicatedArtworks.length}
+                {/* Filter Dropdown */}
+                <div className="relative">
+                  <select
+                    value={sortFilter}
+                    onChange={(e) => setSortFilter(e.target.value)}
+                    className="appearance-none bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-full px-4 py-2 sm:py-3 pr-8 text-sm sm:text-base text-[rgb(var(--fg))] focus:outline-none focus:ring-4 focus:ring-[rgb(var(--primary))]/25 hover:border-[rgb(var(--muted))]/40 transition-colors duration-300 cursor-pointer"
+                  >
+                    <option value="default">All</option>
+                    <option value="most-liked">Most Liked</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                    <Filter size={14} className="text-[rgb(var(--muted))] transition-colors duration-300" />
+                  </div>
+                </div>
               </div>
-              <div className="text-[rgb(var(--muted))] text-xs sm:text-sm uppercase tracking-wide transition-colors duration-300">
-                Total Photographs
-              </div>
-            </div>
-            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-md sm:rounded-lg p-3 sm:p-4 md:p-6 transition-colors duration-300">
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[rgb(var(--fg))] mb-1 sm:mb-2 transition-colors duration-300">
-                2024
-              </div>
-              <div className="text-[rgb(var(--muted))] text-xs sm:text-sm uppercase tracking-wide transition-colors duration-300">
-                Latest Collection
-              </div>
-            </div>
-            <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-md sm:rounded-lg p-3 sm:p-4 md:p-6 transition-colors duration-300">
-              <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[rgb(var(--fg))] mb-1 sm:mb-2 transition-colors duration-300">
-                Wildlife
-              </div>
-              <div className="text-[rgb(var(--muted))] text-xs sm:text-sm uppercase tracking-wide transition-colors duration-300">
-                Primary Focus
-              </div>
+
+              {(debouncedQuery || sortFilter !== 'default') && (
+                <div className="mt-2 text-center text-sm text-[rgb(var(--muted))] transition-colors duration-300">
+                  {debouncedQuery && (
+                    <span>
+                      {isSearching || isDebouncing ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <div className="w-4 h-4 border-2 border-[rgb(var(--muted))]/30 border-t-[rgb(var(--muted))] rounded-full animate-spin"></div>
+                          Searching...
+                        </span>
+                      ) : (
+                        `Showing ${deduplicatedArtworks.length} results`
+                      )}
+                    </span>
+                  )}
+                  {sortFilter !== 'default' && !debouncedQuery && (
+                    <span>Sorted by {sortFilter === 'most-liked' ? 'Most Liked' : 'Default'}</span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
-          
-      </div>
 
-      {active && (
-        <ModalViewer 
-          active={active} 
-          setActive={setActive} 
-          allArtworks={artworks}
-          handleImageClick={handleImageClick}
-          handleModalClose={handleModalClose}
-        />
-      )}
-      </div>
-    </main>
+          {galleryLoading && !isInitialized ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[100px] md:auto-rows-[160px] lg:auto-rows-[240px] xl:auto-rows-[320px] mb-6 grid-flow-dense">
+              {[
+                'large', 'small', 'medium', 'wide', 'small', 'large', 'small', 'medium', 'small', 'wide', 'small', 'medium'
+              ].map((size, i) => {
+                const gridClasses = size === 'large' ? 'col-span-2 row-span-2' :
+                  size === 'wide' ? 'col-span-2 row-span-1' :
+                    size === 'medium' ? 'col-span-1 row-span-2' :
+                      'col-span-1 row-span-1'
+                return (
+                  <div key={i} className={`${gridClasses} rounded-lg overflow-hidden relative border border-gray-200 dark:border-[rgb(var(--muted))]/10`}>
+                    <div className="absolute inset-0 animate-pulse bg-gray-100 dark:bg-[rgb(var(--muted))]/20" />
+                  </div>
+                )
+              })}
+            </div>
+          ) : shuffledArtworks.length === 0 ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <p className="text-[rgb(var(--muted-fg))] transition-colors duration-300">No images found in Firebase Storage</p>
+              </div>
+            </div>
+          ) : debouncedQuery && deduplicatedArtworks.length === 0 && !isSearching && !isDebouncing ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <p className="text-[rgb(var(--muted-fg))] transition-colors duration-300">No results for "{debouncedQuery}"</p>
+              </div>
+            </div>
+          ) : (isSearching || isDebouncing) ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[100px] md:auto-rows-[160px] lg:auto-rows-[240px] xl:auto-rows-[320px] mb-6 grid-flow-dense">
+              {[
+                'large', 'small', 'medium', 'wide', 'small', 'large', 'small', 'medium', 'small', 'wide', 'small', 'medium'
+              ].map((size, i) => {
+                const gridClasses = size === 'large' ? 'col-span-2 row-span-2' :
+                  size === 'wide' ? 'col-span-2 row-span-1' :
+                    size === 'medium' ? 'col-span-1 row-span-2' :
+                      'col-span-1 row-span-1'
+                return (
+                  <div key={i} className={`${gridClasses} rounded-lg overflow-hidden relative border border-gray-200 dark:border-[rgb(var(--muted))]/10`}>
+                    <div className="absolute inset-0 animate-pulse bg-gray-100 dark:bg-[rgb(var(--muted))]/20" />
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-3 auto-rows-[120px] sm:auto-rows-[100px] md:auto-rows-[160px] lg:auto-rows-[240px] xl:auto-rows-[320px] mb-6 grid-flow-dense animate-fadeIn">
+              {artworksWithSkeletons.map((art, i) => {
+                // Handle skeleton placeholders
+                if (art.isSkeleton) {
+                  const size = getBentoSize(art, i)
+                  const gridClasses = size === 'large' ? 'col-span-2 row-span-2' :
+                    size === 'wide' ? 'col-span-2 row-span-1' :
+                      size === 'medium' ? 'col-span-1 row-span-2' :
+                        'col-span-1 row-span-1'
+                  return (
+                    <div key={`skeleton-${i}`} className={`${gridClasses} rounded-lg overflow-hidden relative border border-gray-200 dark:border-[rgb(var(--muted))]/10`}>
+                      <div className="absolute inset-0 animate-pulse bg-gray-100 dark:bg-[rgb(var(--muted))]/20" />
+                    </div>
+                  )
+                }
+
+                const size = getBentoSize(art, i)
+
+                const gridClasses = size === 'large' ? 'col-span-2 row-span-2' :
+                  size === 'wide' ? 'col-span-2 row-span-1' :
+                    size === 'medium' ? 'col-span-1 row-span-2' :
+                      'col-span-1 row-span-1'
+
+                // Defensive: skip items without an image
+                const imageSrc = typeof art.src === 'string' ? art.src : null
+
+                if (!imageSrc) {
+                  return null
+                }
+
+
+                // Create a stable key that doesn't change - include series info for uniqueness
+                const uniqueKey = `${art.id || 'unknown'}-${art.seriesIndex || i}-${i}`.replace(/[^a-zA-Z0-9-_]/g, '-');
+
+                // Determine overlay height based on image orientation
+                const dimensions = imageDimensions[art.id]
+                const aspectRatio = dimensions?.aspectRatio || 1
+                // Portrait images (< 1) get 15% height, landscape images (>= 1) get very small 5% height
+                const overlayHeight = aspectRatio < 1 ? 'h-[15%]' : 'h-[5%]'
+                const isLandscape = aspectRatio >= 1
+
+                return (
+                  <figure
+                    key={uniqueKey}
+                    className={`group cursor-pointer ${gridClasses} rounded-xl overflow-hidden relative`}
+                    onClick={() => {
+                      // Track image view in analytics
+                      if (analytics) {
+                        logEvent(analytics, 'view_item', {
+                          item_id: art.id,
+                          item_name: art.title,
+                          item_category: 'photography',
+                          item_variant: art.isSeries ? 'series' : 'single'
+                        })
+                      }
+
+                      // Track image view with custom analytics
+                      trackImageView({
+                        id: art.id,
+                        title: art.title,
+                        path: art.src,
+                        isFeatured: false
+                      }, {
+                        isSeries: art.isSeries,
+                        seriesIndex: i,
+                        galleryType: 'main'
+                      });
+
+                      // If this is a separated series item, use the complete series data
+                      if (art.completeSeriesData) {
+                        // Use the complete series data directly with URL routing
+                        handleImageClick(art.completeSeriesData, art.seriesIndex - 1);
+                      } else {
+                        // For single images, open normally with URL routing
+                        handleImageClick(art, 0);
+                      }
+                    }}
+                  >
+                    <div className="w-full h-full relative overflow-hidden bg-gray-900">
+                      <img
+                        src={imageSrc}
+                        alt={art.title || ''}
+                        className="w-full h-full object-cover"
+                        style={{
+                          opacity: loadedImages.has(art.id) ? 1 : 0,
+                          transition: 'opacity 0.7s ease-in-out'
+                        }}
+                        onLoad={(e) => {
+                          const { naturalWidth, naturalHeight } = e.target
+                          handleImageLoad(art.id, naturalWidth, naturalHeight)
+                          // Small delay to ensure smooth fade-in
+                          setTimeout(() => {
+                            setLoadedImages(prev => new Set([...prev, art.id]))
+                          }, 50)
+                        }}
+                      />
+
+
+                      {/* Elegant Gradient Overlay - Always visible on mobile, hover on desktop */}
+                      <div className={`absolute inset-0 bg-gradient-to-t ${isLandscape ? 'from-black/60 via-black/5' : 'from-black/90 via-black/20'} to-transparent transition-opacity duration-500 opacity-100 md:opacity-0 md:group-hover:opacity-100`} />
+
+                      {/* Content Overlay - Smaller for landscape, normal for portrait on mobile */}
+                      <div className={`absolute bottom-0 left-0 right-0 ${overlayHeight} md:h-auto ${isLandscape ? 'px-2 py-1' : 'p-1.5'} md:p-4 transition-all duration-500 ease-out transform translate-y-0 opacity-100 md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 flex items-end`}>
+                        <div className={`flex flex-col gap-0 md:gap-1 w-full ${isLandscape ? 'px-1' : ''}`}>
+                          <span className={`${isLandscape ? 'text-[5px]' : 'text-[7px]'} md:text-[10px] font-mono tracking-widest text-white/60 uppercase`}>
+                            {String(i + 1).padStart(2, '0')} — {art.isSeries ? 'Series' : 'Single'}
+                          </span>
+                          <h3 className={`text-white font-medium ${isLandscape ? 'text-[8px]' : 'text-[10px]'} md:text-sm lg:text-base leading-tight tracking-wide drop-shadow-md line-clamp-1 md:line-clamp-2`}>
+                            {art.title}
+                          </h3>
+                          {art.scientificName && (
+                            <p className={`text-white/70 ${isLandscape ? 'text-[7px]' : 'text-[9px]'} md:text-xs italic font-serif mt-0 md:mt-0.5 tracking-wide line-clamp-1`}>
+                              {art.scientificName}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </figure>
+                )
+              })}
+            </div>
+          )}
+
+          {/* End of gallery indicator */}
+          {!hasMore && deduplicatedArtworks.length > 0 && !loadingMore && (
+            <div className="flex justify-center items-center py-8">
+              <span className="text-[rgb(var(--muted-fg))] text-sm transition-colors duration-300">You've reached the end of the gallery</span>
+            </div>
+          )}
+
+          {/* Gallery Statistics */}
+          <div className="text-center mb-8 sm:mb-12" data-gallery-stats>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8 mb-6 sm:mb-8">
+              <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-md sm:rounded-lg p-3 sm:p-4 md:p-6 transition-colors duration-300">
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[rgb(var(--fg))] mb-1 sm:mb-2 transition-colors duration-300">
+                  {deduplicatedArtworks.length}
+                </div>
+                <div className="text-[rgb(var(--muted))] text-xs sm:text-sm uppercase tracking-wide transition-colors duration-300">
+                  Total Photographs
+                </div>
+              </div>
+              <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-md sm:rounded-lg p-3 sm:p-4 md:p-6 transition-colors duration-300">
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[rgb(var(--fg))] mb-1 sm:mb-2 transition-colors duration-300">
+                  2024
+                </div>
+                <div className="text-[rgb(var(--muted))] text-xs sm:text-sm uppercase tracking-wide transition-colors duration-300">
+                  Latest Collection
+                </div>
+              </div>
+              <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-md sm:rounded-lg p-3 sm:p-4 md:p-6 transition-colors duration-300">
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[rgb(var(--fg))] mb-1 sm:mb-2 transition-colors duration-300">
+                  Wildlife
+                </div>
+                <div className="text-[rgb(var(--muted))] text-xs sm:text-sm uppercase tracking-wide transition-colors duration-300">
+                  Primary Focus
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {active && (
+            <ModalViewer
+              active={active}
+              setActive={setActive}
+              allArtworks={artworks}
+              handleImageClick={handleImageClick}
+              handleModalClose={handleModalClose}
+            />
+          )}
+        </div>
+      </main>
     </>
   )
 }
@@ -1336,19 +1336,19 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
 
   const activeRef = useRef(active)
   useEffect(() => { activeRef.current = active }, [active])
-  
+
   // Smart navigation functions - navigate within series or between artworks
   const navigateLeft = () => {
     const currentActive = activeRef.current
     if (!currentActive?.art) return
-    
+
     // If it's a series and we're not on the first image, navigate within the series
     if (currentActive.art.isSeries && currentActive.idx > 0) {
       const newIdx = currentActive.idx - 1;
       handleImageClick(currentActive.art, newIdx);
       return
     }
-    
+
     // Otherwise, navigate to previous artwork
     const currentIndex = allArtworks.findIndex(art => art.id === currentActive.art.id)
     if (currentIndex > 0) {
@@ -1358,18 +1358,18 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
       handleImageClick(prevArt, lastIdx);
     }
   }
-  
+
   const navigateRight = () => {
     const currentActive = activeRef.current
     if (!currentActive?.art) return
-    
+
     // If it's a series and we're not on the last image, navigate within the series
     if (currentActive.art.isSeries && currentActive.idx < (currentActive.art.images?.length || 1) - 1) {
       const newIdx = currentActive.idx + 1;
       handleImageClick(currentActive.art, newIdx);
       return
     }
-    
+
     // Otherwise, navigate to next artwork
     const currentIndex = allArtworks.findIndex(art => art.id === currentActive.art.id)
     if (currentIndex < allArtworks.length - 1) {
@@ -1377,7 +1377,7 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
       handleImageClick(nextArt, 0);
     }
   }
-  
+
   // Helper functions to determine navigation context
   const getLeftNavigationInfo = () => {
     const currentActive = activeRef.current
@@ -1387,21 +1387,21 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
     if (currentActive.art.isSeries && currentActive.idx > 0) {
       return { type: 'image', label: 'Previous Image', disabled: false }
     }
-    
+
     // Check if we can go to previous artwork
     const currentIndex = allArtworks.findIndex(art => art.id === currentActive.art.id)
     if (currentIndex > 0) {
       const prevArt = allArtworks[currentIndex - 1]
-      return { 
-        type: 'artwork', 
-        label: prevArt.isSeries ? 'Previous Series' : 'Previous', 
-        disabled: false 
+      return {
+        type: 'artwork',
+        label: prevArt.isSeries ? 'Previous Series' : 'Previous',
+        disabled: false
       }
     } else {
       return { type: 'artwork', label: 'Previous', disabled: true }
     }
   }
-  
+
   const getRightNavigationInfo = () => {
     const currentActive = activeRef.current
     if (!currentActive?.art) return { type: 'artwork', label: 'Next', disabled: true }
@@ -1410,27 +1410,27 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
     if (currentActive.art.isSeries && currentActive.idx < (currentActive.art.images?.length || 1) - 1) {
       return { type: 'image', label: 'Next Image', disabled: false }
     }
-    
+
     // Check if we can go to next artwork
     const currentIndex = allArtworks.findIndex(art => art.id === currentActive.art.id)
     if (currentIndex < allArtworks.length - 1) {
       const nextArt = allArtworks[currentIndex + 1]
-      return { 
-        type: 'artwork', 
-        label: nextArt.isSeries ? 'Next Series' : 'Next', 
-        disabled: false 
+      return {
+        type: 'artwork',
+        label: nextArt.isSeries ? 'Next Series' : 'Next',
+        disabled: false
       }
     } else {
       return { type: 'artwork', label: 'Next', disabled: true }
     }
   }
-  
+
   useEffect(() => {
     // Only lock body scroll, DO NOT mess with modal container scroll or reset it
     const prevOverflow = document.body.style.overflow
-    
+
     document.body.style.overflow = 'hidden'
-    
+
     // Focus the modal container to ensure keyboard events are captured
     setTimeout(() => {
       const modalContainer = document.querySelector('[role="dialog"]')
@@ -1438,29 +1438,29 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
         modalContainer.focus()
       }
     }, 100)
-    
+
     // Keyboard navigation
     const onKey = (e) => {
       const a = activeRef.current
-      
+
       // Only handle keys when modal is open
       if (!a || !a.art) {
         return
       }
-      
+
       if (e.key === 'Escape') {
         setActive(null)
         // Explicitly call handleModalClose to restore state properly
         handleModalClose()
         return
       }
-      
+
       // Prevent default behavior for arrow keys
       if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault()
         e.stopPropagation()
       }
-      
+
       if (e.key === 'ArrowLeft') {
         navigateLeft()
       }
@@ -1468,34 +1468,34 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
         navigateRight()
       }
     }
-    
+
     // Add a global keyboard handler that works regardless of focus
     const globalKeyHandler = (e) => {
       onKey(e)
     }
-    
+
     // Add to both document and window with capture phase
     document.addEventListener('keydown', globalKeyHandler, { capture: true })
     window.addEventListener('keydown', globalKeyHandler, { capture: true })
-    
+
     // Touch gesture handling for mobile
     let touchStartX = 0
     let touchStartY = 0
-    
+
     const handleTouchStart = (e) => {
       touchStartX = e.touches[0].clientX
       touchStartY = e.touches[0].clientY
     }
-    
+
     const handleTouchEnd = (e) => {
       const a = activeRef.current
       if (!a?.art) return
-      
+
       const touchEndX = e.changedTouches[0].clientX
       const touchEndY = e.changedTouches[0].clientY
       const deltaX = touchStartX - touchEndX
       const deltaY = touchStartY - touchEndY
-      
+
       // Handle horizontal swipes for navigation
       if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
         if (deltaX > 0) {
@@ -1507,12 +1507,12 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
         }
       }
     }
-    
+
     // Only use the global key handlers, remove duplicate listeners
     window.addEventListener('touchstart', handleTouchStart, { passive: true })
     window.addEventListener('touchend', handleTouchEnd, { passive: true })
-    
-    return () => { 
+
+    return () => {
       document.body.style.overflow = prevOverflow
       // Remove global key handlers
       document.removeEventListener('keydown', globalKeyHandler, { capture: true })
@@ -1528,20 +1528,20 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
   const viewerRef = useRef(null)
   const imageRef = useRef(null)
   const [isFs, setIsFs] = useState(false)
-  
+
   useEffect(() => {
     const onFsChange = () => setIsFs(!!document.fullscreenElement)
     document.addEventListener('fullscreenchange', onFsChange)
     return () => document.removeEventListener('fullscreenchange', onFsChange)
   }, [])
-  
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       // Create a dedicated fullscreen container for just the image
       const fullscreenContainer = document.createElement('div')
       fullscreenContainer.className = 'fixed inset-0 bg-black z-50 flex items-center justify-center'
       fullscreenContainer.style.backgroundColor = 'rgb(var(--bg))'
-      
+
       // Clone the current image
       const currentImage = imageRef.current
       if (currentImage && currentImageSrc) {
@@ -1553,7 +1553,7 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
         fullscreenImage.style.objectFit = 'contain'
         fullscreenImage.style.maxWidth = '90vw'
         fullscreenImage.style.maxHeight = '90vh'
-        
+
         // Add close button
         const closeButton = document.createElement('button')
         closeButton.innerHTML = `
@@ -1564,7 +1564,7 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
         `
         closeButton.className = 'absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-all duration-200 backdrop-blur-sm'
         closeButton.onclick = exitFullscreen
-        
+
         // Add image info overlay
         const infoOverlay = document.createElement('div')
         infoOverlay.className = 'absolute bottom-4 left-4 right-4 text-center'
@@ -1574,11 +1574,11 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
             ${hasMultipleImages ? `<div class="text-xs opacity-80 mt-1">Image ${active.idx + 1} of ${active.art.images?.length || 0}</div>` : ''}
           </div>
         `
-        
+
         fullscreenContainer.appendChild(fullscreenImage)
         fullscreenContainer.appendChild(closeButton)
         fullscreenContainer.appendChild(infoOverlay)
-        
+
         // Add keyboard navigation for fullscreen
         const handleKeyDown = (e) => {
           if (e.key === 'Escape') exitFullscreen()
@@ -1593,20 +1593,20 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
             }
           }
         }
-        
+
         fullscreenContainer.addEventListener('keydown', handleKeyDown)
         fullscreenContainer.setAttribute('tabindex', '0')
         fullscreenContainer.focus()
-        
+
         // Store references for cleanup
         fullscreenContainer._handleKeyDown = handleKeyDown
         fullscreenContainer._closeButton = closeButton
-        
+
         document.body.appendChild(fullscreenContainer)
-        
+
         // Make it fullscreen
         fullscreenContainer.requestFullscreen?.() || fullscreenContainer.webkitRequestFullscreen?.()
-        
+
         // Store reference for exit
         window._fullscreenContainer = fullscreenContainer
       }
@@ -1614,7 +1614,7 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
       exitFullscreen()
     }
   }
-  
+
   const exitFullscreen = () => {
     if (window._fullscreenContainer) {
       window._fullscreenContainer.remove()
@@ -1635,9 +1635,9 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
         },
         body: JSON.stringify({ imagePath: art.path || art.id })
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         // Track like in analytics
         if (analytics) {
@@ -1648,12 +1648,12 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
             item_variant: art.isSeries ? 'series' : 'single'
           })
         }
-        
+
         // Update the likes count - handle both series and single images
         setActive(prev => {
           if (prev.art.isSeries && prev.art.images && prev.art.images.length > 0) {
             // For series, update the specific image's likes
-            const updatedImages = prev.art.images.map((image, index) => 
+            const updatedImages = prev.art.images.map((image, index) =>
               index === prev.idx ? { ...image, likes: result.newLikesCount } : image
             );
             return {
@@ -1686,7 +1686,7 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
   // Get the current image data (for series) or artwork data (for single images)
   const getCurrentImageData = () => {
     if (!active?.art) return null
-    
+
     // If it's a series, get the current image from the series array
     if (active.art.isSeries && active.art.images && active.art.images.length > 0) {
       const currentImage = active.art.images[active.idx]
@@ -1698,7 +1698,7 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
         scientificName: active.art.scientificName
       }
     }
-    
+
     // Otherwise, use the artwork data
     return active.art
   }
@@ -1740,30 +1740,30 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
   return (
     <>
       {/* Cinematic Backdrop - Darker in dark mode, slightly lighter in light mode for better contrast */}
-      <div 
-        className="fixed inset-0 z-[90] bg-black/85 dark:bg-black/95 backdrop-blur-xl transition-all duration-500" 
-        onClick={handleModalClose} 
+      <div
+        className="fixed inset-0 z-[90] bg-black/85 dark:bg-black/95 backdrop-blur-xl transition-all duration-500"
+        onClick={handleModalClose}
       />
-      
+
       {/* Main modal container */}
-      <div 
+      <div
         className="fixed inset-0 z-[100] flex items-center justify-center lg:overflow-hidden overflow-y-auto"
-        role="dialog" 
+        role="dialog"
         aria-modal="true"
         tabIndex={-1}
         onKeyDown={(e) => e.stopPropagation()}
         style={{ outline: 'none' }}
       >
         <div ref={containerRef} className="w-full h-full pointer-events-auto flex flex-col lg:flex-row">
-          
+
           <div className="fixed inset-0 bg-gradient-to-b from-black/40 dark:from-black/60 to-transparent pointer-events-none lg:absolute" />
-          
+
           {/* Main Image Area - Cinematic & Centered - Theme-aware background */}
           <div className="relative flex-[2] lg:flex-1 h-[60vh] md:h-[70vh] lg:h-full flex flex-col justify-center overflow-hidden bg-black/80 dark:bg-black/95">
             {/* Minimal Header Overlay */}
             <div className="absolute top-0 left-0 right-0 z-30 p-4 sm:p-6 flex justify-between items-start pointer-events-none">
               <div className="pointer-events-auto flex items-center gap-4">
-                 <button 
+                <button
                   onClick={handleModalClose}
                   className="group flex items-center gap-2 text-white/90 dark:text-white/70 hover:text-white transition-colors"
                 >
@@ -1775,7 +1775,7 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
               </div>
 
               <div className="pointer-events-auto flex gap-3">
-                <button 
+                <button
                   onClick={toggleFullscreen}
                   className="p-3 rounded-full bg-white/20 dark:bg-white/10 backdrop-blur-md text-white/90 dark:text-white/70 hover:text-white hover:bg-white/30 dark:hover:bg-white/20 transition-all"
                   title="Toggle Fullscreen"
@@ -1822,9 +1822,8 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
                 <button
                   onClick={navigateLeft}
                   disabled={getLeftNavigationInfo().disabled}
-                  className={`pointer-events-auto p-4 rounded-full transition-all duration-300 group ${
-                    getLeftNavigationInfo().disabled ? 'opacity-0 cursor-not-allowed' : 'opacity-50 hover:opacity-100 hover:bg-white/10 backdrop-blur-sm'
-                  }`}
+                  className={`pointer-events-auto p-4 rounded-full transition-all duration-300 group ${getLeftNavigationInfo().disabled ? 'opacity-0 cursor-not-allowed' : 'opacity-50 hover:opacity-100 hover:bg-white/10 backdrop-blur-sm'
+                    }`}
                 >
                   <ChevronLeft size={32} className="text-white drop-shadow-lg group-hover:-translate-x-1 transition-transform" />
                 </button>
@@ -1832,9 +1831,8 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
                 <button
                   onClick={navigateRight}
                   disabled={getRightNavigationInfo().disabled}
-                  className={`pointer-events-auto p-4 rounded-full transition-all duration-300 group ${
-                    getRightNavigationInfo().disabled ? 'opacity-0 cursor-not-allowed' : 'opacity-50 hover:opacity-100 hover:bg-white/10 backdrop-blur-sm'
-                  }`}
+                  className={`pointer-events-auto p-4 rounded-full transition-all duration-300 group ${getRightNavigationInfo().disabled ? 'opacity-0 cursor-not-allowed' : 'opacity-50 hover:opacity-100 hover:bg-white/10 backdrop-blur-sm'
+                    }`}
                 >
                   <ChevronRight size={32} className="text-white drop-shadow-lg group-hover:translate-x-1 transition-transform" />
                 </button>
@@ -1845,7 +1843,7 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
           {/* Sidebar Info Panel (Desktop & Mobile) */}
           <div className="flex-none lg:flex w-full lg:w-[400px] h-auto lg:h-full bg-[rgb(var(--bg))] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-white/5 flex-col shadow-2xl relative z-20">
             <div className="flex-1 lg:overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
-              
+
               {/* Top Meta */}
               <div className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8">
                 <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full border border-[rgb(var(--primary))]/40 dark:border-[rgb(var(--primary))]/30 text-[rgb(var(--primary))] text-[8px] sm:text-[10px] uppercase tracking-[0.2em] font-bold">
@@ -1891,7 +1889,7 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
                   <p className="text-xs sm:text-sm lg:text-base text-[rgb(var(--fg))] font-medium">{currentImageData?.timeTaken || 'Unknown Date'}</p>
                 </div>
                 {currentImageData?.history && (
-                   <div>
+                  <div>
                     <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--fg))] dark:text-[rgb(var(--muted))] opacity-70 dark:opacity-100 mb-1 sm:mb-2 font-semibold">Story</h4>
                     <p className="text-xs sm:text-sm text-[rgb(var(--fg))] leading-relaxed opacity-90 dark:opacity-80">{currentImageData.history}</p>
                   </div>

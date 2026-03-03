@@ -1,6 +1,6 @@
 'use client'
 
-import Services from '@/src/page-components/Services'
+import Services from '@/app/page-components/Services'
 
 export default function ServicesClient() {
   return <Services />

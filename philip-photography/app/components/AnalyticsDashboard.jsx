@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  Eye, 
-  Users, 
-  MousePointer, 
-  TrendingUp, 
+import {
+  BarChart3,
+  Eye,
+  Users,
+  MousePointer,
+  TrendingUp,
   TrendingDown,
   RefreshCw,
   Calendar,
@@ -18,12 +18,12 @@ import {
   Trash2,
   AlertTriangle
 } from 'lucide-react';
-import { 
-  getAnalyticsDataCached, 
-  getImageStatsCached, 
+import {
+  getAnalyticsDataCached,
+  getImageStatsCached,
   getAnalyticsSummaryCached,
-  clearAnalyticsCache 
-} from '../firebase/analytics-api';
+  clearAnalyticsCache
+} from '@/src/firebase/analytics-api';
 
 export default function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
@@ -88,7 +88,7 @@ export default function AnalyticsDashboard() {
   const handleClearAnalytics = async () => {
     try {
       setClearing(true);
-      
+
       const response = await fetch(
         'https://asia-southeast1-kuyajp-portfolio.cloudfunctions.net/clearAnalyticsData',
         {
@@ -149,7 +149,7 @@ export default function AnalyticsDashboard() {
     return (
       <div className="text-center py-8">
         <div className="text-red-500 mb-4">Error loading analytics: {error}</div>
-        <button 
+        <button
           onClick={handleRefresh}
           className="px-4 py-2 bg-[rgb(var(--primary))] text-white rounded-lg hover:opacity-90 transition-opacity"
         >
@@ -170,7 +170,7 @@ export default function AnalyticsDashboard() {
           <h2 className="text-2xl font-bold text-[rgb(var(--fg))]">Analytics Dashboard</h2>
           <p className="text-[rgb(var(--fg-muted))]">Monitor your portfolio performance</p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <select
             value={timeRange}
@@ -183,7 +183,7 @@ export default function AnalyticsDashboard() {
               </option>
             ))}
           </select>
-          
+
           <button
             onClick={handleRefresh}
             className="p-2 border border-[rgb(var(--border))] rounded-lg bg-[rgb(var(--bg))] text-[rgb(var(--fg))] hover:bg-[rgb(var(--bg-muted))] transition-colors"
@@ -213,11 +213,11 @@ export default function AnalyticsDashboard() {
               </div>
               <h3 className="text-lg font-bold text-[rgb(var(--fg))]">Clear Analytics Data?</h3>
             </div>
-            
+
             <p className="text-[rgb(var(--fg-muted))] mb-6">
               This will permanently delete all analytics data including page views, image views, interactions, and statistics. This action cannot be undone.
             </p>
-            
+
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowClearConfirm(false)}

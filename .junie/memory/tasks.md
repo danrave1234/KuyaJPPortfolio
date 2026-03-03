@@ -148,3 +148,23 @@
     "NEW INSTRUCTION": "WHEN Next.js uses static export and sitemap rewrite exists THEN remove App Router sitemap and keep only Cloud Function"
 }
 
+[2026-03-02 00:12] - Updated by Junie - Trajectory analysis
+{
+    "PLAN QUALITY": "suboptimal",
+    "REDUNDANT STEPS": "misuse file read, duplicate file listing",
+    "MISSING STEPS": "push branch",
+    "BOTTLENECK": "The staging branch was committed locally but never pushed to origin.",
+    "PROJECT NOTE": "Repo mixes Next.js app/ with legacy src/; consider completing migration.",
+    "NEW INSTRUCTION": "WHEN local branch has no upstream THEN push to origin and set upstream"
+}
+
+[2026-03-02 14:20] - Updated by Junie - Trajectory analysis
+{
+    "PLAN QUALITY": "near-optimal",
+    "REDUNDANT STEPS": "review error memory",
+    "MISSING STEPS": "reproduce error, run app, verify console, verify images load",
+    "BOTTLENECK": "No runtime verification to confirm warnings replaced errors and fallback speed is acceptable.",
+    "PROJECT NOTE": "If Cloud Functions are intended, ensure asia-southeast1 function is deployed and CORS configured.",
+    "NEW INSTRUCTION": "WHEN backend call path or fallbacks are modified THEN run app and verify console and images"
+}
+

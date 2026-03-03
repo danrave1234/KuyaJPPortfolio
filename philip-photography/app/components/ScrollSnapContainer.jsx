@@ -10,7 +10,7 @@ export default function ScrollSnapContainer({ children, onActiveSectionChange, o
     // Prevent body scrolling when scroll snapping container is active
     const originalOverflow = document.body.style.overflow
     const originalHtmlOverflow = document.documentElement.style.overflow
-    
+
     document.body.style.overflow = 'hidden'
     document.documentElement.style.overflow = 'hidden'
 
@@ -43,7 +43,7 @@ export default function ScrollSnapContainer({ children, onActiveSectionChange, o
     const observer = new IntersectionObserver(observerCallback, observerOptions)
     const sections = document.querySelectorAll('section[id]')
     sections.forEach((section) => observer.observe(section))
-    
+
     return () => observer.disconnect()
   }, [onActiveSectionChange])
 
@@ -56,7 +56,7 @@ export default function ScrollSnapContainer({ children, onActiveSectionChange, o
       const scrollY = e.target.scrollTop
       window.scrollY = scrollY
       window.dispatchEvent(new Event('scroll'))
-      
+
       // Call the onScroll callback if provided
       if (onScroll) {
         onScroll(scrollY)
@@ -64,7 +64,7 @@ export default function ScrollSnapContainer({ children, onActiveSectionChange, o
     }
 
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true })
-    
+
     return () => {
       scrollContainer.removeEventListener('scroll', handleScroll)
     }
@@ -72,9 +72,9 @@ export default function ScrollSnapContainer({ children, onActiveSectionChange, o
 
   return (
     <main className="overflow-x-hidden">
-      <div 
+      <div
         ref={scrollContainerRef}
-        className="h-screen overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth"
+        className="h-dvh overflow-y-auto overflow-x-hidden snap-y snap-mandatory scroll-smooth"
       >
         {children}
       </div>
