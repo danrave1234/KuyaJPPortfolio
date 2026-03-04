@@ -215,6 +215,24 @@ function applyDocumentTheme({ theme, mode }) {
   }
 }
 
+function scrollViewportToTop() {
+  const scrollContainer = document.querySelector('.snap-y.snap-mandatory')
+
+  if (scrollContainer) {
+    scrollContainer.scrollTo({
+      top: 0,
+      behavior: 'auto',
+    })
+    return
+  }
+
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: 'auto',
+  })
+}
+
 export function ThemeProvider({ children, initialTheme = null }) {
   // Important for hydration stability:
   // - Server render cannot read `localStorage`, so it must use a deterministic default.
@@ -273,6 +291,7 @@ export function ThemeProvider({ children, initialTheme = null }) {
       localStorage.setItem(THEME_STORAGE_KEY, newTheme)
       document.cookie = `theme=${newTheme}; path=/; max-age=31536000; SameSite=Lax`
       applyDocumentTheme({ theme: newTheme, mode })
+      scrollViewportToTop()
     }
   }
 

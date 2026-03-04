@@ -1,6 +1,5 @@
 import { metadata as baseMetadata } from '../metadata'
 import AdminClient from '../components/AdminClient'
-import ProtectedRoute from '../components/ProtectedRoute'
 
 export const metadata = {
   ...baseMetadata,
@@ -13,11 +12,7 @@ export const metadata = {
 }
 
 export default function Admin() {
-  return (
-    <ProtectedRoute>
-      <AdminClient />
-    </ProtectedRoute>
-  )
+  return <AdminClient />
 }
 
 

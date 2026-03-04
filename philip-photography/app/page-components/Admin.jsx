@@ -7,6 +7,8 @@ import { uploadMultipleImages, deleteImage, getImagesFromFolder } from '@/src/fi
 import { getAdminGalleryImages, searchAdminGalleryImages, clearAdminCache, cleanupAdminCache, uploadWithProgress, deleteImageWithCache, updateImageMetadataWithCache, getAdminFeaturedImages, uploadFeaturedWithProgress, deleteFeaturedImageWithCache, clearFeaturedCache, copyBirdlifeToGallery } from '@/src/firebase/admin-api'
 import { signInUser, signOutUser } from '@/src/firebase/auth'
 import { initTheme } from '@/src/utils/theme.js'
+import { getSiteSettings, updateSiteSettings } from '@/src/firebase/api'
+import { useViewportScale } from '@/src/hooks/useViewportScale'
 import AnalyticsDashboard from '@/app/components/AnalyticsDashboard'
 import {
   Upload,
@@ -36,11 +38,15 @@ import {
   ShieldCheck,
   RefreshCw,
   MapPin,
-  Calendar
+  Calendar,
+  Mail,
+  Lock,
+  ArrowRight
 } from 'lucide-react'
 
 export default function Admin() {
   const { user, isAuthenticated, loading } = useAuth()
+  const { scale, vw } = useViewportScale()
 
   const [portalReady, setPortalReady] = useState(false)
 
@@ -63,6 +69,23 @@ export default function Admin() {
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState('')
   const [isCopying, setIsCopying] = useState(false)
+  const [siteSettings, setSiteSettings] = useState({ groupSeriesInGallery: true, galleryCacheVersion: 1 })
+  const [updatingSettings, setUpdatingSettings] = useState(false)
+
+  // Load site settings
+  useEffect(() => {
+    const loadSettings = async () => {
+      const settings = await getSiteSettings()
+      if (settings) {
+        setSiteSettings({
+          groupSeriesInGallery: settings.groupSeriesInGallery !== false,
+          galleryCacheVersion: Number(settings.galleryCacheVersion) || 1,
+          ...settings
+        })
+      }
+    }
+    loadSettings()
+  }, [])
 
   // Debug: Log message changes
   useEffect(() => {
@@ -190,6 +213,95 @@ export default function Admin() {
     }
   }
 
+  // Handle settings update
+  const handleUpdateSettings = async (newSettings) => {
+    setUpdatingSettings(true)
+    const result = await updateSiteSettings(newSettings)
+    if (result.success) {
+      setSiteSettings(newSettings)
+      setMessage('Settings updated successfully!')
+    } else {
+      setMessage(`Error updating settings: ${result.error}`)
+    }
+    setUpdatingSettings(false)
+    return result
+  }
+
+  const clearAllGalleryViewCaches = () => {
+    if (typeof window === 'undefined') return 0
+
+    const shouldClearKey = (key) => {
+      if (!key) return false
+      return key.startsWith('gallery-artwork-') || key.startsWith('gallery-search-')
+    }
+
+    let clearedCount = 0
+
+    try {
+      const localKeys = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (shouldClearKey(key)) localKeys.push(key)
+      }
+      localKeys.forEach((key) => {
+        localStorage.removeItem(key)
+        clearedCount += 1
+      })
+    } catch (error) {
+      console.error('Failed clearing gallery localStorage cache:', error)
+    }
+
+    try {
+      const sessionKeys = []
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i)
+        if (shouldClearKey(key)) sessionKeys.push(key)
+      }
+      sessionKeys.forEach((key) => {
+        sessionStorage.removeItem(key)
+        clearedCount += 1
+      })
+    } catch (error) {
+      console.error('Failed clearing gallery sessionStorage cache:', error)
+    }
+
+    return clearedCount
+  }
+
+  const handleToggleGroupSeriesSetting = async () => {
+    const nextValue = !siteSettings.groupSeriesInGallery
+    const nextGalleryCacheVersion = (Number(siteSettings.galleryCacheVersion) || 1) + 1
+
+    const clearedCount = clearAllGalleryViewCaches()
+    const result = await handleUpdateSettings({
+      ...siteSettings,
+      groupSeriesInGallery: nextValue,
+      galleryCacheVersion: nextGalleryCacheVersion
+    })
+
+    if (result?.success) {
+      setMessage(`Settings updated successfully! Cleared ${clearedCount} gallery cache entr${clearedCount === 1 ? 'y' : 'ies'}.`)
+    }
+  }
+
+  const signalGalleryCacheClear = async () => {
+    const nextGalleryCacheVersion = (Number(siteSettings.galleryCacheVersion) || 1) + 1
+    const result = await updateSiteSettings({
+      ...siteSettings,
+      galleryCacheVersion: nextGalleryCacheVersion
+    })
+
+    if (result?.success) {
+      setSiteSettings((prev) => ({
+        ...prev,
+        galleryCacheVersion: nextGalleryCacheVersion
+      }))
+      return { success: true }
+    }
+
+    return { success: false, error: result?.error || 'Failed to update gallery cache version' }
+  }
+
   // Cache management functions
   const getCacheKey = (page, searchQuery) => {
     return searchQuery.trim() ? `search_${searchQuery}_page_${page}` : `page_${page}`;
@@ -223,12 +335,13 @@ export default function Admin() {
   };
 
   // Load gallery images with comprehensive caching
-  const loadGalleryImages = async (page = 1, searchQuery = '') => {
+  const loadGalleryImages = async (page = 1, searchQuery = '', options = {}) => {
+    const { forceRefresh = false } = options;
     const themePath = `gallery/${activeTheme}`;
     const cacheKey = getCacheKey(page, searchQuery) + `-${activeTheme}`;
 
     // Check cache first
-    if (isCacheValid(cacheKey)) {
+    if (!forceRefresh && isCacheValid(cacheKey)) {
       const cachedData = getCachedData(cacheKey);
       if (cachedData) {
         setGalleryImages(cachedData.images);
@@ -538,7 +651,6 @@ export default function Admin() {
       }, uploadTitle.trim(), uploadDescription.trim(), uploadScientificName.trim(), uploadLocation.trim(), uploadTimeTaken.trim(), uploadHistory.trim())
 
       if (result.success) {
-        setMessage(`Successfully uploaded ${result.successful.length} images as "${uploadTitle}"!`)
         setFiles([])
         setUploadTitle('')
         setUploadDescription('')
@@ -550,10 +662,17 @@ export default function Admin() {
         if (modalFileInput) modalFileInput.value = ''
         // Close the modal
         setShowUploadModal(false)
+        const cacheSignalResult = await signalGalleryCacheClear()
         // Clear all caches and refresh the gallery
         clearAdminCache()
         clearPaginationCache()
-        await loadGalleryImages(1, searchQuery)
+        await loadGalleryImages(1, searchQuery, { forceRefresh: true })
+
+        if (cacheSignalResult.success) {
+          setMessage(`Successfully uploaded ${result.successful.length} images as "${uploadTitle}"! Gallery cache refresh signaled.`)
+        } else {
+          setMessage(`Successfully uploaded ${result.successful.length} images as "${uploadTitle}", but failed to signal gallery cache refresh: ${cacheSignalResult.error}`)
+        }
       } else {
         setMessage(`Upload failed: ${result.error}`)
       }
@@ -870,78 +989,144 @@ export default function Admin() {
   if (!isAuthenticated) {
     return (
       <>
-        {/* SEO handled by Next.js metadata API */}
-        <div className="min-h-screen bg-[rgb(var(--bg))] flex items-center justify-center px-6">
-          <div className="w-full max-w-sm">
+        <style dangerouslySetInnerHTML={{
+          __html: `
+          @keyframes fade-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fade-up {
+            animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          }
+        `}} />
+        <div className="min-h-screen w-full font-body relative flex items-center justify-center p-4 pt-20 sm:pt-24 overflow-hidden">
+          {/* Background Image with Overlay */}
+          <div className="absolute inset-0 z-0">
+            <img
+              src="/login-bg.png"
+              alt="Background"
+              className="w-full h-full object-cover scale-105 blur-[2px]"
+            />
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-transparent to-black/60" />
+          </div>
 
-            {/* Header */}
-            <div className="mb-10">
-              <p className="text-xs uppercase tracking-widest text-[rgb(var(--muted))] mb-3">John Philip Morada Photography</p>
-              <h1 className="text-2xl font-heading font-semibold text-[rgb(var(--fg))] leading-snug">
-                Admin Access
-              </h1>
-              <div className="mt-4 w-8 border-t-2 border-[rgb(var(--primary))]"></div>
+          <div
+            className="relative z-10 w-full max-w-md animate-fade-up px-4 py-12 flex flex-col justify-center"
+            style={{
+              zoom: vw >= 1024 ? scale : 1,
+              minHeight: '100vh'
+            }}
+          >
+            {/* Login Card */}
+            <div className="bg-white/10 dark:bg-black/20 backdrop-blur-2xl p-6 sm:p-10 rounded-[2rem] sm:rounded-[2.5rem] border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.3)] group transition-all duration-500 hover:border-white/40 mb-8 mt-auto">
+
+              {/* Header */}
+              <div className="text-center mb-6 sm:mb-10">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[rgb(var(--primary))] rounded-2xl sm:rounded-3xl mx-auto mb-4 sm:mb-6 flex items-center justify-center shadow-[0_10px_30px_rgba(var(--primary-rgb),0.5)] transform transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
+                  <ShieldCheck className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-bold font-heading text-white mb-2 tracking-tight">
+                  Admin Portal
+                </h1>
+                <p className="text-white/60 text-[10px] sm:text-sm font-medium uppercase tracking-[0.2em]">
+                  Secure Access Required
+                </p>
+                <div className="mt-4 sm:mt-6 flex justify-center">
+                  <div className="w-10 sm:w-12 h-0.5 sm:h-1 bg-[rgb(var(--primary))] rounded-full"></div>
+                </div>
+              </div>
+
+              <form onSubmit={handleLogin} className="space-y-4 sm:space-y-6">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-[9px] sm:text-[10px] uppercase tracking-widest text-white/50 font-bold ml-1">
+                    Administrator Email
+                  </label>
+                  <div className="relative group/input">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within/input:text-[rgb(var(--primary))] transition-colors duration-200">
+                      <Mail size={16} />
+                    </div>
+                    <input
+                      type="email"
+                      value={loginForm.email}
+                      onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                      className="w-full pl-11 pr-4 py-3 sm:py-4 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-[rgb(var(--primary))] text-white placeholder-white/30 text-sm transition-all duration-200"
+                      placeholder="admin@kuyajp.com"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 sm:space-y-2">
+                  <label className="text-[9px] sm:text-[10px] uppercase tracking-widest text-white/50 font-bold ml-1">
+                    Secret Credentials
+                  </label>
+                  <div className="relative group/input">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 group-focus-within/input:text-[rgb(var(--primary))] transition-colors duration-200">
+                      <Lock size={16} />
+                    </div>
+                    <input
+                      type="password"
+                      value={loginForm.password}
+                      onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                      className="w-full pl-11 pr-4 py-3 sm:py-4 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-[rgb(var(--primary))] text-white placeholder-white/30 text-sm transition-all duration-200"
+                      placeholder="••••••••"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 sm:pt-4">
+                  <button
+                    type="submit"
+                    disabled={uploading}
+                    className="group/btn relative w-full overflow-hidden bg-[rgb(var(--primary))] text-white py-3.5 sm:py-4 px-6 rounded-xl sm:rounded-2xl font-bold tracking-wide transition-all duration-300 hover:shadow-[0_10px_25px_rgba(var(--primary-rgb),0.5)] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="relative z-10 flex items-center justify-center gap-3">
+                      {uploading ? (
+                        <>
+                          <div className="w-4 h-4 sm:w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin"></div>
+                          <span className="text-sm sm:text-base">Authenticating...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-sm sm:text-base">Enter Dashboard</span>
+                          <ArrowRight size={18} className="transition-transform duration-300 group-hover/btn:translate-x-1" />
+                        </>
+                      )}
+                    </div>
+                    <div className="absolute inset-0 bg-white/20 transform translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></div>
+                  </button>
+                </div>
+              </form>
+
+              {message && (
+                <div className={`mt-6 sm:mt-8 p-3 sm:p-4 rounded-xl text-center text-[10px] sm:text-xs font-medium border animate-in fade-in slide-in-from-top-2 duration-300 ${typeof message === 'string' && (message.includes('Success') || message.includes('successfully'))
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                  : 'bg-red-500/20 text-red-300 border-red-500/30'
+                  }`}>
+                  {typeof message === 'string' ? message : JSON.stringify(message)}
+                </div>
+              )}
+
+              <div className="mt-6 sm:mt-10 text-center">
+                <a
+                  href="/"
+                  className="text-white/40 hover:text-white text-[9px] sm:text-[10px] uppercase tracking-widest transition-colors duration-200"
+                >
+                  Return to Public Gallery
+                </a>
+              </div>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div>
-                <label className="block text-xs uppercase tracking-wider text-[rgb(var(--muted))] mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={loginForm.email}
-                  onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                  className="w-full px-0 py-2 bg-transparent border-b border-[rgb(var(--muted))]/40 focus:outline-none focus:border-[rgb(var(--primary))] text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))]/50 text-sm transition-colors duration-150"
-                  placeholder="your@email.com"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs uppercase tracking-wider text-[rgb(var(--muted))] mb-2">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={loginForm.password}
-                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                  className="w-full px-0 py-2 bg-transparent border-b border-[rgb(var(--muted))]/40 focus:outline-none focus:border-[rgb(var(--primary))] text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))]/50 text-sm transition-colors duration-150"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="w-full bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/85 disabled:opacity-50 text-white py-2.5 px-6 text-sm font-medium tracking-wide transition-colors duration-150 disabled:cursor-not-allowed"
-                >
-                  {uploading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <div className="w-3.5 h-3.5 border border-white/40 border-t-white rounded-full animate-spin"></div>
-                      Signing in…
-                    </span>
-                  ) : (
-                    'Sign In'
-                  )}
-                </button>
-              </div>
-            </form>
-
-            {message && (
-              <p className={`mt-6 text-xs ${typeof message === 'string' && message.includes('Success')
-                ? 'text-emerald-600 dark:text-emerald-400'
-                : 'text-red-500 dark:text-red-400'
-                }`}>
-                {typeof message === 'string' ? message : JSON.stringify(message)}
-              </p>
-            )}
+            {/* Quote/Footer */}
+            <p className="mb-4 sm:mb-8 text-center text-white/30 text-[9px] sm:text-[10px] uppercase tracking-[0.3em] font-medium mt-auto">
+              John Philip Morada Photography © {new Date().getFullYear()}
+            </p>
           </div>
         </div>
-      </>
-    )
+    </>
+  );
   }
 
   // Navigation items
@@ -1357,6 +1542,49 @@ export default function Admin() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Site Preferences */}
+                  <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl rounded-2xl border border-[rgb(var(--muted))]/20 shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[rgb(var(--primary))]/10 rounded-xl flex items-center justify-center">
+                          <Settings size={20} className="text-[rgb(var(--primary))]" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold font-heading text-[rgb(var(--fg))]">Site Preferences</h3>
+                          <p className="text-xs text-[rgb(var(--muted))]">Configure how your content is displayed</p>
+                        </div>
+                      </div>
+                      {updatingSettings && (
+                        <div className="flex items-center gap-2 text-[rgb(var(--primary))] text-xs font-medium animate-pulse">
+                          <RefreshCw size={12} className="animate-spin" />
+                          Saving...
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-[rgb(var(--muted))]/5 border border-[rgb(var(--muted))]/10 hover:border-[rgb(var(--primary))]/20 transition-all duration-200">
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-[rgb(var(--fg))]">Group Photos by Series</p>
+                          <p className="text-xs text-[rgb(var(--muted))] max-w-[250px]">
+                            Automatically group photos with the same title into a single gallery card.
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleToggleGroupSeriesSetting}
+                          disabled={updatingSettings}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${siteSettings.groupSeriesInGallery ? 'bg-[rgb(var(--primary))]' : 'bg-[rgb(var(--muted))]/30'
+                            }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${siteSettings.groupSeriesInGallery ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -1373,6 +1601,18 @@ export default function Admin() {
                         <p className="text-[rgb(var(--muted))] text-sm">Upload, curate, and bulk edit your photo collection</p>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                          onClick={handleToggleGroupSeriesSetting}
+                          disabled={updatingSettings}
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold border transition-all duration-200 ${siteSettings.groupSeriesInGallery
+                            ? 'bg-[rgb(var(--primary))]/10 text-[rgb(var(--primary))] border-[rgb(var(--primary))]/30'
+                            : 'bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))] border-[rgb(var(--muted))]/30'
+                            } ${updatingSettings ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.02]'}`}
+                          title="Toggle grouped series cards in admin and public gallery"
+                        >
+                          <Grid3X3 size={14} />
+                          {siteSettings.groupSeriesInGallery ? 'Grouped series view' : 'Individual photo view'}
+                        </button>
                         <span className="inline-flex items-center gap-2 bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))] px-3 py-1.5 rounded-full text-sm font-semibold">
                           <ImageIcon size={16} className="text-[rgb(var(--primary))]" />
                           {galleryImages.length} images
@@ -1592,346 +1832,349 @@ export default function Admin() {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                        {galleryImages.map((image, index) => (
-                          <div
-                            key={index}
-                            className={`relative group rounded-2xl overflow-hidden border-2 transition-all duration-300 cursor-pointer ${selectedImages.has(image.path)
-                              ? 'border-blue-500 ring-4 ring-blue-200 shadow-xl scale-105'
-                              : 'border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-xl'
-                              }`}
-                            onClick={() => toggleImageSelection(image.path)}
-                          >
-                            <div className="relative aspect-video bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center overflow-hidden">
-                              <img
-                                src={image.src}
-                                alt={image.title}
-                                className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
-                              />
-                            </div>
+                      {(() => {
+                        const displayData = siteSettings.groupSeriesInGallery
+                          ? Object.entries(groupImagesBySeries(galleryImages)).map(([key, images]) => ({
+                            id: key,
+                            isGroup: !key.startsWith('individual_'),
+                            images,
+                            mainImage: images[0],
+                            title: key.startsWith('individual_') ? (images[0].title || images[0].name) : key,
+                            count: images.length
+                          }))
+                          : galleryImages.map(img => ({
+                            id: img.path,
+                            isGroup: false,
+                            images: [img],
+                            mainImage: img,
+                            title: img.title || img.name,
+                            count: 1
+                          }));
 
-                            {/* Series/featured badge */}
-                            {(() => {
-                              const fileName = image.name.replace(/\.[^/.]+$/, "");
-                              const seriesMatch = fileName.match(/^(.+?)\.(\d+)$/);
+                        return (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                            {displayData.map((item) => {
+                              const { mainImage, title, isGroup, count, images } = item;
+                              const isSelected = isGroup
+                                ? images.every(img => selectedImages.has(img.path))
+                                : selectedImages.has(mainImage.path);
+
                               return (
-                                <div className="absolute top-3 left-3 flex gap-2">
-                                  {seriesMatch && (
-                                    <span className="px-2 py-1 rounded-full text-xs font-semibold bg-black/60 text-white border border-white/10">
-                                      Series · {seriesMatch[1]}
-                                    </span>
-                                  )}
-                                  {image.isFeatured && (
-                                    <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[rgb(var(--primary))] text-white border border-white/10">
-                                      Featured
-                                    </span>
-                                  )}
+                                <div
+                                  key={item.id}
+                                  className={`relative group rounded-2xl overflow-hidden border-2 transition-all duration-300 cursor-pointer ${isSelected
+                                    ? 'border-blue-500 ring-4 ring-blue-200 shadow-xl scale-105'
+                                    : 'border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-xl'
+                                    }`}
+                                  onClick={() => {
+                                    if (isGroup) {
+                                      const allInGroupSelected = images.every(img => selectedImages.has(img.path));
+                                      const newSelected = new Set(selectedImages);
+                                      images.forEach(img => {
+                                        if (allInGroupSelected) newSelected.delete(img.path);
+                                        else newSelected.add(img.path);
+                                      });
+                                      setSelectedImages(newSelected);
+                                    } else {
+                                      toggleImageSelection(mainImage.path);
+                                    }
+                                  }}
+                                >
+                                  <div className="relative aspect-video bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center overflow-hidden">
+                                    <img
+                                      src={mainImage.src}
+                                      alt={title}
+                                      className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                                    />
+                                    {isGroup && (
+                                      <div className="absolute top-3 right-3">
+                                        <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold text-black shadow-sm">
+                                          {count} Photos
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Featured badge */}
+                                  <div className="absolute top-3 left-3 flex gap-2">
+                                    {!isGroup && mainImage.isFeatured && (
+                                      <span className="px-2 py-1 rounded-full text-[9px] font-bold bg-[rgb(var(--primary))] text-white border border-white/20 shadow-sm">
+                                        Featured
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Selection overlay */}
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center pointer-events-none">
+                                    {isSelected && (
+                                      <div className="bg-blue-500 text-white rounded-full p-3 shadow-lg scale-110">
+                                        <Check size={18} />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Action buttons */}
+                                  <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                                    {!isGroup && (
+                                      <>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditImage(mainImage);
+                                          }}
+                                          className="w-8 h-8 bg-[rgb(var(--bg))]/90 rounded-full flex items-center justify-center hover:bg-[rgb(var(--primary))] hover:text-white transition-all duration-200 shadow-lg"
+                                          title="Edit image details"
+                                        >
+                                          <Edit3 size={14} />
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedImages(new Set([mainImage.path]));
+                                            setShowDeleteConfirm(true);
+                                          }}
+                                          className="w-8 h-8 bg-[rgb(var(--bg))]/90 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-all duration-200 shadow-lg"
+                                          title="Delete image"
+                                        >
+                                          <Trash2 size={14} />
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+
+                                  {/* Image info */}
+                                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-3 pt-6 space-y-1">
+                                    <p className="text-white text-sm truncate font-bold leading-tight">{title}</p>
+                                    <div className="flex items-center gap-2 text-white/70 text-[10px] truncate">
+                                      {mainImage.location && (
+                                        <span className="inline-flex items-center gap-1">
+                                          <MapPin size={10} />
+                                          <span className="truncate">{mainImage.location}</span>
+                                        </span>
+                                      )}
+                                      {mainImage.dateTaken && (
+                                        <span className="inline-flex items-center gap-1">
+                                          <Calendar size={10} />
+                                          <span className="truncate">{mainImage.dateTaken}</span>
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
                               );
-                            })()}
-
-                            {/* Selection overlay */}
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center pointer-events-none">
-                              {selectedImages.has(image.path) && (
-                                <div className="bg-blue-500 text-white rounded-full p-3 shadow-lg scale-110">
-                                  <Check size={18} />
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Action buttons */}
-                            <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEditImage(image);
-                                }}
-                                className="w-8 h-8 bg-[rgb(var(--bg))]/90 rounded-full flex items-center justify-center hover:bg-[rgb(var(--primary))] hover:text-white transition-all duration-200 shadow-lg"
-                                title="Edit image details"
-                              >
-                                <Edit3 size={14} />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedImages(new Set([image.path]));
-                                  setShowDeleteConfirm(true);
-                                }}
-                                className="w-8 h-8 bg-[rgb(var(--bg))]/90 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-all duration-200 shadow-lg"
-                                title="Delete image"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-
-                            {/* Image info */}
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-3 space-y-1">
-                              <p className="text-white text-sm truncate font-semibold">{image.title || image.name}</p>
-                              <div className="flex items-center gap-2 text-white/80 text-[11px] truncate">
-                                {image.location && (
-                                  <span className="inline-flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full">
-                                    <MapPin size={12} />
-                                    <span className="truncate">{image.location}</span>
-                                  </span>
-                                )}
-                                {image.dateTaken && (
-                                  <span className="inline-flex items-center gap-1 bg-white/10 px-2 py-1 rounded-full">
-                                    <Calendar size={12} />
-                                    <span className="truncate">{image.dateTaken}</span>
-                                  </span>
-                                )}
-                              </div>
-                              {(() => {
-                                const fileName = image.name.replace(/\.[^/.]+$/, "");
-                                const seriesMatch = fileName.match(/^(.+?)\.(\d+)$/);
-                                if (seriesMatch) {
-                                  return (
-                                    <p className="text-white/80 text-xs truncate">
-                                      Series {seriesMatch[1]} - Part {seriesMatch[2]}
-                                    </p>
-                                  );
-                                }
-                                return null;
-                              })()}
-                            </div>
+                            })}
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })()}
 
                       {/* Loading More Indicator */}
-                      {loadingMore && (
-                        <div className="flex items-center justify-center py-8">
-                          <div className="flex items-center gap-3 bg-[rgb(var(--bg))]/50 backdrop-blur-sm px-6 py-4 rounded-xl border border-[rgb(var(--muted))]/20">
-                            <div className="w-5 h-5 border-2 border-[rgb(var(--primary))]/30 border-t-[rgb(var(--primary))] rounded-full animate-spin"></div>
-                            <span className="text-[rgb(var(--fg))] font-medium">Loading more images...</span>
+                      {
+                        loadingMore && (
+                          <div className="flex items-center justify-center py-8">
+                            <div className="flex items-center gap-3 bg-[rgb(var(--bg))]/50 backdrop-blur-sm px-6 py-4 rounded-xl border border-[rgb(var(--muted))]/20">
+                              <div className="w-5 h-5 border-2 border-[rgb(var(--primary))]/30 border-t-[rgb(var(--primary))] rounded-full animate-spin"></div>
+                              <span className="text-[rgb(var(--fg))] font-medium">Loading more images...</span>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )
+                      }
 
                       {/* Pagination Info */}
-                      {!isSearching && (
-                        <div className="flex items-center justify-center py-8">
-                          <div className="bg-[rgb(var(--bg))]/50 backdrop-blur-sm px-6 py-4 rounded-xl border border-[rgb(var(--muted))]/20">
-                            <div className="text-center">
-                              <p className="text-[rgb(var(--fg))] font-medium">
-                                Page {currentPage} of {hasMore ? 'many' : currentPage}
-                              </p>
-                              <p className="text-[rgb(var(--muted))] text-sm mt-1">
-                                {galleryImages.length} images on this page
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Status Message */}
-                {message && (
-                  <div className={`fixed bottom-6 right-6 p-4 rounded-xl shadow-lg border backdrop-blur-sm z-50 max-w-sm transition-all duration-300 ${(() => {
-                    if (message.includes('Success') || message.includes('successfully')) {
-                      return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700';
-                    } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
-                      return 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700';
-                    } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
-                      return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-700';
-                    } else if (message.includes('Skipped') || message.includes('Please select')) {
-                      return 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-700';
-                    } else {
-                      return 'bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))] border-[rgb(var(--muted))]/20';
-                    }
-                  })()
-                    }`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${(() => {
-                        if (typeof message === 'string') {
-                          if (message.includes('Success') || message.includes('successfully')) {
-                            return 'bg-emerald-500';
-                          } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
-                            return 'bg-red-500';
-                          } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
-                            return 'bg-blue-500';
-                          } else if (message.includes('Skipped') || message.includes('Please select')) {
-                            return 'bg-yellow-500';
-                          }
-                        }
-                        return 'bg-slate-500';
-                      })()
-                        }`}>
-                        {(() => {
-                          if (typeof message === 'string') {
-                            if (message.includes('Success') || message.includes('successfully')) {
-                              return <Check size={16} className="text-white" />;
-                            } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
-                              return <AlertCircle size={16} className="text-white" />;
-                            } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
-                              return <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>;
-                            } else if (message.includes('Skipped') || message.includes('Please select')) {
-                              return <AlertCircle size={16} className="text-white" />;
-                            }
-                          }
-                          return <AlertCircle size={16} className="text-white" />;
-                        })()}
-                      </div>
-                      <p className="font-medium flex-1">{typeof message === 'string' ? message : JSON.stringify(message)}</p>
-                      <button
-                        onClick={() => setMessage('')}
-                        className="ml-2 p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors duration-200"
-                        title="Close message"
-                      >
-                        <X size={16} className="text-current" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Delete Confirmation Modal */}
-                {showDeleteConfirm && renderInPortal(
-                  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-[rgb(var(--bg))]/95 backdrop-blur-xl p-4 rounded-3xl shadow-2xl max-w-md w-full border border-[rgb(var(--muted))]/20">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-                          <AlertCircle className="text-red-600 dark:text-red-400" size={20} />
-                        </div>
-                        <div>
-                          <h3 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">
-                            Delete {activeTab === 'featured' ? 'Featured' : ''} Images
-                          </h3>
-                          <p className="text-[rgb(var(--muted))]">
-                            This action cannot be undone
-                          </p>
-                        </div>
-                      </div>
-                      <p className="text-[rgb(var(--fg))] mb-4">
-                        Are you sure you want to delete <strong>{selectedImages.size}</strong> selected image(s)?
-                      </p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setShowDeleteConfirm(false)}
-                          className="flex-1 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 text-[rgb(var(--fg))] px-4 py-2 rounded-lg font-medium transition-colors duration-200"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={activeTab === 'featured' ? handleFeaturedDeleteSelected : handleDeleteSelected}
-                          disabled={uploading}
-                          className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-red-400 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:transform-none"
-                        >
-                          {uploading ? 'Deleting...' : `Delete ${activeTab === 'featured' ? 'Featured' : ''} Images`}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'featured' && (
-              <>
-
-                {/* Featured Upload Section */}
-                <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl rounded-3xl border border-[rgb(var(--muted))]/20 shadow-xl overflow-hidden">
-                  <div className="p-8 border-b border-[rgb(var(--muted))]/20 bg-[rgb(var(--primary))]/5">
-                    <div className="flex items-center gap-4 mb-3">
-                      <div className="w-12 h-12 bg-[rgb(var(--primary))] rounded-xl flex items-center justify-center shadow-lg">
-                        <Upload className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <h2 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">Upload Featured Image</h2>
-                        <p className="text-[rgb(var(--muted))] text-sm">Add a single featured image to the homepage</p>
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[rgb(var(--primary))]/10 text-[rgb(var(--primary))]">1 image at a time</span>
-                          <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))]">Best at 3:2 or 4:3</span>
-                          <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))]">Keep under 2MB</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-8 space-y-6">
-                    {/* Current Featured Photo or Upload Area */}
-                    {featuredImages.length > 0 ? (
-                      <div className="space-y-6">
-                        {/* Current Featured Photo */}
-                        <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-6 border border-[rgb(var(--muted))]/20">
-                          <h3 className="text-base sm:text-lg font-semibold font-heading text-[rgb(var(--fg))] mb-4 flex items-center gap-2">
-                            <Star className="w-5 h-5 text-[rgb(var(--primary))]" />
-                            Current Featured Photo
-                          </h3>
-                          <div className="flex items-center gap-6">
-                            <div className="relative bg-slate-100 dark:bg-slate-800/50 rounded-xl overflow-hidden flex items-center justify-center w-48 h-48">
-                              <img
-                                src={featuredImages[0].src}
-                                alt={featuredImages[0].title}
-                                className="w-full h-full object-contain shadow-lg"
-                              />
-                              <div className="absolute -top-2 -right-2 bg-[rgb(var(--primary))] text-white px-2 py-1 rounded-lg text-xs font-medium z-10">
-                                Featured
-                              </div>
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="text-lg font-semibold text-[rgb(var(--fg))] mb-2">{featuredImages[0].title}</h4>
-                              <p className="text-[rgb(var(--muted))] text-sm mb-4">{featuredImages[0].name}</p>
-                              <div className="flex gap-3">
-                                <button
-                                  onClick={() => handleEditImage(featuredImages[0])}
-                                  className="flex items-center gap-2 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200"
-                                >
-                                  <Edit3 size={16} />
-                                  Edit Details
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setFeaturedSelectedImages(new Set([featuredImages[0].path]));
-                                    setShowDeleteConfirm(true);
-                                  }}
-                                  className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200"
-                                >
-                                  <Trash2 size={16} />
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Replace Photo Section */}
-                        <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-6 border border-[rgb(var(--muted))]/20">
-                          <h3 className="text-base sm:text-lg font-semibold font-heading text-[rgb(var(--fg))] mb-4">
-                            Replace Featured Photo
-                          </h3>
-                          <div
-                            className="border-2 border-dashed border-[rgb(var(--muted))]/30 rounded-2xl p-6 text-center hover:border-[rgb(var(--primary))]/50 transition-all duration-300 cursor-pointer bg-[rgb(var(--muted))]/5"
-                            onClick={() => document.getElementById('featured-file-input').click()}
-                          >
-                            <input
-                              id="featured-file-input"
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFileChange}
-                              className="hidden"
-                            />
-                            <div className="space-y-4">
-                              <div className="w-12 h-12 bg-[rgb(var(--primary))]/10 rounded-xl mx-auto flex items-center justify-center">
-                                <Upload className="w-6 h-6 text-[rgb(var(--primary))]" />
-                              </div>
-                              <div>
-                                <h4 className="text-base font-semibold text-[rgb(var(--fg))] mb-1">
-                                  {files.length > 0 ? '1 image selected' : 'Click to select new featured image'}
-                                </h4>
-                                <p className="text-[rgb(var(--muted))] text-sm">
-                                  This will replace the current featured photo
+                      {
+                        !isSearching && (
+                          <div className="flex items-center justify-center py-8">
+                            <div className="bg-[rgb(var(--bg))]/50 backdrop-blur-sm px-6 py-4 rounded-xl border border-[rgb(var(--muted))]/20">
+                              <div className="text-center">
+                                <p className="text-[rgb(var(--fg))] font-medium">
+                                  Page {currentPage} of {hasMore ? 'many' : currentPage}
+                                </p>
+                                <p className="text-[rgb(var(--muted))] text-sm mt-1">
+                                  {galleryImages.length} images on this page
                                 </p>
                               </div>
                             </div>
                           </div>
+                        )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+        {/* Status Message */}
+        {message && (
+          <div className={`fixed bottom-6 right-6 p-4 rounded-xl shadow-lg border backdrop-blur-sm z-50 max-w-sm transition-all duration-300 ${(() => {
+            if (message.includes('Success') || message.includes('successfully')) {
+              return 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700';
+            } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
+              return 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700';
+            } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
+              return 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-700';
+            } else if (message.includes('Skipped') || message.includes('Please select')) {
+              return 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-700';
+            } else {
+              return 'bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))] border-[rgb(var(--muted))]/20';
+            }
+          })()
+            }`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${(() => {
+                if (typeof message === 'string') {
+                  if (message.includes('Success') || message.includes('successfully')) {
+                    return 'bg-emerald-500';
+                  } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
+                    return 'bg-red-500';
+                  } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
+                    return 'bg-blue-500';
+                  } else if (message.includes('Skipped') || message.includes('Please select')) {
+                    return 'bg-yellow-500';
+                  }
+                }
+                return 'bg-slate-500';
+              })()
+                }`}>
+                {(() => {
+                  if (typeof message === 'string') {
+                    if (message.includes('Success') || message.includes('successfully')) {
+                      return <Check size={16} className="text-white" />;
+                    } else if (message.includes('Error') || message.includes('Failed') || message.includes('failed') || message.includes('error')) {
+                      return <AlertCircle size={16} className="text-white" />;
+                    } else if (message.includes('Loading') || message.includes('Uploading') || message.includes('Loaded') || message.includes('Found') || message.includes('cache')) {
+                      return <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>;
+                    } else if (message.includes('Skipped') || message.includes('Please select')) {
+                      return <AlertCircle size={16} className="text-white" />;
+                    }
+                  }
+                  return <AlertCircle size={16} className="text-white" />;
+                })()}
+              </div>
+              <p className="font-medium flex-1">{typeof message === 'string' ? message : JSON.stringify(message)}</p>
+              <button
+                onClick={() => setMessage('')}
+                className="ml-2 p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors duration-200"
+                title="Close message"
+              >
+                <X size={16} className="text-current" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && renderInPortal(
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-[rgb(var(--bg))]/95 backdrop-blur-xl p-4 rounded-3xl shadow-2xl max-w-md w-full border border-[rgb(var(--muted))]/20">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                  <AlertCircle className="text-red-600 dark:text-red-400" size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">
+                    Delete {activeTab === 'featured' ? 'Featured' : ''} Images
+                  </h3>
+                  <p className="text-[rgb(var(--muted))]">
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+              <p className="text-[rgb(var(--fg))] mb-4">
+                Are you sure you want to delete <strong>{selectedImages.size}</strong> selected image(s)?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 text-[rgb(var(--fg))] px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={activeTab === 'featured' ? handleFeaturedDeleteSelected : handleDeleteSelected}
+                  disabled={uploading}
+                  className="flex-1 bg-red-500 hover:bg-red-600 disabled:bg-red-400 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:transform-none"
+                >
+                  {uploading ? 'Deleting...' : `Delete ${activeTab === 'featured' ? 'Featured' : ''} Images`}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'featured' && (
+          <>
+
+            {/* Featured Upload Section */}
+            <div className="bg-[rgb(var(--bg))]/90 backdrop-blur-xl rounded-3xl border border-[rgb(var(--muted))]/20 shadow-xl overflow-hidden">
+              <div className="p-8 border-b border-[rgb(var(--muted))]/20 bg-[rgb(var(--primary))]/5">
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="w-12 h-12 bg-[rgb(var(--primary))] rounded-xl flex items-center justify-center shadow-lg">
+                    <Upload className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">Upload Featured Image</h2>
+                    <p className="text-[rgb(var(--muted))] text-sm">Add a single featured image to the homepage</p>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[rgb(var(--primary))]/10 text-[rgb(var(--primary))]">1 image at a time</span>
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))]">Best at 3:2 or 4:3</span>
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[rgb(var(--muted))]/10 text-[rgb(var(--fg))]">Keep under 2MB</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-8 space-y-6">
+                {/* Current Featured Photo or Upload Area */}
+                {featuredImages.length > 0 ? (
+                  <div className="space-y-6">
+                    {/* Current Featured Photo */}
+                    <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-6 border border-[rgb(var(--muted))]/20">
+                      <h3 className="text-base sm:text-lg font-semibold font-heading text-[rgb(var(--fg))] mb-4 flex items-center gap-2">
+                        <Star className="w-5 h-5 text-[rgb(var(--primary))]" />
+                        Current Featured Photo
+                      </h3>
+                      <div className="flex items-center gap-6">
+                        <div className="relative bg-slate-100 dark:bg-slate-800/50 rounded-xl overflow-hidden flex items-center justify-center w-48 h-48">
+                          <img
+                            src={featuredImages[0].src}
+                            alt={featuredImages[0].title}
+                            className="w-full h-full object-contain shadow-lg"
+                          />
+                          <div className="absolute -top-2 -right-2 bg-[rgb(var(--primary))] text-white px-2 py-1 rounded-lg text-xs font-medium z-10">
+                            Featured
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-lg font-semibold text-[rgb(var(--fg))] mb-2">{featuredImages[0].title}</h4>
+                          <p className="text-[rgb(var(--muted))] text-sm mb-4">{featuredImages[0].name}</p>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleEditImage(featuredImages[0])}
+                              className="flex items-center gap-2 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200"
+                            >
+                              <Edit3 size={16} />
+                              Edit Details
+                            </button>
+                            <button
+                              onClick={() => {
+                                setFeaturedSelectedImages(new Set([featuredImages[0].path]));
+                                setShowDeleteConfirm(true);
+                              }}
+                              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200"
+                            >
+                              <Trash2 size={16} />
+                              Remove
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    ) : (
-                      /* Upload Area for First Featured Photo */
+                    </div>
+
+                    {/* Replace Photo Section */}
+                    <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-6 border border-[rgb(var(--muted))]/20">
+                      <h3 className="text-base sm:text-lg font-semibold font-heading text-[rgb(var(--fg))] mb-4">
+                        Replace Featured Photo
+                      </h3>
                       <div
-                        className="border-2 border-dashed border-[rgb(var(--muted))]/30 rounded-2xl p-8 text-center hover:border-[rgb(var(--primary))]/50 transition-all duration-300 cursor-pointer bg-[rgb(var(--muted))]/5"
+                        className="border-2 border-dashed border-[rgb(var(--muted))]/30 rounded-2xl p-6 text-center hover:border-[rgb(var(--primary))]/50 transition-all duration-300 cursor-pointer bg-[rgb(var(--muted))]/5"
                         onClick={() => document.getElementById('featured-file-input').click()}
                       >
                         <input
@@ -1942,682 +2185,709 @@ export default function Admin() {
                           className="hidden"
                         />
                         <div className="space-y-4">
-                          <div className="w-16 h-16 bg-[rgb(var(--primary))]/10 rounded-2xl mx-auto flex items-center justify-center">
-                            <Upload className="w-8 h-8 text-[rgb(var(--primary))]" />
+                          <div className="w-12 h-12 bg-[rgb(var(--primary))]/10 rounded-xl mx-auto flex items-center justify-center">
+                            <Upload className="w-6 h-6 text-[rgb(var(--primary))]" />
                           </div>
                           <div>
-                            <h3 className="text-base sm:text-lg font-semibold font-heading text-[rgb(var(--fg))] mb-2">
-                              {files.length > 0 ? '1 image selected' : 'Click to select featured image'}
-                            </h3>
+                            <h4 className="text-base font-semibold text-[rgb(var(--fg))] mb-1">
+                              {files.length > 0 ? '1 image selected' : 'Click to select new featured image'}
+                            </h4>
                             <p className="text-[rgb(var(--muted))] text-sm">
-                              Supports JPG, PNG, GIF, WebP formats (single image only)
+                              This will replace the current featured photo
                             </p>
                           </div>
                         </div>
                       </div>
-                    )}
-
-                    {/* File Preview */}
-                    {files.length > 0 && (
-                      <div className="space-y-6">
-                        {/* Single Image Preview */}
-                        <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-6 border border-[rgb(var(--muted))]/20">
-                          <h3 className="text-base sm:text-lg font-semibold font-heading text-[rgb(var(--fg))] mb-4 flex items-center gap-2">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Homepage Preview
-                          </h3>
-                          <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-[rgb(var(--muted))]/20">
-                            <div className="max-w-md mx-auto">
-                              {(() => {
-                                const file = files[0]
-                                if (!file) return null
-
-                                // Auto-fit container based on image orientation
-                                const dimensions = previewImageDimensions[0]
-                                const aspectRatio = dimensions?.aspectRatio || 1
-                                const isPortrait = dimensions ? dimensions.aspectRatio < 1 : false
-
-                                const containerClass = isPortrait
-                                  ? 'aspect-[3/4] max-w-sm mx-auto' // Portrait: taller container
-                                  : 'aspect-[4/3] w-full' // Landscape: wider container
-
-                                return (
-                                  <div className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${containerClass}`}>
-                                    <img
-                                      src={file instanceof File ? URL.createObjectURL(file) : file.src || '#'}
-                                      alt={file.name || 'Image'}
-                                      className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-110"
-                                      onLoad={(e) => {
-                                        const { naturalWidth, naturalHeight } = e.target
-                                        handlePreviewImageLoad(0, naturalWidth, naturalHeight)
-                                      }}
-                                    />
-                                    {/* Overlay */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                                    {/* Featured badge */}
-                                    <div className="absolute top-3 left-3 text-xs font-bold px-3 py-1.5 rounded-full bg-[rgb(var(--primary))] text-white shadow-lg">
-                                      Featured
-                                    </div>
-
-                                    {/* Info panel */}
-                                    <div className="absolute bottom-3 left-3 right-3 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100">
-                                      <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
-                                        <p className="text-white text-sm font-semibold">
-                                          {file.name ? file.name.replace(/\.[^/.]+$/, "") : 'Image'}
-                                        </p>
-                                        <p className="text-white/80 text-xs">
-                                          Featured Image
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                )
-                              })()}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Upload Form */}
-                    {files.length > 0 && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                            Featured Title *
-                          </label>
-                          <input
-                            type="text"
-                            value={featuredUploadTitle}
-                            onChange={(e) => setFeaturedUploadTitle(e.target.value)}
-                            className="w-full px-4 py-3 bg-[rgb(var(--bg))]/50 border border-[rgb(var(--muted))]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted-fg))] transition-all duration-200"
-                            placeholder="Enter featured title"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                            Description (Optional)
-                          </label>
-                          <textarea
-                            value={featuredUploadDescription}
-                            onChange={(e) => setFeaturedUploadDescription(e.target.value)}
-                            rows={3}
-                            className="w-full px-4 py-3 bg-[rgb(var(--bg))]/50 border border-[rgb(var(--muted))]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted-fg))] resize-none transition-all duration-200"
-                            placeholder="Enter description..."
-                          />
-                        </div>
-
-                        <button
-                          onClick={handleFeaturedUpload}
-                          disabled={uploading || !featuredUploadTitle.trim()}
-                          className="w-full bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 disabled:bg-[rgb(var(--primary))]/50 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:transform-none flex items-center justify-center gap-3"
-                        >
-                          {uploading ? (
-                            <>
-                              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                              Uploading Featured Images...
-                            </>
-                          ) : (
-                            <>
-                              <Upload size={20} />
-                              Upload {files.length} Featured Image{files.length > 1 ? 's' : ''}
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
+                    </div>
                   </div>
+                ) : (
+                  /* Upload Area for First Featured Photo */
+                  <div
+                    className="border-2 border-dashed border-[rgb(var(--muted))]/30 rounded-2xl p-8 text-center hover:border-[rgb(var(--primary))]/50 transition-all duration-300 cursor-pointer bg-[rgb(var(--muted))]/5"
+                    onClick={() => document.getElementById('featured-file-input').click()}
+                  >
+                    <input
+                      id="featured-file-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                    <div className="space-y-4">
+                      <div className="w-16 h-16 bg-[rgb(var(--primary))]/10 rounded-2xl mx-auto flex items-center justify-center">
+                        <Upload className="w-8 h-8 text-[rgb(var(--primary))]" />
+                      </div>
+                      <div>
+                        <h3 className="text-base sm:text-lg font-semibold font-heading text-[rgb(var(--fg))] mb-2">
+                          {files.length > 0 ? '1 image selected' : 'Click to select featured image'}
+                        </h3>
+                        <p className="text-[rgb(var(--muted))] text-sm">
+                          Supports JPG, PNG, GIF, WebP formats (single image only)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* File Preview */}
+                {files.length > 0 && (
+                  <div className="space-y-6">
+                    {/* Single Image Preview */}
+                    <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-6 border border-[rgb(var(--muted))]/20">
+                      <h3 className="text-base sm:text-lg font-semibold font-heading text-[rgb(var(--fg))] mb-4 flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Homepage Preview
+                      </h3>
+                      <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-[rgb(var(--muted))]/20">
+                        <div className="max-w-md mx-auto">
+                          {(() => {
+                            const file = files[0]
+                            if (!file) return null
+
+                            // Auto-fit container based on image orientation
+                            const dimensions = previewImageDimensions[0]
+                            const aspectRatio = dimensions?.aspectRatio || 1
+                            const isPortrait = dimensions ? dimensions.aspectRatio < 1 : false
+
+                            const containerClass = isPortrait
+                              ? 'aspect-[3/4] max-w-sm mx-auto' // Portrait: taller container
+                              : 'aspect-[4/3] w-full' // Landscape: wider container
+
+                            return (
+                              <div className={`relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${containerClass}`}>
+                                <img
+                                  src={file instanceof File ? URL.createObjectURL(file) : file.src || '#'}
+                                  alt={file.name || 'Image'}
+                                  className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-110"
+                                  onLoad={(e) => {
+                                    const { naturalWidth, naturalHeight } = e.target
+                                    handlePreviewImageLoad(0, naturalWidth, naturalHeight)
+                                  }}
+                                />
+                                {/* Overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                                {/* Featured badge */}
+                                <div className="absolute top-3 left-3 text-xs font-bold px-3 py-1.5 rounded-full bg-[rgb(var(--primary))] text-white shadow-lg">
+                                  Featured
+                                </div>
+
+                                {/* Info panel */}
+                                <div className="absolute bottom-3 left-3 right-3 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100">
+                                  <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
+                                    <p className="text-white text-sm font-semibold">
+                                      {file.name ? file.name.replace(/\.[^/.]+$/, "") : 'Image'}
+                                    </p>
+                                    <p className="text-white/80 text-xs">
+                                      Featured Image
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Upload Form */}
+                {files.length > 0 && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                        Featured Title *
+                      </label>
+                      <input
+                        type="text"
+                        value={featuredUploadTitle}
+                        onChange={(e) => setFeaturedUploadTitle(e.target.value)}
+                        className="w-full px-4 py-3 bg-[rgb(var(--bg))]/50 border border-[rgb(var(--muted))]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted-fg))] transition-all duration-200"
+                        placeholder="Enter featured title"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                        Description (Optional)
+                      </label>
+                      <textarea
+                        value={featuredUploadDescription}
+                        onChange={(e) => setFeaturedUploadDescription(e.target.value)}
+                        rows={3}
+                        className="w-full px-4 py-3 bg-[rgb(var(--bg))]/50 border border-[rgb(var(--muted))]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted-fg))] resize-none transition-all duration-200"
+                        placeholder="Enter description..."
+                      />
+                    </div>
+
+                    <button
+                      onClick={handleFeaturedUpload}
+                      disabled={uploading || !featuredUploadTitle.trim()}
+                      className="w-full bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 disabled:bg-[rgb(var(--primary))]/50 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 active:scale-95 disabled:transform-none flex items-center justify-center gap-3"
+                    >
+                      {uploading ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          Uploading Featured Images...
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={20} />
+                          Upload {files.length} Featured Image{files.length > 1 ? 's' : ''}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </>
+        )}
+
+        {/* Upload Modal */}
+        {showUploadModal && renderInPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div
+              className="modal-backdrop absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowUploadModal(false)}
+            />
+
+            {/* Modal Content */}
+            <div className="modal-content relative w-full max-w-6xl max-h-[90vh] bg-[rgb(var(--bg))]/95 backdrop-blur-xl rounded-3xl border border-[rgb(var(--muted))]/20 shadow-2xl overflow-hidden">
+              {/* Modal Header */}
+              <div className="p-4 border-b border-[rgb(var(--muted))]/20 bg-[rgb(var(--primary))]/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[rgb(var(--primary))] rounded-lg flex items-center justify-center shadow-lg">
+                      <Upload className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold font-heading text-[rgb(var(--fg))]">Upload New Photos</h3>
+                      <p className="text-[rgb(var(--muted))]">
+                        Create beautiful series or upload individual artworks
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowUploadModal(false)}
+                    className="w-8 h-8 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 rounded-lg flex items-center justify-center transition-all duration-200 group"
+                  >
+                    <X className="w-4 h-4 text-[rgb(var(--fg))] group-hover:text-[rgb(var(--primary))] transition-colors duration-200" />
+                  </button>
                 </div>
+              </div>
 
-              </>
-            )}
-
-            {/* Upload Modal */}
-            {showUploadModal && renderInPortal(
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                {/* Backdrop */}
-                <div
-                  className="modal-backdrop absolute inset-0 bg-black/50 backdrop-blur-sm"
-                  onClick={() => setShowUploadModal(false)}
-                />
-
-                {/* Modal Content */}
-                <div className="modal-content relative w-full max-w-6xl max-h-[90vh] bg-[rgb(var(--bg))]/95 backdrop-blur-xl rounded-3xl border border-[rgb(var(--muted))]/20 shadow-2xl overflow-hidden">
-                  {/* Modal Header */}
-                  <div className="p-4 border-b border-[rgb(var(--muted))]/20 bg-[rgb(var(--primary))]/5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[rgb(var(--primary))] rounded-lg flex items-center justify-center shadow-lg">
-                          <Upload className="w-5 h-5 text-white" />
+              {/* Modal Body */}
+              <div className="p-4 max-h-[calc(90vh-100px)] overflow-y-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                  {/* Left Column - Upload Area and Image Previews */}
+                  <div className="lg:col-span-3 space-y-6">
+                    {/* Upload Area */}
+                    <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-6">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="w-10 h-10 bg-[rgb(var(--primary))] rounded-xl flex items-center justify-center shadow-lg">
+                          <ImageIcon className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <h3 className="text-lg sm:text-xl md:text-2xl font-bold font-heading text-[rgb(var(--fg))]">Upload New Photos</h3>
+                          <h3 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">
+                            {files.length > 0 ? 'Selected Images' : 'Upload Images'}
+                          </h3>
                           <p className="text-[rgb(var(--muted))]">
-                            Create beautiful series or upload individual artworks
+                            {files.length > 0
+                              ? `${files.length} ${files.length === 1 ? 'image' : 'images'} ready for upload`
+                              : 'Click below or drag and drop your images'
+                            }
+                          </p>
+                        </div>
+                        {files.length > 0 && (
+                          <button
+                            onClick={() => {
+                              setFiles([])
+                              setUploadTitle('')
+                              setUploadDescription('')
+                              const fileInput = document.getElementById('modal-file-input')
+                              if (fileInput) fileInput.value = ''
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200"
+                          >
+                            <Trash2 size={16} />
+                            Clear All
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Upload Drop Zone */}
+                      <div className="relative">
+                        <input
+                          id="modal-file-input"
+                          type="file"
+                          multiple
+                          accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                          onChange={handleFileChange}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <div
+                          className="border-2 border-dashed border-[rgb(var(--muted))]/30 rounded-2xl p-8 text-center hover:border-[rgb(var(--primary))]/50 transition-all duration-300 cursor-pointer bg-[rgb(var(--bg))]/30 hover:bg-[rgb(var(--primary))]/5"
+                          onClick={() => document.getElementById('modal-file-input').click()}
+                        >
+                          <div className="w-16 h-16 bg-[rgb(var(--primary))] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <Plus className="w-8 h-8 text-white" />
+                          </div>
+                          <h3 className="text-base sm:text-lg font-semibold font-heading text-[rgb(var(--fg))] mb-2">
+                            {files.length > 0 ? 'Add More Images' : 'Add Your Photos'}
+                          </h3>
+                          <p className="text-sm text-[rgb(var(--muted))]">
+                            Click here or drag and drop your images
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => setShowUploadModal(false)}
-                        className="w-8 h-8 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 rounded-lg flex items-center justify-center transition-all duration-200 group"
-                      >
-                        <X className="w-4 h-4 text-[rgb(var(--fg))] group-hover:text-[rgb(var(--primary))] transition-colors duration-200" />
-                      </button>
+
+                      {/* Image Previews */}
+                      {files.length > 0 && (
+                        <div className="mt-6">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            {files.map((file, index) => (
+                              <div key={index} className="relative group cursor-pointer">
+                                <div className="aspect-square rounded-2xl overflow-hidden border-2 border-[rgb(var(--muted))]/20 group-hover:border-[rgb(var(--primary))]/50 transition-all duration-300 group-hover:shadow-2xl group-hover:scale-110 group-hover:z-10 bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center">
+                                  <img
+                                    src={file instanceof File ? URL.createObjectURL(file) : file.src || '#'}
+                                    alt={file.name || 'Image'}
+                                    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
+                                  />
+                                </div>
+
+                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-[rgb(var(--primary))] text-white rounded-full flex items-center justify-center text-xs font-bold shadow-lg">
+                                  {index + 1}
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    const newFiles = files.filter((_, i) => i !== index)
+                                    setFiles(newFiles)
+                                    if (newFiles.length === 0) {
+                                      setUploadTitle('')
+                                      setUploadDescription('')
+                                      const fileInput = document.getElementById('modal-file-input')
+                                      if (fileInput) fileInput.value = ''
+                                    }
+                                  }}
+                                  className="absolute -top-2 -left-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-lg"
+                                  title="Remove this image"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Modal Body */}
-                  <div className="p-4 max-h-[calc(90vh-100px)] overflow-y-auto">
-                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-                      {/* Left Column - Upload Area and Image Previews */}
-                      <div className="lg:col-span-3 space-y-6">
-                        {/* Upload Area */}
-                        <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-6">
-                          <div className="flex items-center gap-4 mb-6">
-                            <div className="w-10 h-10 bg-[rgb(var(--primary))] rounded-xl flex items-center justify-center shadow-lg">
-                              <ImageIcon className="w-5 h-5 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">
-                                {files.length > 0 ? 'Selected Images' : 'Upload Images'}
-                              </h3>
-                              <p className="text-[rgb(var(--muted))]">
-                                {files.length > 0
-                                  ? `${files.length} ${files.length === 1 ? 'image' : 'images'} ready for upload`
-                                  : 'Click below or drag and drop your images'
-                                }
-                              </p>
-                            </div>
-                            {files.length > 0 && (
-                              <button
-                                onClick={() => {
-                                  setFiles([])
-                                  setUploadTitle('')
-                                  setUploadDescription('')
-                                  const fileInput = document.getElementById('modal-file-input')
-                                  if (fileInput) fileInput.value = ''
-                                }}
-                                className="flex items-center gap-2 px-4 py-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200"
-                              >
-                                <Trash2 size={16} />
-                                Clear All
-                              </button>
+                  {/* Right Column - Series Details */}
+                  <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-6">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-8 h-8 bg-[rgb(var(--primary))]/80 rounded-lg flex items-center justify-center">
+                          <Edit3 className="w-4 h-4 text-white" />
+                        </div>
+                        <h3 className="text-base sm:text-lg font-semibold font-heading text-[rgb(var(--fg))]">
+                          Series Details
+                        </h3>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                            Series Title *
+                          </label>
+                          <input
+                            type="text"
+                            value={uploadTitle}
+                            onChange={(e) => setUploadTitle(e.target.value)}
+                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200 font-medium"
+                            placeholder="Enter series title"
+                            required
+                          />
+                          <div className="mt-2 flex items-center gap-2 text-xs text-[rgb(var(--muted))]">
+                            {files.length > 1 ? (
+                              <>
+                                <div className="w-2 h-2 bg-[rgb(var(--primary))] rounded-full"></div>
+                                <span>Will be grouped as a series</span>
+                              </>
+                            ) : files.length === 1 ? (
+                              <>
+                                <div className="w-2 h-2 bg-[rgb(var(--primary))]/60 rounded-full"></div>
+                                <span>Will be uploaded individually</span>
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-2 h-2 bg-[rgb(var(--muted))]/40 rounded-full"></div>
+                                <span>Upload images to see status</span>
+                              </>
                             )}
                           </div>
-
-                          {/* Upload Drop Zone */}
-                          <div className="relative">
-                            <input
-                              id="modal-file-input"
-                              type="file"
-                              multiple
-                              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-                              onChange={handleFileChange}
-                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            />
-                            <div
-                              className="border-2 border-dashed border-[rgb(var(--muted))]/30 rounded-2xl p-8 text-center hover:border-[rgb(var(--primary))]/50 transition-all duration-300 cursor-pointer bg-[rgb(var(--bg))]/30 hover:bg-[rgb(var(--primary))]/5"
-                              onClick={() => document.getElementById('modal-file-input').click()}
-                            >
-                              <div className="w-16 h-16 bg-[rgb(var(--primary))] rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                <Plus className="w-8 h-8 text-white" />
-                              </div>
-                              <h3 className="text-base sm:text-lg font-semibold font-heading text-[rgb(var(--fg))] mb-2">
-                                {files.length > 0 ? 'Add More Images' : 'Add Your Photos'}
-                              </h3>
-                              <p className="text-sm text-[rgb(var(--muted))]">
-                                Click here or drag and drop your images
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Image Previews */}
-                          {files.length > 0 && (
-                            <div className="mt-6">
-                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                                {files.map((file, index) => (
-                                  <div key={index} className="relative group cursor-pointer">
-                                    <div className="aspect-square rounded-2xl overflow-hidden border-2 border-[rgb(var(--muted))]/20 group-hover:border-[rgb(var(--primary))]/50 transition-all duration-300 group-hover:shadow-2xl group-hover:scale-110 group-hover:z-10 bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center">
-                                      <img
-                                        src={file instanceof File ? URL.createObjectURL(file) : file.src || '#'}
-                                        alt={file.name || 'Image'}
-                                        className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
-                                      />
-                                    </div>
-
-                                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-[rgb(var(--primary))] text-white rounded-full flex items-center justify-center text-xs font-bold shadow-lg">
-                                      {index + 1}
-                                    </div>
-                                    <button
-                                      onClick={() => {
-                                        const newFiles = files.filter((_, i) => i !== index)
-                                        setFiles(newFiles)
-                                        if (newFiles.length === 0) {
-                                          setUploadTitle('')
-                                          setUploadDescription('')
-                                          const fileInput = document.getElementById('modal-file-input')
-                                          if (fileInput) fileInput.value = ''
-                                        }
-                                      }}
-                                      className="absolute -top-2 -left-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-lg"
-                                      title="Remove this image"
-                                    >
-                                      ×
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Right Column - Series Details */}
-                      <div className="lg:col-span-2 space-y-6">
-                        <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-6">
-                          <div className="flex items-center gap-3 mb-6">
-                            <div className="w-8 h-8 bg-[rgb(var(--primary))]/80 rounded-lg flex items-center justify-center">
-                              <Edit3 className="w-4 h-4 text-white" />
-                            </div>
-                            <h3 className="text-base sm:text-lg font-semibold font-heading text-[rgb(var(--fg))]">
-                              Series Details
-                            </h3>
-                          </div>
-
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                                Series Title *
-                              </label>
-                              <input
-                                type="text"
-                                value={uploadTitle}
-                                onChange={(e) => setUploadTitle(e.target.value)}
-                                className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200 font-medium"
-                                placeholder="Enter series title"
-                                required
-                              />
-                              <div className="mt-2 flex items-center gap-2 text-xs text-[rgb(var(--muted))]">
-                                {files.length > 1 ? (
-                                  <>
-                                    <div className="w-2 h-2 bg-[rgb(var(--primary))] rounded-full"></div>
-                                    <span>Will be grouped as a series</span>
-                                  </>
-                                ) : files.length === 1 ? (
-                                  <>
-                                    <div className="w-2 h-2 bg-[rgb(var(--primary))]/60 rounded-full"></div>
-                                    <span>Will be uploaded individually</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <div className="w-2 h-2 bg-[rgb(var(--muted))]/40 rounded-full"></div>
-                                    <span>Upload images to see status</span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                                Scientific Name
-                              </label>
-                              <input
-                                type="text"
-                                value={uploadScientificName}
-                                onChange={(e) => setUploadScientificName(e.target.value)}
-                                className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
-                                placeholder="e.g., Panthera leo"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                                Description
-                              </label>
-                              <textarea
-                                value={uploadDescription}
-                                onChange={(e) => setUploadDescription(e.target.value)}
-                                rows={4}
-                                className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200 resize-none"
-                                placeholder="Describe your series or add context..."
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                                Location
-                              </label>
-                              <input
-                                type="text"
-                                value={uploadLocation}
-                                onChange={(e) => setUploadLocation(e.target.value)}
-                                className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
-                                placeholder="e.g., Serengeti National Park, Tanzania"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                                Date Taken
-                              </label>
-                              <input
-                                type="text"
-                                value={uploadTimeTaken}
-                                onChange={(e) => setUploadTimeTaken(e.target.value)}
-                                className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
-                                placeholder="e.g., March 15, 2024"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                                History (Optional)
-                              </label>
-                              <textarea
-                                value={uploadHistory}
-                                onChange={(e) => setUploadHistory(e.target.value)}
-                                rows={3}
-                                className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200 resize-none"
-                                placeholder="Add any interesting history or context about this photo..."
-                              />
-                            </div>
-                          </div>
                         </div>
 
-                        {/* Upload Button */}
-                        <button
-                          onClick={handleUpload}
-                          disabled={uploading || files.length === 0 || !uploadTitle.trim()}
-                          className="w-full bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 disabled:bg-[rgb(var(--muted))]/50 text-white py-4 px-6 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-md flex items-center justify-center gap-3"
-                        >
-                          {uploading ? (
-                            <>
-                              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                              Uploading {files.length} images...
-                            </>
-                          ) : (
-                            <>
-                              <Upload size={18} />
-                              Upload {files.length} Images {files.length > 1 ? 'as Series' : ''}
-                            </>
-                          )}
-                        </button>
+                        <div>
+                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                            Scientific Name
+                          </label>
+                          <input
+                            type="text"
+                            value={uploadScientificName}
+                            onChange={(e) => setUploadScientificName(e.target.value)}
+                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
+                            placeholder="e.g., Panthera leo"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                            Description
+                          </label>
+                          <textarea
+                            value={uploadDescription}
+                            onChange={(e) => setUploadDescription(e.target.value)}
+                            rows={4}
+                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200 resize-none"
+                            placeholder="Describe your series or add context..."
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                            Location
+                          </label>
+                          <input
+                            type="text"
+                            value={uploadLocation}
+                            onChange={(e) => setUploadLocation(e.target.value)}
+                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
+                            placeholder="e.g., Serengeti National Park, Tanzania"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                            Date Taken
+                          </label>
+                          <input
+                            type="date"
+                            value={uploadTimeTaken}
+                            onChange={(e) => setUploadTimeTaken(e.target.value)}
+                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                            History (Optional)
+                          </label>
+                          <textarea
+                            value={uploadHistory}
+                            onChange={(e) => setUploadHistory(e.target.value)}
+                            rows={3}
+                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200 resize-none"
+                            placeholder="Add any interesting history or context about this photo..."
+                          />
+                        </div>
                       </div>
                     </div>
+
+                    {/* Upload Button */}
+                    <button
+                      onClick={handleUpload}
+                      disabled={uploading || files.length === 0 || !uploadTitle.trim()}
+                      className="w-full bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 disabled:bg-[rgb(var(--muted))]/50 text-white py-4 px-6 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-md flex items-center justify-center gap-3"
+                    >
+                      {uploading ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          Uploading {files.length} images...
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={18} />
+                          Upload {files.length} Images {files.length > 1 ? 'as Series' : ''}
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          </div>
+        )}
 
-            {/* Edit Image Modal */}
-            {editingImage && renderInPortal(
-              <div
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4"
-                onClick={handleCancelEdit}
-              >
-                <div
-                  className="bg-[rgb(var(--bg))]/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-4xl w-full h-[95vh] sm:h-[90vh] flex flex-col border border-[rgb(var(--muted))]/20"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {/* Modal Header */}
-                  <div className="p-4 border-b border-[rgb(var(--muted))]/20 bg-[rgb(var(--primary))]/5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">
-                          Edit Photo Details
-                        </h3>
-                        <p className="text-[rgb(var(--muted))]">
-                          {(() => {
-                            const fileName = editingImage.name.replace(/\.[^/.]+$/, "");
-                            const seriesMatch = fileName.match(/^(.+?)[._](\d+)$/) || fileName.match(/^(.+?)_(\d+)$/) || fileName.match(/^(.+?)\.(\d+)$/);
-                            return seriesMatch ? `Update entire "${seriesMatch[1]}" series` : "";
-                          })()}
-                        </p>
-                      </div>
-                      <button
-                        onClick={handleCancelEdit}
-                        className="w-8 h-8 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 rounded-lg flex items-center justify-center transition-all duration-200 group"
-                      >
-                        <X className="w-4 h-4 text-[rgb(var(--fg))] group-hover:text-[rgb(var(--primary))] transition-colors duration-200" />
-                      </button>
-                    </div>
+        {/* Edit Image Modal */}
+        {editingImage && renderInPortal(
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4"
+            onClick={handleCancelEdit}
+          >
+            <div
+              className="bg-[rgb(var(--bg))]/95 backdrop-blur-xl rounded-3xl shadow-2xl max-w-4xl w-full h-[95vh] sm:h-[90vh] flex flex-col border border-[rgb(var(--muted))]/20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="p-4 border-b border-[rgb(var(--muted))]/20 bg-[rgb(var(--primary))]/5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-bold font-heading text-[rgb(var(--fg))]">
+                      Edit Photo Details
+                    </h3>
+                    <p className="text-[rgb(var(--muted))]">
+                      {(() => {
+                        const fileName = editingImage.name.replace(/\.[^/.]+$/, "");
+                        const seriesMatch = fileName.match(/^(.+?)[._](\d+)$/) || fileName.match(/^(.+?)_(\d+)$/) || fileName.match(/^(.+?)\.(\d+)$/);
+                        return seriesMatch ? `Update entire "${seriesMatch[1]}" series` : "";
+                      })()}
+                    </p>
                   </div>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="w-8 h-8 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 rounded-lg flex items-center justify-center transition-all duration-200 group"
+                  >
+                    <X className="w-4 h-4 text-[rgb(var(--fg))] group-hover:text-[rgb(var(--primary))] transition-colors duration-200" />
+                  </button>
+                </div>
+              </div>
 
-                  {/* Modal Body */}
-                  <div className="flex-1 p-4 sm:p-6 overflow-y-auto min-h-0">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-                      {/* Left Column - Photo Preview */}
-                      <div className="space-y-2 sm:space-y-3">
-                        <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-4 sm:p-6 flex flex-col items-center justify-center min-h-[300px]">
-                          <div className={`relative w-full ${editingImageOrientation === 'portrait' ? 'max-w-[300px]' : 'max-w-full'}`}>
-                            <img
-                              src={editingImage.src}
-                              alt={editingImage.title}
-                              onLoad={(e) => {
-                                const { naturalWidth, naturalHeight } = e.target;
-                                setEditingImageOrientation(naturalHeight > naturalWidth ? 'portrait' : 'landscape');
-                              }}
-                              className={`w-full h-auto max-h-[50vh] object-contain rounded-xl shadow-lg transition-all duration-500`}
-                            />
-                            {(() => {
-                              const fileName = editingImage.name.replace(/\.[^/.]+$/, "");
-                              const seriesMatch = fileName.match(/^(.+?)\.(\d+)$/);
-                              if (seriesMatch) {
-                                return (
-                                  <div className="absolute top-3 left-3 bg-[rgb(var(--primary))] text-white px-3 py-1 rounded-lg text-sm font-medium">
-                                    Part {seriesMatch[2]}
-                                  </div>
-                                );
-                              }
-                              return null;
-                            })()}
-                          </div>
-                          <div className="mt-4 p-4 bg-[rgb(var(--bg))] rounded-lg">
-                            <p className="text-sm text-[rgb(var(--muted))] mb-1">File Name</p>
-                            <p className="font-medium text-[rgb(var(--fg))]">{editingImage.name}</p>
-                          </div>
-                        </div>
-
-                        {/* Series Photos Preview */}
+              {/* Modal Body */}
+              <div className="flex-1 p-4 sm:p-6 overflow-y-auto min-h-0">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+                  {/* Left Column - Photo Preview */}
+                  <div className="space-y-2 sm:space-y-3">
+                    <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-4 sm:p-6 flex flex-col items-center justify-center min-h-[300px]">
+                      <div className={`relative w-full ${editingImageOrientation === 'portrait' ? 'max-w-[300px]' : 'max-w-full'}`}>
+                        <img
+                          src={editingImage.src}
+                          alt={editingImage.title}
+                          onLoad={(e) => {
+                            const { naturalWidth, naturalHeight } = e.target;
+                            setEditingImageOrientation(naturalHeight > naturalWidth ? 'portrait' : 'landscape');
+                          }}
+                          className={`w-full h-auto max-h-[50vh] object-contain rounded-xl shadow-lg transition-all duration-500`}
+                        />
                         {(() => {
                           const fileName = editingImage.name.replace(/\.[^/.]+$/, "");
-                          // Try multiple patterns for series detection
-                          const seriesMatch = fileName.match(/^(.+?)[._](\d+)$/) || fileName.match(/^(.+?)_(\d+)$/) || fileName.match(/^(.+?)\.(\d+)$/);
-
+                          const seriesMatch = fileName.match(/^(.+?)\.(\d+)$/);
                           if (seriesMatch) {
-                            const seriesName = seriesMatch[1];
-                            const seriesImages = galleryImages.filter(img => {
-                              const imgFileName = img.name.replace(/\.[^/.]+$/, "");
-                              // Try the same patterns for filtering
-                              const imgSeriesMatch = imgFileName.match(/^(.+?)[._](\d+)$/) || imgFileName.match(/^(.+?)_(\d+)$/) || imgFileName.match(/^(.+?)\.(\d+)$/);
-                              return imgSeriesMatch && imgSeriesMatch[1] === seriesName;
-                            }).sort((a, b) => {
-                              const aMatch = a.name.match(/[._](\d+)\./) || a.name.match(/[._](\d+)$/);
-                              const bMatch = b.name.match(/[._](\d+)\./) || b.name.match(/[._](\d+)$/);
-                              const aNum = parseInt(aMatch?.[1] || '0');
-                              const bNum = parseInt(bMatch?.[1] || '0');
-                              return aNum - bNum;
-                            });
-
                             return (
-                              <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-4 sm:p-6">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                                  {seriesImages.map((img, index) => {
-                                    const isCurrentImage = img.path === editingImage.path;
-                                    return (
-                                      <div
-                                        key={index}
-                                        onClick={() => handleEditImage(img)}
-                                        className={`relative group rounded-lg overflow-hidden border-2 transition-all duration-200 cursor-pointer hover:shadow-lg ${isCurrentImage
-                                          ? 'border-[rgb(var(--primary))] ring-2 ring-[rgb(var(--primary))]/30'
-                                          : 'border-[rgb(var(--muted))]/20 hover:border-[rgb(var(--primary))]/40 hover:scale-105'
-                                          }`}
-                                      >
-                                        <img
-                                          src={img.src}
-                                          alt={img.title}
-                                          className="w-full h-20 object-cover"
-                                        />
-                                        <div className="absolute top-1 left-1 bg-[rgb(var(--primary))] text-white px-2 py-1 rounded text-xs font-medium">
-                                          {(img.name.match(/[._](\d+)\./) || img.name.match(/[._](\d+)$/))?.[1] || index + 1}
-                                        </div>
-                                        {isCurrentImage && (
-                                          <div className="absolute inset-0 bg-[rgb(var(--primary))]/20 flex items-center justify-center">
-                                            <div className="bg-[rgb(var(--primary))] text-white rounded-full p-1">
-                                              <Check size={12} />
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                                <p className="text-sm text-[rgb(var(--muted))] mt-3">
-                                  Changes will be applied to all {seriesImages.length} photos in this series
-                                </p>
+                              <div className="absolute top-3 left-3 bg-[rgb(var(--primary))] text-white px-3 py-1 rounded-lg text-sm font-medium">
+                                Part {seriesMatch[2]}
                               </div>
                             );
                           }
                           return null;
                         })()}
                       </div>
+                      <div className="mt-4 p-4 bg-[rgb(var(--bg))] rounded-lg">
+                        <p className="text-sm text-[rgb(var(--muted))] mb-1">File Name</p>
+                        <p className="font-medium text-[rgb(var(--fg))]">{editingImage.name}</p>
+                      </div>
+                    </div>
 
-                      {/* Right Column - Form Fields */}
-                      <div className="space-y-4 sm:space-y-6">
-                        <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-4 sm:p-6">
+                    {/* Series Photos Preview */}
+                    {(() => {
+                      const fileName = editingImage.name.replace(/\.[^/.]+$/, "");
+                      // Try multiple patterns for series detection
+                      const seriesMatch = fileName.match(/^(.+?)[._](\d+)$/) || fileName.match(/^(.+?)_(\d+)$/) || fileName.match(/^(.+?)\.(\d+)$/);
 
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                                Title *
-                              </label>
-                              <input
-                                type="text"
-                                value={editForm.title}
-                                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                                className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
-                                placeholder="Enter photo title"
-                                required
-                              />
+                      if (seriesMatch) {
+                        const seriesName = seriesMatch[1];
+                        const seriesImages = galleryImages.filter(img => {
+                          const imgFileName = img.name.replace(/\.[^/.]+$/, "");
+                          // Try the same patterns for filtering
+                          const imgSeriesMatch = imgFileName.match(/^(.+?)[._](\d+)$/) || imgFileName.match(/^(.+?)_(\d+)$/) || imgFileName.match(/^(.+?)\.(\d+)$/);
+                          return imgSeriesMatch && imgSeriesMatch[1] === seriesName;
+                        }).sort((a, b) => {
+                          const aMatch = a.name.match(/[._](\d+)\./) || a.name.match(/[._](\d+)$/);
+                          const bMatch = b.name.match(/[._](\d+)\./) || b.name.match(/[._](\d+)$/);
+                          const aNum = parseInt(aMatch?.[1] || '0');
+                          const bNum = parseInt(bMatch?.[1] || '0');
+                          return aNum - bNum;
+                        });
+
+                        return (
+                          <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-4 sm:p-6">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                              {seriesImages.map((img, index) => {
+                                const isCurrentImage = img.path === editingImage.path;
+                                return (
+                                  <div
+                                    key={index}
+                                    onClick={() => handleEditImage(img)}
+                                    className={`relative group rounded-lg overflow-hidden border-2 transition-all duration-200 cursor-pointer hover:shadow-lg ${isCurrentImage
+                                      ? 'border-[rgb(var(--primary))] ring-2 ring-[rgb(var(--primary))]/30'
+                                      : 'border-[rgb(var(--muted))]/20 hover:border-[rgb(var(--primary))]/40 hover:scale-105'
+                                      }`}
+                                  >
+                                    <img
+                                      src={img.src}
+                                      alt={img.title}
+                                      className="w-full h-20 object-cover"
+                                    />
+                                    <div className="absolute top-1 left-1 bg-[rgb(var(--primary))] text-white px-2 py-1 rounded text-xs font-medium">
+                                      {(img.name.match(/[._](\d+)\./) || img.name.match(/[._](\d+)$/))?.[1] || index + 1}
+                                    </div>
+                                    {isCurrentImage && (
+                                      <div className="absolute inset-0 bg-[rgb(var(--primary))]/20 flex items-center justify-center">
+                                        <div className="bg-[rgb(var(--primary))] text-white rounded-full p-1">
+                                          <Check size={12} />
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                                Description
-                              </label>
-                              <textarea
-                                value={editForm.description}
-                                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                                rows={3}
-                                className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200 resize-none"
-                                placeholder="Enter photo description..."
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                                Scientific Name
-                              </label>
-                              <input
-                                type="text"
-                                value={editForm.scientificName}
-                                onChange={(e) => setEditForm({ ...editForm, scientificName: e.target.value })}
-                                className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
-                                placeholder="e.g., Panthera leo"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                                Location
-                              </label>
-                              <input
-                                type="text"
-                                value={editForm.location}
-                                onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                                className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
-                                placeholder="e.g., Serengeti National Park, Tanzania"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                                Date Taken
-                              </label>
-                              <input
-                                type="text"
-                                value={editForm.dateTaken}
-                                onChange={(e) => setEditForm({ ...editForm, dateTaken: e.target.value })}
-                                className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
-                                placeholder="e.g., March 15, 2024"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
-                                History & Context
-                              </label>
-                              <textarea
-                                value={editForm.history}
-                                onChange={(e) => setEditForm({ ...editForm, history: e.target.value })}
-                                rows={3}
-                                className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200 resize-none"
-                                placeholder="Add any interesting history or context about this photo..."
-                              />
-                            </div>
+                            <p className="text-sm text-[rgb(var(--muted))] mt-3">
+                              Changes will be applied to all {seriesImages.length} photos in this series
+                            </p>
                           </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+
+                  {/* Right Column - Form Fields */}
+                  <div className="space-y-4 sm:space-y-6">
+                    <div className="bg-[rgb(var(--bg))]/50 rounded-2xl p-4 sm:p-6">
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                            Title *
+                          </label>
+                          <input
+                            type="text"
+                            value={editForm.title}
+                            onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
+                            placeholder="Enter photo title"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                            Description
+                          </label>
+                          <textarea
+                            value={editForm.description}
+                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                            rows={3}
+                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200 resize-none"
+                            placeholder="Enter photo description..."
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                            Scientific Name
+                          </label>
+                          <input
+                            type="text"
+                            value={editForm.scientificName}
+                            onChange={(e) => setEditForm({ ...editForm, scientificName: e.target.value })}
+                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
+                            placeholder="e.g., Panthera leo"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                            Location
+                          </label>
+                          <input
+                            type="text"
+                            value={editForm.location}
+                            onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
+                            placeholder="e.g., Serengeti National Park, Tanzania"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                            Date Taken
+                          </label>
+                          <input
+                            type="date"
+                            value={editForm.dateTaken}
+                            onChange={(e) => setEditForm({ ...editForm, dateTaken: e.target.value })}
+                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-[rgb(var(--fg))] mb-2">
+                            History & Context
+                          </label>
+                          <textarea
+                            value={editForm.history}
+                            onChange={(e) => setEditForm({ ...editForm, history: e.target.value })}
+                            rows={3}
+                            className="w-full px-4 py-3 bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[rgb(var(--primary))]/50 focus:border-transparent text-[rgb(var(--fg))] placeholder-[rgb(var(--muted))] transition-all duration-200 resize-none"
+                            placeholder="Add any interesting history or context about this photo..."
+                          />
                         </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Modal Footer */}
-                  <div className="flex-shrink-0 p-3 border-t border-[rgb(var(--muted))]/20 bg-[rgb(var(--bg))]/50">
-                    <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
-                      <button
-                        onClick={handleCancelEdit}
-                        className="w-full sm:w-auto px-4 py-2 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 text-[rgb(var(--fg))] rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-1"
-                      >
-                        <X size={14} />
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleSaveEdit}
-                        disabled={uploading || !editForm.title.trim()}
-                        className="w-full sm:w-auto px-4 py-2 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 disabled:bg-[rgb(var(--muted))]/50 text-white rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-1"
-                      >
-                        {uploading ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save size={16} />
-                            Save Changes
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
-            )}
 
-            {activeTab === 'analytics' && (
-              <div className="space-y-6">
-                <AnalyticsDashboard />
+              {/* Modal Footer */}
+              <div className="flex-shrink-0 p-3 border-t border-[rgb(var(--muted))]/20 bg-[rgb(var(--bg))]/50">
+                <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+                  <button
+                    onClick={handleCancelEdit}
+                    className="w-full sm:w-auto px-4 py-2 bg-[rgb(var(--muted))]/20 hover:bg-[rgb(var(--muted))]/30 text-[rgb(var(--fg))] rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-1"
+                  >
+                    <X size={14} />
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveEdit}
+                    disabled={uploading || !editForm.title.trim()}
+                    className="w-full sm:w-auto px-4 py-2 bg-[rgb(var(--primary))] hover:bg-[rgb(var(--primary))]/90 disabled:bg-[rgb(var(--muted))]/50 text-white rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-1"
+                  >
+                    {uploading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={16} />
+                        Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            )}
+            </div>
+          </div>
+        )}
 
-          </main>
-        </div>
-      </div>
+        {activeTab === 'analytics' && (
+          <div className="space-y-6">
+            <AnalyticsDashboard />
+          </div>
+        )}
+
+      </main>
+    </div >
+      </div >
     </>
-  )
+  );
 }

@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useScroll } from '@/src/contexts/ScrollContext'
 
 export default function ScrollSnapContainer({ children, onActiveSectionChange, onScroll }) {
   const scrollContainerRef = useRef(null)
   const [activeSection, setActiveSection] = useState('home')
+  const { setScrollY } = useScroll()
 
   useEffect(() => {
     // Prevent body scrolling when scroll snapping container is active
@@ -52,10 +54,10 @@ export default function ScrollSnapContainer({ children, onActiveSectionChange, o
     if (!scrollContainer) return
 
     const handleScroll = (e) => {
-      // Emit scroll event to window for header detection
       const scrollY = e.target.scrollTop
-      window.scrollY = scrollY
-      window.dispatchEvent(new Event('scroll'))
+
+      // Update our central scroll state
+      setScrollY(scrollY)
 
       // Call the onScroll callback if provided
       if (onScroll) {
@@ -68,7 +70,7 @@ export default function ScrollSnapContainer({ children, onActiveSectionChange, o
     return () => {
       scrollContainer.removeEventListener('scroll', handleScroll)
     }
-  }, [onScroll])
+  }, [onScroll, setScrollY])
 
   return (
     <main className="overflow-x-hidden">

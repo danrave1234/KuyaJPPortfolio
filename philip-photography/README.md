@@ -1,34 +1,41 @@
-# React + Vite
+# Philip Photography (Next.js)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project uses Next.js with the App Router.
 
-Currently, two official plugins are available:
+## Scripts
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-
----
-
-## Environment variables (Vite + Firebase)
-
-Create a `.env` file in the `philip-photography` folder with the following keys:
+Run from the `philip-photography` folder:
 
 ```
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
-VITE_FIREBASE_MEASUREMENT_ID=
+npm install
+npm run dev
 ```
 
-Do not commit the actual `.env` file. Values are read in `src/firebase/config.js` via `import.meta.env`.
+Other scripts:
+
+- `npm run build` – Production build
+- `npm run start` – Run production server
+- `npm run lint` – Lint project
+
+## Project structure
+
+- `app/` – Next.js routes, layouts, and UI components
+- `src/` – Shared app logic (contexts, firebase services, hooks, utils)
+
+Using `src/` with Next.js is valid. `app/` is required for App Router routes, while `src/` is optional and commonly used for non-route code organization.
+
+## Environment variables (Firebase)
+
+Create a `.env.local` file in the `philip-photography` folder with:
+
+```
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
+```
+
+Do not commit `.env.local`.

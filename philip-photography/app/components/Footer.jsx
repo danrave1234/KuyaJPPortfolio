@@ -18,7 +18,7 @@ export default function Footer() {
   }, [])
 
   const handleAdminAccess = () => {
-    router.push('/admin')
+    window.location.href = '/admin'
   }
 
   return (
@@ -42,10 +42,10 @@ export default function Footer() {
           <nav className="space-y-2 hidden md:block">
             <div className="text-[10px] uppercase tracking-[0.25em]">Navigate</div>
             <ul className="space-y-1">
-              <li><button onClick={() => router.push('/')} className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">Home</button></li>
-              <li><button onClick={() => router.push('/gallery')} className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">Gallery</button></li>
-              <li><button onClick={() => router.push('/about')} className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">About</button></li>
-              <li><button onClick={() => router.push('/contact')} className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">Contact</button></li>
+              <li><a href="/" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">Home</a></li>
+              <li><a href="/gallery" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">Gallery</a></li>
+              <li><a href="/about" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">About</a></li>
+              <li><a href="/contact" className="hover:text-[rgb(var(--fg))] transition text-xs sm:text-sm">Contact</a></li>
             </ul>
           </nav>
 
@@ -73,7 +73,7 @@ export default function Footer() {
               </a>
               <a href="https://x.com" target="_blank" rel="noreferrer" className="flex items-center gap-1 sm:gap-2 hover:text-[rgb(var(--fg))] transition-colors duration-[var(--t-base)]" aria-label="X (formerly Twitter)">
                 <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                 </svg>
                 <span className="text-xs sm:text-sm hidden sm:inline">X</span>
               </a>

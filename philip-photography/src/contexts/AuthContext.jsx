@@ -16,6 +16,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const adminEmails = ['jpmoradanaturegram@gmail.com', 'danravekeh123@gmail.com', 'admin@gmail.com'];
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
@@ -32,7 +33,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     currentUser: getCurrentUser,
     // Helper functions
-    isAdmin: user && user.email === 'jpmoradanaturegram@gmail.com', // Replace with your admin email
+    isAdmin: !!(user && adminEmails.includes(user.email)),
     signOut: async () => {
       try {
         await signOutUser();

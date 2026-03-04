@@ -3,67 +3,28 @@
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { ChevronUp } from 'lucide-react'
+import { useScroll } from '@/src/contexts/ScrollContext'
 
 export default function BackToTop() {
+  const { scrollY } = useScroll()
   const [isVisible, setIsVisible] = useState(false)
   const pathname = usePathname() ?? '/'
 
   useEffect(() => {
-    const toggleVisibility = () => {
-      const scrollContainer = document.querySelector('.snap-y.snap-mandatory')
-      let scrollY = 0
-      
-      if (scrollContainer) {
-        scrollY = scrollContainer.scrollTop
-      } else {
-        scrollY = window.scrollY
-      }
-      
-      if (scrollY > 300) {
-        setIsVisible(true)
-      } else {
-        setIsVisible(false)
-      }
-    }
-
-    window.addEventListener('scroll', toggleVisibility, { passive: true })
-    
-    const scrollContainer = document.querySelector('.snap-y.snap-mandatory')
-    if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', toggleVisibility, { passive: true })
-    }
-
-    toggleVisibility()
-
-    return () => {
-      window.removeEventListener('scroll', toggleVisibility)
-      if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', toggleVisibility)
-      }
-    }
-  }, [])
-
-  useEffect(() => {
-    const isGalleryRoute = pathname === '/gallery'
-    
-    if (isGalleryRoute) {
-      const savedScroll = sessionStorage.getItem('gallery-scrollY')
-      if (savedScroll && parseInt(savedScroll) > 0) {
-        const timer = setTimeout(() => {
-          setIsVisible(false)
-        }, 200)
-        return () => clearTimeout(timer)
-      } else {
-        setIsVisible(false)
-      }
+    if (scrollY > 300) {
+      setIsVisible(true)
     } else {
       setIsVisible(false)
     }
+  }, [scrollY])
+
+  useEffect(() => {
+    setIsVisible(false)
   }, [pathname])
 
   const scrollToTop = () => {
     const scrollContainer = document.querySelector('.snap-y.snap-mandatory')
-    
+
     if (scrollContainer) {
       scrollContainer.scrollTo({
         top: 0,

@@ -234,9 +234,11 @@ export const updateImageMetadata = async (imagePath, metadataOverrides) => {
     const currentMetadata = await getMetadata(imageRef);
     const existingCustom = currentMetadata.customMetadata || {};
 
-    // Filter out undefined/null overrides
+    // Firebase Storage customMetadata values MUST be strings
     const cleanOverrides = Object.fromEntries(
-      Object.entries(metadataOverrides).filter(([_, v]) => v != null)
+      Object.entries(metadataOverrides)
+        .filter(([_, v]) => v != null && v !== '')
+        .map(([k, v]) => [k, String(v)])
     );
 
     const newMetadata = {

@@ -328,7 +328,7 @@
     font-weight: 400;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: var(--track-heading) !important;
+    letter-spacing: var(--track-heading);
   }
 
   /* Refined, editorial rhythm for headings */
@@ -359,12 +359,12 @@
   /* Body copy refinements */
   body {
     font-weight: 400;
-    letter-spacing: var(--track-body) !important;
+    letter-spacing: var(--track-body);
   }
 
   /* Default tracking for common text elements (excluding headings) */
   body :where(p, li, span, div, a, label, input, textarea, button, small, figcaption) {
-    letter-spacing: var(--track-paragraph) !important;
+    letter-spacing: var(--track-paragraph);
   }
 
   p {
@@ -375,7 +375,7 @@
   .caption {
     line-height: 1.6;
     opacity: 0.9;
-    letter-spacing: var(--track-small) !important;
+    letter-spacing: var(--track-small);
   }
 
   /* Premium default: rely on component/tailwind sizes without extra tracking tweaks */
@@ -422,7 +422,6 @@
   }
 
   html {
-    scroll-behavior: smooth;
     scrollbar-gutter: auto;
     width: 100%;
   }
@@ -628,13 +627,13 @@
       margin-bottom: 1rem;
     }
 
-    .snap-section {
-      min-height: auto !important;
+    body .snap-section {
+      min-height: auto;
     }
 
-    footer {
-      margin-top: 0 !important;
-      padding-top: 1rem !important;
+    body footer {
+      margin-top: 0;
+      padding-top: 1rem;
     }
 
     .mobile-432-text {
@@ -667,137 +666,137 @@
       line-height: 1.5;
     }
 
-    .mobile-432-carousel-photo {
-      width: 8rem !important;
-      height: 6rem !important;
+    body .mobile-432-carousel-photo {
+      width: 8rem;
+      height: 6rem;
     }
 
-    .mobile-432-carousel-container {
-      min-height: 7rem !important;
+    body .mobile-432-carousel-container {
+      min-height: 7rem;
     }
   }
 
   @media (min-width: 400px) and (max-width: 420px) and (min-height: 880px) and (max-height: 900px) {
-    nav .container-responsive {
-      padding-bottom: 0 !important;
+    html body nav .container-responsive {
+      padding-bottom: 0;
     }
 
-    nav {
-      padding-bottom: 0 !important;
+    html body nav {
+      padding-bottom: 0;
     }
   }
 
   @media (width: 412px) and (min-height: 880px) and (max-height: 900px) {
-    nav .container-responsive {
-      padding-bottom: 0 !important;
+    html body nav .container-responsive {
+      padding-bottom: 0;
     }
 
-    nav {
-      padding-bottom: 0 !important;
+    html body nav {
+      padding-bottom: 0;
     }
   }
 
   @media (min-width: 412px) and (max-width: 412px) and (min-height: 891px) and (max-height: 891px) {
-    nav .container-responsive {
-      padding-bottom: 0 !important;
+    html body nav .container-responsive {
+      padding-bottom: 0;
     }
 
-    nav {
-      padding-bottom: 0 !important;
+    html body nav {
+      padding-bottom: 0;
     }
   }
 
   @media (min-width: 900px) and (max-width: 930px) and (min-height: 1780px) and (max-height: 1800px) {
-    .mobile-915-heading {
-      font-size: 2.5rem !important;
+    html body .mobile-915-heading {
+      font-size: 2.5rem;
       line-height: 1.2;
     }
 
-    .mobile-915-subheading {
-      font-size: 1.75rem !important;
+    html body .mobile-915-subheading {
+      font-size: 1.75rem;
       line-height: 1.3;
     }
 
-    .mobile-915-description {
-      font-size: 1.25rem !important;
+    html body .mobile-915-description {
+      font-size: 1.25rem;
       line-height: 1.6;
     }
 
-    .mobile-915-gallery-title {
-      font-size: 2rem !important;
+    html body .mobile-915-gallery-title {
+      font-size: 2rem;
       line-height: 1.2;
     }
 
-    .mobile-915-gallery-subtitle {
-      font-size: 1.25rem !important;
+    html body .mobile-915-gallery-subtitle {
+      font-size: 1.25rem;
       line-height: 1.5;
     }
 
-    .mobile-915-carousel-photo {
-      width: 12rem !important;
-      height: 9rem !important;
+    html body .mobile-915-carousel-photo {
+      width: 12rem;
+      height: 9rem;
     }
 
-    .mobile-915-carousel-container {
-      min-height: 10rem !important;
+    html body .mobile-915-carousel-container {
+      min-height: 10rem;
     }
 
-    .mobile-915-category-cards {
-      display: flex !important;
-      justify-content: center !important;
-      gap: 1rem !important;
-      margin-top: 2rem !important;
+    html body .mobile-915-category-cards {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 2rem;
     }
 
-    .mobile-915-category-card {
-      flex: 1 !important;
-      max-width: 8rem !important;
-      padding: 1rem !important;
-      text-align: center !important;
+    html body .mobile-915-category-card {
+      flex: 1;
+      max-width: 8rem;
+      padding: 1rem;
+      text-align: center;
     }
 
-    .mobile-915-category-title {
-      font-size: 1.125rem !important;
-      font-weight: 600 !important;
-      line-height: 1.2 !important;
+    html body .mobile-915-category-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      line-height: 1.2;
     }
 
-    .mobile-915-category-subtitle {
-      font-size: 0.75rem !important;
-      font-weight: 500 !important;
-      line-height: 1.2 !important;
-      margin-top: 0.25rem !important;
+    html body .mobile-915-category-subtitle {
+      font-size: 0.75rem;
+      font-weight: 500;
+      line-height: 1.2;
+      margin-top: 0.25rem;
     }
   }
 
   @media (max-width: 1023px) {
-    .back-to-top-mobile {
-      bottom: 6rem !important;
+    html body .back-to-top-mobile {
+      bottom: 6rem;
       right: 1rem;
     }
   }
 
   @media (max-width: 480px) {
-    .back-to-top-mobile {
-      bottom: 5rem !important;
+    html body .back-to-top-mobile {
+      bottom: 5rem;
     }
   }
 
   @media (min-width: 481px) and (max-width: 768px) {
-    .back-to-top-mobile {
-      bottom: 7rem !important;
+    html body .back-to-top-mobile {
+      bottom: 7rem;
     }
   }
 
   @media (max-width: 1023px) {
-    .testimonials-mobile-hidden {
-      display: none !important;
+    html body .testimonials-mobile-hidden {
+      display: none;
     }
   }
 
   @media (max-height: 500px) and (orientation: landscape) {
-    .testimonials-mobile-hidden {
-      display: none !important;
+    html body .testimonials-mobile-hidden {
+      display: none;
     }
   }
 }
@@ -1200,4 +1199,11 @@
   .max-h-hero {
     max-height: var(--img-hero-h);
   }
+}
+
+/* Bulletproof scroll lock for when modals are open */
+body.modal-open,
+html.modal-open {
+  overflow: hidden !important;
+  touch-action: none;
 }

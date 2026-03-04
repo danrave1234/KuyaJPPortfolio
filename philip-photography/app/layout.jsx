@@ -1,14 +1,12 @@
-import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/src/contexts/AuthContext'
 import { ThemeProvider } from '@/src/contexts/ThemeContext'
+import { ScrollProvider } from '@/src/contexts/ScrollContext'
 import ThemeWrapper from '@/app/components/ThemeWrapper'
 import Navbar from '@/app/components/Navbar'
 import ConditionalFooter from '@/app/components/ConditionalFooter'
-import BackToTop from '@/app/components/BackToTop'
 import ErrorBoundary from '@/app/components/ErrorBoundary'
-
-const inter = Inter({ subsets: ['latin'] })
+import BackToTop from '@/app/components/BackToTop'
 
 export const metadata = {
   metadataBase: new URL('https://jpmorada.photography'),
@@ -271,18 +269,20 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <ThemeProvider initialTheme={initialTheme}>
-          <AuthProvider>
-            <ThemeWrapper>
-              <ErrorBoundary>
-                <Navbar />
-                <main>{children}</main>
-                <ConditionalFooter />
-                <BackToTop />
-              </ErrorBoundary>
-            </ThemeWrapper>
-          </AuthProvider>
+          <ScrollProvider>
+            <AuthProvider>
+              <ThemeWrapper>
+                <ErrorBoundary>
+                  <Navbar />
+                  <main>{children}</main>
+                  <ConditionalFooter />
+                  <BackToTop />
+                </ErrorBoundary>
+              </ThemeWrapper>
+            </AuthProvider>
+          </ScrollProvider>
         </ThemeProvider>
       </body>
     </html>

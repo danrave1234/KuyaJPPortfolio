@@ -3,7 +3,12 @@ import { initializeApp } from 'firebase/app';
 import { getAnalytics } from 'firebase/analytics';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import {
+  CACHE_SIZE_UNLIMITED,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager
+} from 'firebase/firestore';
 
 // Firebase configuration - using existing project with custom domain
 const firebaseConfig = {
@@ -29,22 +34,14 @@ export const auth = getAuth(app);
 export const storage = getStorage(app);
 
 // Initialize Firestore and get a reference to the service
-export const db = getFirestore(app);
-
-// Enable offline persistence and suppress WebSocket termination errors (only on client side)
-if (typeof window !== 'undefined') {
-  enableIndexedDbPersistence(db, {
-    synchronizeTabs: true
-  }).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      // Multiple tabs open, persistence can only be enabled in one tab at a time.
-      console.warn('Firestore persistence disabled: Multiple tabs open');
-    } else if (err.code === 'unimplemented') {
-      // The current browser doesn't support persistence.
-      console.warn('Firestore persistence not supported by browser');
-    }
-  });
-}
+// Use modern cache initialization to avoid persistence lock contention in multi-tab sessions.
+// If persistence cannot be acquired, Firestore falls back to memory cache automatically.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+    cacheSizeBytes: CACHE_SIZE_UNLIMITED
+  })
+});
 
 // Export the app instance
 export default app;

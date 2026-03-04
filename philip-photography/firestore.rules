@@ -5,13 +5,13 @@ service cloud.firestore {
     // Allow public read access to gallery images
     match /gallery/{document} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email == 'jpmoradanaturegram@gmail.com';
+      allow write: if request.auth != null && (request.auth.token.email == 'jpmoradanaturegram@gmail.com' || request.auth.token.email == 'danravekeh123@gmail.com' || request.auth.token.email == 'admin@gmail.com');
     }
     
     // Allow public read access to featured images
     match /featured/{document} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.email == 'jpmoradanaturegram@gmail.com';
+      allow write: if request.auth != null && (request.auth.token.email == 'jpmoradanaturegram@gmail.com' || request.auth.token.email == 'danravekeh123@gmail.com' || request.auth.token.email == 'admin@gmail.com');
     }
     
     // Analytics collections - allow public writes for tracking
@@ -41,7 +41,13 @@ service cloud.firestore {
     
     // Admin-only collections
     match /admin/{document} {
-      allow read, write: if request.auth != null && request.auth.token.email == 'jpmoradanaturegram@gmail.com';
+      allow read, write: if request.auth != null && (request.auth.token.email == 'jpmoradanaturegram@gmail.com' || request.auth.token.email == 'danravekeh123@gmail.com' || request.auth.token.email == 'admin@gmail.com');
+    }
+    
+    // Site settings - allow public read, but admin-only write
+    match /settings/{document} {
+      allow read: if true;
+      allow write: if request.auth != null && (request.auth.token.email == 'jpmoradanaturegram@gmail.com' || request.auth.token.email == 'danravekeh123@gmail.com' || request.auth.token.email == 'admin@gmail.com');
     }
     
     // Users collection (for authentication)

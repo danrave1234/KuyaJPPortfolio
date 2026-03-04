@@ -4,13 +4,14 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { useTheme } from '@/src/contexts/ThemeContext'
+import { useScroll } from '@/src/contexts/ScrollContext'
 import { Moon, Sun, Menu, X, Grid } from 'lucide-react'
 
 export default function Navbar({ activeSection = 'home', scrolled = false }) {
   const { resetTheme, toggleMode } = useTheme()
+  const { scrollY } = useScroll()
   const [isDark, setIsDark] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [localScrolled, setLocalScrolled] = useState(false)
   const pathname = usePathname() ?? '/'
 
   // Initialize dark mode state
@@ -18,42 +19,8 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
     setIsDark(document.documentElement.classList.contains('dark'))
   }, [])
 
-  // Handle scroll detection for all pages
-  useEffect(() => {
-    const onScroll = () => {
-      // Check for custom scroll container first (Home page)
-      const scrollContainer = document.querySelector('.snap-y.snap-mandatory')
-      let scrollY = 0
-      
-      if (scrollContainer) {
-        scrollY = scrollContainer.scrollTop
-      } else {
-        scrollY = window.scrollY
-      }
-      
-      setLocalScrolled(scrollY > 10)
-    }
-    
-    // Listen to both window scroll and custom container scroll
-    window.addEventListener('scroll', onScroll, { passive: true })
-    
-    const scrollContainer = document.querySelector('.snap-y.snap-mandatory')
-    if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', onScroll, { passive: true })
-    }
-    
-    onScroll() // Initial check
-    
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', onScroll)
-      }
-    }
-  }, [pathname])
-
-  // Use local scroll state for all pages
-  const isScrolled = localScrolled
+  // Use scroll state from context
+  const isScrolled = scrollY > 10
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -106,11 +73,10 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
     `block px-6 py-4 text-base font-semibold transition-all duration-[var(--t-base)] rounded-2xl mx-2 my-1 ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white'} hover:bg-gradient-to-r hover:from-[rgb(var(--primary))]/10 hover:to-[rgb(var(--primary))]/5 hover:shadow-md hover:scale-[1.02] ${isActive ? 'bg-gradient-to-r from-[rgb(var(--primary))]/20 to-[rgb(var(--primary))]/10 shadow-lg scale-[1.02]' : ''}`;
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-[var(--t-base)] ${
-      showBackground
-        ? 'bg-[rgb(var(--bg))]/95 shadow-sm backdrop-blur-md border-b border-gray-200 dark:border-gray-800'
-        : 'bg-transparent backdrop-blur-0 border-b border-transparent'
-    }`}>
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-[var(--t-base)] ${showBackground
+      ? 'bg-[rgb(var(--bg))]/95 shadow-sm backdrop-blur-md border-b border-gray-200 dark:border-gray-800'
+      : 'bg-transparent backdrop-blur-0 border-b border-transparent'
+      }`}>
       <nav className="container-responsive h-14 md:h-16 flex items-center justify-between">
         {/* Logo */}
         <div>
@@ -120,7 +86,7 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
               alt="Philip Photography Logo"
               className="h-8 md:h-10 w-auto"
             />
-            <span className={`font-bold text-lg tracking-wider transition-colors duration-[var(--t-base)] ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'}`}>
+            <span className={`font-heading font-bold text-lg tracking-wider transition-colors duration-[var(--t-base)] ${showBackground ? 'text-[rgb(var(--fg))]' : 'text-white drop-shadow-lg'}`}>
               JP MORADA
             </span>
           </Link>
@@ -275,7 +241,7 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
               <div className="flex items-center justify-center gap-2">
                 <div className="w-1 h-1 rounded-full bg-[rgb(var(--primary))] opacity-40"></div>
                 <p className="text-xs text-[rgb(var(--muted))] text-center">
-                  � 2024
+                  © 2024
                 </p>
                 <div className="w-1 h-1 rounded-full bg-[rgb(var(--primary))] opacity-40"></div>
               </div>
@@ -286,14 +252,4 @@ export default function Navbar({ activeSection = 'home', scrolled = false }) {
     </header>
   )
 }
-
-
-
-
-
-
-
-
-
-
 

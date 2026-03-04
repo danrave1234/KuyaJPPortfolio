@@ -3,12 +3,13 @@
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { X, ChevronLeft, ChevronRight, Maximize2, Minimize2, ArrowRight, Search, Heart, Filter } from 'lucide-react'
-import { getGalleryImages, searchGalleryImages } from '@/src/firebase/api'
+import { getGalleryImages, searchGalleryImages, getSiteSettings } from '@/src/firebase/api'
 import { useTheme } from '@/src/contexts/ThemeContext'
 import { analytics } from '@/src/firebase/config'
 import { logEvent } from 'firebase/analytics'
 import { trackImageView, trackGalleryNavigation } from '@/src/services/analytics'
 import { generateSlug, extractIdFromSlug } from '@/src/utils/slugify'
+import { useViewportScale } from '@/src/hooks/useViewportScale'
 
 // Helper to get current active theme (falls back to birdlife)
 const getActiveThemeKey = () => {
@@ -20,11 +21,18 @@ const getActiveThemeKey = () => {
   return 'birdlife'
 }
 
-// Simple cache restoration function (theme-aware)
-const getCachedArtworks = () => {
+const getArtworkCacheSuffix = (themeKey, shouldGroupSeries, galleryCacheVersion = 1) => {
+  const modeKey = shouldGroupSeries ? 'grouped' : 'individual'
+  const versionKey = Number(galleryCacheVersion) || 1
+  return `-${themeKey}-${modeKey}-v${versionKey}`
+}
+
+// Simple cache restoration function (theme-aware + grouping-aware)
+const getCachedArtworks = (themeKey, shouldGroupSeries, galleryCacheVersion = 1) => {
   if (typeof window === 'undefined') return null
   try {
-    const suffix = `-${getActiveThemeKey()}`
+    const resolvedTheme = themeKey || getActiveThemeKey()
+    const suffix = getArtworkCacheSuffix(resolvedTheme, shouldGroupSeries, galleryCacheVersion)
     // Check localStorage cache first (per-theme)
     const cachedArtworks = localStorage.getItem(`gallery-artwork-cache${suffix}`)
     const cacheTimestamp = localStorage.getItem(`gallery-artwork-cache-timestamp${suffix}`)
@@ -82,36 +90,15 @@ export default function Gallery({ slug: imageSlug, category }) {
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const queryImageSlug = searchParams.get('image')
-  const actualSlug = queryImageSlug || imageSlug || params?.slug || null
+  const rawSlug = queryImageSlug || imageSlug || params?.slug
+  const actualSlug = Array.isArray(rawSlug) ? rawSlug[0] : (rawSlug || null)
   const { theme, mounted } = useTheme()
   // Keep SSR stable: until mounted, stick to baseline 'birdlife'
   // If a category prop is provided (from a category-specific page), use it directly
   const currentTheme = category || ((mounted && theme) ? theme : 'birdlife')
   const folderPath = `gallery/${currentTheme}`
-  const keySuffix = `-${currentTheme}`
   // Strict theme mode: no legacy fallbacks
 
-  // Helper function to save scroll position
-  const saveScrollPosition = () => {
-    const currentScroll = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
-    try {
-      sessionStorage.setItem('gallery-scrollY', String(currentScroll))
-    } catch { }
-  }
-
-  // IMMEDIATE scroll restoration removed - causes issues with batch loading
-
-  // Disable browser's automatic scroll restoration
-  useEffect(() => {
-    if ('scrollRestoration' in window.history) {
-      window.history.scrollRestoration = 'manual'
-    }
-    return () => {
-      if ('scrollRestoration' in window.history) {
-        window.history.scrollRestoration = 'auto'
-      }
-    }
-  }, [])
 
   const [active, setActive] = useState(null) // { art, idx }
 
@@ -137,7 +124,6 @@ export default function Gallery({ slug: imageSlug, category }) {
   const [artworks, setArtworks] = useState([])
   const [galleryLoading, setGalleryLoading] = useState(true)
   const [isInitialized, setIsInitialized] = useState(false)
-  const hasAttemptedScrollRestoreRef = useRef(false)
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
 
@@ -156,6 +142,33 @@ export default function Gallery({ slug: imageSlug, category }) {
   const [searchResults, setSearchResults] = useState([])
   const [searchPage, setSearchPage] = useState(1)
   const [searchHasMore, setSearchHasMore] = useState(false)
+
+  // Settings state
+  const [shouldGroupSeries, setShouldGroupSeries] = useState(true)
+  const [galleryCacheVersion, setGalleryCacheVersion] = useState(1)
+
+  const keySuffix = getArtworkCacheSuffix(currentTheme, shouldGroupSeries, galleryCacheVersion)
+
+  const getSeriesGroupKey = (img) => {
+    if (!img?.isSeries) return null
+
+    if (img.seriesTitle) return img.seriesTitle
+    if (img.seriesName) return img.seriesName
+
+    if (img.path) {
+      const filename = img.path.split('/').pop() || ''
+      const dotSeriesMatch = filename.match(/^(.+)\.(\d+)(\.[^.]+)?$/)
+      if (dotSeriesMatch) return dotSeriesMatch[1]
+    }
+
+    if (img.title) {
+      const titlePartMatch = img.title.match(/^(.*?)(?:\s*[-–:]?\s*part\s*\d+)$/i)
+      if (titlePartMatch?.[1]) return titlePartMatch[1].trim()
+      return img.title
+    }
+
+    return null
+  }
 
   // Image lookup function to find image by slug
   const findImageBySlug = (slug, images) => {
@@ -208,49 +221,82 @@ export default function Gallery({ slug: imageSlug, category }) {
 
   // Handle image click with URL routing
   const handleImageClick = (art, idx = 0) => {
-    // Save current scroll position
-    const currentScroll = window.scrollY || document.documentElement.scrollTop
-    try {
-      sessionStorage.setItem('gallery-scrollY', String(currentScroll))
-    } catch { }
+    let modalArt = art
+    let modalIdx = idx
+
+    if (!art.isSeries && art.isSeriesItem) {
+      const seriesKey = getSeriesGroupKey(art) || art.seriesTitle
+      if (seriesKey) {
+        const connectedSeriesItems = deduplicatedArtworks
+          .filter(item => !item.isSeries && item.isSeriesItem)
+          .filter(item => (getSeriesGroupKey(item) || item.seriesTitle) === seriesKey)
+          .sort((a, b) => (a.seriesIndex || 1) - (b.seriesIndex || 1))
+
+        if (connectedSeriesItems.length > 1) {
+          const images = connectedSeriesItems.map(item => ({
+            id: item.id,
+            src: item.src,
+            title: item.title,
+            alt: item.alt,
+            description: item.description,
+            scientificName: item.scientificName,
+            location: item.location,
+            timeTaken: item.timeTaken,
+            history: item.history,
+            likes: item.likes,
+            path: item.path,
+            seriesIndex: item.seriesIndex || 1
+          }))
+
+          const activeItemId = art.id || art.path
+          const resolvedIdx = Math.max(0, connectedSeriesItems.findIndex(item => (item.id || item.path) === activeItemId))
+
+          modalArt = {
+            ...art,
+            id: `series_${seriesKey}`,
+            title: art.seriesTitle || seriesKey,
+            isSeries: true,
+            images
+          }
+          modalIdx = resolvedIdx
+        }
+      }
+    }
 
     // Extract series number from the image for clean URLs
     let seriesNumber = '1';
-    if (art.isSeries && art.images && art.images[idx]) {
-      seriesNumber = String(art.images[idx].seriesIndex || idx + 1);
-    } else if (art.seriesNumber) {
-      seriesNumber = String(art.seriesNumber);
-    } else if (art.seriesIndex) {
-      seriesNumber = String(art.seriesIndex);
+    if (modalArt.isSeries && modalArt.images && modalArt.images[modalIdx]) {
+      seriesNumber = String(modalArt.images[modalIdx].seriesIndex || modalIdx + 1);
+    } else if (modalArt.seriesNumber) {
+      seriesNumber = String(modalArt.seriesNumber);
+    } else if (modalArt.seriesIndex) {
+      seriesNumber = String(modalArt.seriesIndex);
     } else {
       // Extract from path/name if available
-      const name = art.name || art.path?.split('/').pop() || '';
+      const name = modalArt.name || modalArt.path?.split('/').pop() || '';
       const match = name.match(/_(\d+)\./);
       if (match) seriesNumber = match[1];
     }
 
-    const slug = generateSlug(art.title, art.scientificName, seriesNumber);
+    const slug = generateSlug(modalArt.title, modalArt.scientificName, seriesNumber);
 
     // Mark as a user-initiated open so URL-sync effects don't fight this transition.
     pendingOpenSlugRef.current = slug;
 
     // Open immediately, then update the URL.
-    setActive({ art, idx });
+    setActive({ art: modalArt, idx: modalIdx });
 
     // Store the current page so closing the modal returns here
     try { sessionStorage.setItem('gallery-back-url', pathname) } catch { }
 
-    // Navigate to the clean SEO-friendly URL for this photo
-    router.push(`/gallery/${slug}`, { scroll: false })
+    // Navigate to the clean SEO-friendly URL for this photo using shallow routing
+    window.history.pushState({ ...window.history.state, pendingOpenSlug: slug }, '', `/gallery/${slug}`)
   };
 
   // Handle modal close with URL routing
   const handleModalClose = () => {
-    // Don't save current scroll position here because it might be 0 due to ScrollToTop
-    // We rely on the position saved when the image was clicked
     setActive(null);
     pendingOpenSlugRef.current = null
-    const savedScroll = sessionStorage.getItem('gallery-scrollY')
 
     // Return to the gallery page the user came from
     let backUrl = '/gallery'
@@ -259,7 +305,7 @@ export default function Gallery({ slug: imageSlug, category }) {
       if (stored) backUrl = stored
     } catch { }
 
-    router.push(backUrl, { scroll: false })
+    window.history.pushState({ ...window.history.state, pendingOpenSlug: null }, '', backUrl)
   };
 
   // Sync active state with URL slug (handles back/forward navigation)
@@ -272,27 +318,6 @@ export default function Gallery({ slug: imageSlug, category }) {
       setActive(null);
     }
   }, [actualSlug, active]);
-
-  // Save scroll position before page unload (refresh/close)
-  useEffect(() => {
-    // Save on beforeunload (refresh/close)
-    window.addEventListener('beforeunload', saveScrollPosition);
-
-    // Also save periodically while scrolling (debounced)
-    let scrollTimeout;
-    const handleScroll = () => {
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(saveScrollPosition, 200);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener('beforeunload', saveScrollPosition);
-      window.removeEventListener('scroll', handleScroll);
-      clearTimeout(scrollTimeout);
-    };
-  }, []);
 
   // Open modal on direct URL access
   useEffect(() => {
@@ -358,7 +383,8 @@ export default function Gallery({ slug: imageSlug, category }) {
       setArtworks(sorted);
     } else if (!debouncedQuery && sortFilter === 'default') {
       // Reset to original order when filter is reset - reload from cache or API (theme-specific)
-      const sessionCache = sessionStorage.getItem(`gallery-artwork-session${keySuffix}`);
+      const artworkCacheSuffix = getArtworkCacheSuffix(currentTheme, shouldGroupSeries, galleryCacheVersion);
+      const sessionCache = sessionStorage.getItem(`gallery-artwork-session${artworkCacheSuffix}`);
       if (sessionCache) {
         try {
           const parsedArtworks = JSON.parse(sessionCache);
@@ -411,7 +437,8 @@ export default function Gallery({ slug: imageSlug, category }) {
 
     try {
       // Check cache for search results (per-theme)
-      const cacheKey = `search-${searchQuery}-${page}${keySuffix}`;
+      const searchCacheSuffix = getArtworkCacheSuffix(currentTheme, shouldGroupSeries, galleryCacheVersion);
+      const cacheKey = `search-${searchQuery}-${page}${searchCacheSuffix}`;
       const cachedResults = sessionStorage.getItem(`gallery-search-${cacheKey}`);
 
       if (cachedResults) {
@@ -432,8 +459,8 @@ export default function Gallery({ slug: imageSlug, category }) {
 
       const result = await searchGalleryImages(folderPath, searchQuery, page, 20);
       if (result.success) {
-        // Group search results by series like the main gallery
-        const groupedResults = groupImagesBySeries(result.images);
+        // Group search results by series like the main gallery if settings allow
+        const groupedResults = groupImagesBySeries(result.images, shouldGroupSeries);
         const shuffled = shuffleArray(groupedResults);
 
         // Cache search results
@@ -463,7 +490,46 @@ export default function Gallery({ slug: imageSlug, category }) {
   };
 
   // Function to group images by series (using metadata)
-  const groupImagesBySeries = (images) => {
+  const groupImagesBySeries = (images, shouldGroup = true) => {
+    if (!Array.isArray(images) || images.length === 0) return []
+
+    if (!shouldGroup) {
+      const seriesCounts = images.reduce((acc, img) => {
+        const seriesKey = getSeriesGroupKey(img)
+        if (seriesKey) {
+          acc[seriesKey] = (acc[seriesKey] || 0) + 1
+        }
+        return acc
+      }, {})
+
+      const seriesDisplayTitles = images.reduce((acc, img) => {
+        const seriesKey = getSeriesGroupKey(img)
+        if (seriesKey && !acc[seriesKey]) {
+          acc[seriesKey] = img.seriesTitle || img.seriesName || seriesKey
+        }
+        return acc
+      }, {})
+
+      return images.map((img) => ({
+        id: img.id,
+        src: img.src,
+        title: img.title || img.name.replace(/\.[^/.]+$/, ''),
+        alt: img.alt || img.name,
+        isSeries: false,
+        isSeriesItem: !!img.isSeries,
+        seriesTitle: img.isSeries ? (seriesDisplayTitles[getSeriesGroupKey(img)] || getSeriesGroupKey(img) || img.title) : null,
+        seriesIndex: img.seriesIndex || 1,
+        seriesTotal: img.isSeries ? (seriesCounts[getSeriesGroupKey(img)] || 1) : 1,
+        description: img.description || '',
+        scientificName: img.scientificName || '',
+        location: img.location,
+        timeTaken: img.timeTaken,
+        history: img.history,
+        likes: img.likes,
+        path: img.path
+      }))
+    }
+
     const groups = {};
 
     images.forEach(img => {
@@ -497,7 +563,7 @@ export default function Gallery({ slug: imageSlug, category }) {
         });
       } else {
         // Individual image (not part of a series) - store as flat artwork with src
-        const individualName = `individual_${img.title || img.name}`;
+        const individualName = `individual_${img.id || img.path || img.title || img.name}`;
         groups[individualName] = {
           id: img.id,
           src: img.src,
@@ -535,8 +601,18 @@ export default function Gallery({ slug: imageSlug, category }) {
           setSearchPage(1)
           setSearchHasMore(false)
         }
-        // Check cache first
-        const cachedData = getCachedArtworks()
+        const settings = await getSiteSettings()
+        const groupSeries = settings.groupSeriesInGallery !== false
+        const resolvedGalleryCacheVersion = Number(settings.galleryCacheVersion) || 1
+
+        if (isMounted) {
+          setShouldGroupSeries(groupSeries)
+          setGalleryCacheVersion(resolvedGalleryCacheVersion)
+        }
+
+        // Check cache first (theme + grouping mode)
+        const cacheSuffix = getArtworkCacheSuffix(currentTheme, groupSeries, resolvedGalleryCacheVersion)
+        const cachedData = getCachedArtworks(currentTheme, groupSeries, resolvedGalleryCacheVersion)
 
         if (cachedData) {
           if (isMounted) {
@@ -551,21 +627,22 @@ export default function Gallery({ slug: imageSlug, category }) {
           return
         }
 
-        // Fetch fresh data from Firebase Functions API (theme-specific)
-        const result = await getGalleryImages(folderPath, 1, 20);
+        // Fetch fresh data from Firebase Functions API (theme-specific) and settings
+        const result = await getGalleryImages(folderPath, 1, 20)
+
         if (result.success) {
           // Group images by series first, then shuffle
-          const groupedImages = groupImagesBySeries(result.images)
+          const groupedImages = groupImagesBySeries(result.images, groupSeries)
           const shuffled = shuffleArray(groupedImages)
 
           // Store in cache
           const artworksJson = JSON.stringify(shuffled)
           const now = Date.now()
-          localStorage.setItem(`gallery-artwork-cache${keySuffix}`, artworksJson)
-          localStorage.setItem(`gallery-artwork-cache-timestamp${keySuffix}`, now.toString())
-          localStorage.setItem(`gallery-artwork-page${keySuffix}`, '1')
-          sessionStorage.setItem(`gallery-artwork-session${keySuffix}`, artworksJson)
-          sessionStorage.setItem(`gallery-artwork-page${keySuffix}`, '1')
+          localStorage.setItem(`gallery-artwork-cache${cacheSuffix}`, artworksJson)
+          localStorage.setItem(`gallery-artwork-cache-timestamp${cacheSuffix}`, now.toString())
+          localStorage.setItem(`gallery-artwork-page${cacheSuffix}`, '1')
+          sessionStorage.setItem(`gallery-artwork-session${cacheSuffix}`, artworksJson)
+          sessionStorage.setItem(`gallery-artwork-page${cacheSuffix}`, '1')
           // Note: dimensions will be cached as images load via handleImageLoad
 
           if (isMounted) {
@@ -599,86 +676,6 @@ export default function Gallery({ slug: imageSlug, category }) {
 
   // Preload images for instant display - removed because it preloads wrong images
   // Images load individually as they render, which is actually faster and more efficient
-
-
-  // Fine-tune scroll restoration after images load - ONLY on initial load or modal close
-  useEffect(() => {
-    // Check if we are returning from modal (state has restoreScroll)
-    const state = window.history.state?.usr; // React Router stores state in usr
-    const shouldRestore = hasAttemptedScrollRestoreRef.current === false || (state && state.restoreScroll);
-
-    if (!shouldRestore || !isInitialized || imageSlug) {
-      return
-    }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    if (artworks.length === 0) {
-      return
-    }
-
-    const savedScrollY = sessionStorage.getItem('gallery-scrollY')
-    if (!savedScrollY) {
-      return
-    }
-
-    // Mark as attempted so it doesn't loop, unless explicit restore requested again
-    hasAttemptedScrollRestoreRef.current = true
-
-    const scrollPosition = parseInt(savedScrollY, 10)
-    let hasRestored = false
-    let isCancelled = false
-
-    let attempts = 0
-    const maxAttempts = 15
-
-    // Cancel restoration if user interacts
-    const cancelRestoration = () => {
-      isCancelled = true
-    }
-
-    window.addEventListener('wheel', cancelRestoration, { passive: true })
-    window.addEventListener('touchmove', cancelRestoration, { passive: true })
-    window.addEventListener('keydown', cancelRestoration, { passive: true })
-
-    // Fine-tune the scroll position as the page grows
-    const fineTuneScroll = () => {
-      if (hasRestored || isCancelled) return
-
-      attempts++
-
-      const currentHeight = Math.max(
-        document.body.scrollHeight,
-        document.documentElement.scrollHeight
-      )
-
-      // If we can scroll to the position, do it
-      if (currentHeight >= scrollPosition) {
-        window.scrollTo(0, scrollPosition)
-        hasRestored = true // Assume success to prevent fighting the user
-      }
-
-      if (!hasRestored && attempts < maxAttempts) {
-        setTimeout(fineTuneScroll, 100)
-      } else {
-        // Cleanup listeners when done or timed out
-        window.removeEventListener('wheel', cancelRestoration)
-        window.removeEventListener('touchmove', cancelRestoration)
-        window.removeEventListener('keydown', cancelRestoration)
-      }
-    }
-
-    // Start fine-tuning immediately
-    fineTuneScroll()
-
-    // Cleanup on unmount (or re-run)
-    return () => {
-      window.removeEventListener('wheel', cancelRestoration)
-      window.removeEventListener('touchmove', cancelRestoration)
-      window.removeEventListener('keydown', cancelRestoration)
-    }
-
-  }, [isInitialized, imageSlug, artworks.length])
-
   // Load more images function for infinite scroll with caching
   const loadMoreImages = async () => {
     if (loadingMore || !hasMore) return;
@@ -689,7 +686,7 @@ export default function Gallery({ slug: imageSlug, category }) {
       const result = await getGalleryImages(folderPath, nextPage, 20);
 
       if (result.success && result.images.length > 0) {
-        const newGroupedImages = groupImagesBySeries(result.images);
+        const newGroupedImages = groupImagesBySeries(result.images, shouldGroupSeries);
         const newShuffled = shuffleArray(newGroupedImages);
 
         // Update state with new images
@@ -701,12 +698,13 @@ export default function Gallery({ slug: imageSlug, category }) {
           const now = Date.now();
 
           // Update all cache layers
-          sessionStorage.setItem(`gallery-artwork-session${keySuffix}`, artworksJson);
-          sessionStorage.setItem(`gallery-artwork-page${keySuffix}`, nextPage.toString());
-          localStorage.setItem(`gallery-artwork-cache${keySuffix}`, artworksJson);
-          localStorage.setItem(`gallery-artwork-cache-timestamp${keySuffix}`, now.toString());
-          localStorage.setItem(`gallery-artwork-page${keySuffix}`, nextPage.toString());
-          localStorage.setItem(`gallery-artwork-order${keySuffix}`, artworksJson);
+          const artworkCacheSuffix = getArtworkCacheSuffix(currentTheme, shouldGroupSeries, galleryCacheVersion);
+          sessionStorage.setItem(`gallery-artwork-session${artworkCacheSuffix}`, artworksJson);
+          sessionStorage.setItem(`gallery-artwork-page${artworkCacheSuffix}`, nextPage.toString());
+          localStorage.setItem(`gallery-artwork-cache${artworkCacheSuffix}`, artworksJson);
+          localStorage.setItem(`gallery-artwork-cache-timestamp${artworkCacheSuffix}`, now.toString());
+          localStorage.setItem(`gallery-artwork-page${artworkCacheSuffix}`, nextPage.toString());
+          localStorage.setItem(`gallery-artwork-order${artworkCacheSuffix}`, artworksJson);
           // Note: dimensions will be cached as new images load via handleImageLoad
 
           return updatedArtworks;
@@ -798,65 +796,28 @@ export default function Gallery({ slug: imageSlug, category }) {
   // Use search results if searching, otherwise use regular artworks
   const displayedArtworks = debouncedQuery.trim() ? searchResults : shuffledArtworks;
 
-  // Separate series photos into individual items
-  const separatedArtworks = displayedArtworks.flatMap(art => {
-    if (art.isSeries && art.images && art.images.length > 1) {
-      // For series, create individual items for each image
-      return art.images.map((image, index) => ({
+  // Group series into album covers instead of unrolling them
+  const processedArtworks = displayedArtworks.map(art => {
+    if (art.isSeries && art.images && art.images.length > 0) {
+      const coverImage = art.images[0];
+      return {
         ...art,
-        id: image.id, // Use the original image ID so dimensions match
-        src: image.src,
-        images: undefined, // Remove the images array since this is now a single image
-        isSeries: false, // This individual image is not a series
-        seriesIndex: index + 1,
+        id: coverImage.id || art.id, // Prefer cover image ID for dimension matching
+        src: coverImage.src,
+        isSeriesAlbum: true,
         seriesTotal: art.images.length,
-        originalSeriesId: art.id,
-        title: `${art.title}${art.scientificName ? ` - ${art.scientificName}` : ''} - Part ${index + 1}`,
-        alt: `${art.title}${art.scientificName ? ` - ${art.scientificName}` : ''} - Part ${index + 1}`,
-        description: art.description,
-        scientificName: art.scientificName,
-        location: art.location,
-        timeTaken: art.timeTaken,
-        history: art.history,
-        likes: image.likes || art.likes || 0,
-        // Preserve additional metadata that might be needed
-        path: image.path || art.path,
-        size: image.size || art.size,
-        timeCreated: image.timeCreated || art.timeCreated,
-        contentType: image.contentType || art.contentType,
-        metadata: image.metadata || art.metadata,
-        // Store the complete series data for modal access
-        completeSeriesData: {
-          id: art.id,
-          isSeries: true,
-          images: art.images,
-          title: art.title,
-          description: art.description,
-          scientificName: art.scientificName,
-          location: art.location,
-          timeTaken: art.timeTaken,
-          history: art.history,
-          path: art.path,
-          size: art.size,
-          timeCreated: art.timeCreated,
-          contentType: art.contentType,
-          metadata: art.metadata
-        }
-      }));
-    } else {
-      // For single images, keep as is
-      return [art];
+      };
     }
+    return art;
   });
 
-  // Deduplicate separated artworks based on unique identifier
-  const deduplicatedArtworks = separatedArtworks.filter((art, index, array) => {
+  // Deduplicate processed artworks based on unique identifier
+  const deduplicatedArtworks = processedArtworks.filter((art, index, array) => {
     const uniqueKey = art.src || art.id;
     return array.findIndex(item =>
       (item.src || item.id) === uniqueKey
     ) === index;
   });
-
   // Add loading skeleton items when loading more (these will be interleaved by grid-flow-dense)
   const artworksWithSkeletons = loadingMore
     ? [...deduplicatedArtworks, ...Array.from({ length: 6 }, (_, i) => ({
@@ -894,23 +855,23 @@ export default function Gallery({ slug: imageSlug, category }) {
 
     const { aspectRatio } = dimensions
 
-    // Smart grid assignment based on aspect ratio with randomization
+    // Smart grid assignment based strictly on aspect ratio for consistency
     if (aspectRatio < 0.8) {
       // Portrait - always use medium (1 column, 2 rows)
       return 'medium'
-    } else if (aspectRatio > 2.0) {
+    } else if (aspectRatio > 1.8) {
       // Very wide panorama - use wide (2 columns, 1 row)
       return 'wide'
-    } else {
-      // Square/landscape - randomly choose between small and large for visual variety
-      // Use a simple hash of the image ID to create consistent "randomness"
+    } else if (aspectRatio >= 1.2 && aspectRatio <= 1.8) {
+      // Landscape - large (2 columns, 2 rows) or small based on hash to preserve some variety
       const hash = artwork.id ? artwork.id.split('').reduce((a, b) => {
         a = ((a << 5) - a) + b.charCodeAt(0);
         return a & a;
       }, 0) : Math.random() * 1000;
-
-      // 10% chance for large, 90% chance for small
-      return Math.abs(hash) % 10 < 1 ? 'large' : 'small'
+      return Math.abs(hash) % 4 === 0 ? 'large' : 'small'
+    } else {
+      // Squareish - small
+      return 'small'
     }
   }
 
@@ -1171,9 +1132,6 @@ export default function Gallery({ slug: imageSlug, category }) {
                 // Determine overlay height based on image orientation
                 const dimensions = imageDimensions[art.id]
                 const aspectRatio = dimensions?.aspectRatio || 1
-                // Portrait images (< 1) get 15% height, landscape images (>= 1) get very small 5% height
-                const overlayHeight = aspectRatio < 1 ? 'h-[15%]' : 'h-[5%]'
-                const isLandscape = aspectRatio >= 1
 
                 return (
                   <figure
@@ -1202,17 +1160,11 @@ export default function Gallery({ slug: imageSlug, category }) {
                         galleryType: 'main'
                       });
 
-                      // If this is a separated series item, use the complete series data
-                      if (art.completeSeriesData) {
-                        // Use the complete series data directly with URL routing
-                        handleImageClick(art.completeSeriesData, art.seriesIndex - 1);
-                      } else {
-                        // For single images, open normally with URL routing
-                        handleImageClick(art, 0);
-                      }
+                      // We use album grouping, so art is directly passed
+                      handleImageClick(art, 0);
                     }}
                   >
-                    <div className="w-full h-full relative overflow-hidden bg-gray-900">
+                    <div className="w-full h-full relative overflow-hidden bg-gray-900 border border-[rgb(var(--muted))]/10">
                       <img
                         src={imageSrc}
                         alt={art.title || ''}
@@ -1231,21 +1183,31 @@ export default function Gallery({ slug: imageSlug, category }) {
                         }}
                       />
 
+                      {/* Standardized Gradient Overlay - Consistent across all aspect ratios */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-500 opacity-100 md:opacity-0 md:group-hover:opacity-100" />
 
-                      {/* Elegant Gradient Overlay - Always visible on mobile, hover on desktop */}
-                      <div className={`absolute inset-0 bg-gradient-to-t ${isLandscape ? 'from-black/60 via-black/5' : 'from-black/90 via-black/20'} to-transparent transition-opacity duration-500 opacity-100 md:opacity-0 md:group-hover:opacity-100`} />
-
-                      {/* Content Overlay - Smaller for landscape, normal for portrait on mobile */}
-                      <div className={`absolute bottom-0 left-0 right-0 ${overlayHeight} md:h-auto ${isLandscape ? 'px-2 py-1' : 'p-1.5'} md:p-4 transition-all duration-500 ease-out transform translate-y-0 opacity-100 md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 flex items-end`}>
-                        <div className={`flex flex-col gap-0 md:gap-1 w-full ${isLandscape ? 'px-1' : ''}`}>
-                          <span className={`${isLandscape ? 'text-[5px]' : 'text-[7px]'} md:text-[10px] font-mono tracking-widest text-white/60 uppercase`}>
-                            {String(i + 1).padStart(2, '0')} — {art.isSeries ? 'Series' : 'Single'}
+                      {/* Series Album Cover Badge */}
+                      {art.isSeriesAlbum && (
+                        <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-md flex items-center gap-1.5 border border-white/20 z-10 transition-opacity duration-500 opacity-100 md:opacity-0 md:group-hover:opacity-100 shadow-lg">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                          </svg>
+                          <span className="text-white text-[10px] sm:text-xs font-medium tracking-wide">
+                            {art.seriesTotal} Photos
                           </span>
-                          <h3 className={`text-white font-medium ${isLandscape ? 'text-[8px]' : 'text-[10px]'} md:text-sm lg:text-base leading-tight tracking-wide drop-shadow-md line-clamp-1 md:line-clamp-2`}>
+                        </div>
+                      )}
+
+                      {/* Content Overlay - Standardized padding and typography */}
+                      <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 transition-all duration-500 ease-out transform translate-y-0 opacity-100 md:translate-y-4 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 flex items-end">
+                        <div className="flex flex-col w-full">
+                          <h3 className="text-white font-medium text-xs sm:text-sm lg:text-base leading-tight tracking-wide drop-shadow-md line-clamp-2">
                             {art.title}
                           </h3>
                           {art.scientificName && (
-                            <p className={`text-white/70 ${isLandscape ? 'text-[7px]' : 'text-[9px]'} md:text-xs italic font-serif mt-0 md:mt-0.5 tracking-wide line-clamp-1`}>
+                            <p className="text-white/70 text-[10px] sm:text-xs italic font-serif mt-0.5 tracking-wide line-clamp-1">
                               {art.scientificName}
                             </p>
                           )}
@@ -1312,6 +1274,8 @@ export default function Gallery({ slug: imageSlug, category }) {
 }
 
 function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleModalClose }) {
+  const { scale, isFitNeeded } = useViewportScale(900, 0.65)
+
   // Early return if active is null or invalid
   if (!active || !active.art) {
     return null
@@ -1426,10 +1390,12 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
   }
 
   useEffect(() => {
-    // Only lock body scroll, DO NOT mess with modal container scroll or reset it
-    const prevOverflow = document.body.style.overflow
+    // Lock both body and HTML scroll using inline styles to guarantee it takes effect
+    const prevBodyOverflow = document.body.style.overflow
+    const prevHtmlOverflow = document.documentElement.style.overflow
 
     document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
 
     // Focus the modal container to ensure keyboard events are captured
     setTimeout(() => {
@@ -1513,7 +1479,8 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
     window.addEventListener('touchend', handleTouchEnd, { passive: true })
 
     return () => {
-      document.body.style.overflow = prevOverflow
+      document.body.style.overflow = prevBodyOverflow
+      document.documentElement.style.overflow = prevHtmlOverflow
       // Remove global key handlers
       document.removeEventListener('keydown', globalKeyHandler, { capture: true })
       window.removeEventListener('keydown', globalKeyHandler, { capture: true })
@@ -1747,7 +1714,7 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
 
       {/* Main modal container */}
       <div
-        className="fixed inset-0 z-[100] flex items-center justify-center lg:overflow-hidden overflow-y-auto"
+        className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
@@ -1841,78 +1808,87 @@ function ModalViewer({ active, setActive, allArtworks, handleImageClick, handleM
           </div>
 
           {/* Sidebar Info Panel (Desktop & Mobile) */}
-          <div className="flex-none lg:flex w-full lg:w-[400px] h-auto lg:h-full bg-[rgb(var(--bg))] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-white/5 flex-col shadow-2xl relative z-20">
-            <div className="flex-1 lg:overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar">
-
-              {/* Top Meta */}
-              <div className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8">
-                <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full border border-[rgb(var(--primary))]/40 dark:border-[rgb(var(--primary))]/30 text-[rgb(var(--primary))] text-[8px] sm:text-[10px] uppercase tracking-[0.2em] font-bold">
-                  {active.art.isSeries ? 'Series Collection' : 'Single Shot'}
-                </span>
-                <button onClick={() => handleLike(currentImageData)} className="group flex items-center gap-1 sm:gap-2 transition-all">
-                  <span className="text-[10px] sm:text-xs font-mono text-[rgb(var(--fg))] dark:text-[rgb(var(--muted-fg))] opacity-80 dark:opacity-50 group-hover:opacity-100 dark:group-hover:opacity-100 transition-opacity hidden sm:inline">
-                    {currentImageData?.likes || 0} APPRECIATIONS
+          <div className="flex-none lg:flex w-full lg:w-[320px] xl:w-[400px] h-auto lg:h-full bg-[rgb(var(--bg))] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-white/5 flex-col shadow-2xl relative z-20 overflow-hidden">
+            <div
+              className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-0"
+              style={isFitNeeded ? { zoom: scale, MozTransform: `scale(${scale})`, MozTransformOrigin: 'top left' } : {}}
+            >
+              <div className="p-4 sm:p-6 lg:p-8 flex flex-col h-full">
+                {/* Top Meta */}
+                <div className="flex items-center justify-between mb-4 sm:mb-6 lg:mb-8">
+                  <span className="px-2 py-0.5 sm:px-3 sm:py-1 rounded-full border border-[rgb(var(--primary))]/40 dark:border-[rgb(var(--primary))]/30 text-[rgb(var(--primary))] text-[8px] sm:text-[10px] uppercase tracking-[0.2em] font-bold">
+                    {active.art.isSeries ? 'Series Collection' : 'Single Shot'}
                   </span>
-                  <div className="p-1.5 sm:p-2 rounded-full bg-gray-200 dark:bg-white/5 group-hover:bg-red-500/10 dark:group-hover:bg-red-500/10 transition-colors border border-gray-300 dark:border-transparent">
-                    <Heart size={14} className={`sm:w-[18px] sm:h-[18px] transition-all duration-300 ${currentImageData?.likes > 0 ? "fill-red-500 text-red-500" : "text-[rgb(var(--fg))] dark:text-white/40 group-hover:text-red-500 group-hover:scale-110"}`} />
+                  <button onClick={() => handleLike(currentImageData)} className="group flex items-center gap-1 sm:gap-2 transition-all">
+                    <span className="text-[10px] sm:text-xs font-mono text-[rgb(var(--fg))] dark:text-[rgb(var(--muted-fg))] opacity-80 dark:opacity-50 group-hover:opacity-100 dark:group-hover:opacity-100 transition-opacity hidden sm:inline">
+                      {currentImageData?.likes || 0} APPRECIATIONS
+                    </span>
+                    <div className="p-1.5 sm:p-2 rounded-full bg-gray-200 dark:bg-white/5 group-hover:bg-red-500/10 dark:group-hover:bg-red-500/10 transition-colors border border-gray-300 dark:border-transparent">
+                      <Heart size={14} className={`sm:w-[18px] sm:h-[18px] transition-all duration-300 ${currentImageData?.likes > 0 ? "fill-red-500 text-red-500" : "text-[rgb(var(--fg))] dark:text-white/40 group-hover:text-red-500 group-hover:scale-110"}`} />
+                    </div>
+                  </button>
+                </div>
+
+                {/* Title Section */}
+                <div className="mb-4 sm:mb-6 lg:mb-10">
+                  <h2 className="text-xl sm:text-2xl lg:text-4xl font-bold leading-[1.1] mb-1 sm:mb-2 lg:mb-3 text-[rgb(var(--fg))]">
+                    {active.art.title}
+                  </h2>
+                  {!active.art.isSeries && active.art.isSeriesItem && active.art.seriesTitle && (
+                    <p className="text-[10px] sm:text-xs uppercase tracking-[0.16em] text-[rgb(var(--primary))] font-semibold mb-1">
+                      Part of series: {active.art.seriesTitle}
+                    </p>
+                  )}
+                  {currentImageData?.scientificName && (
+                    <p className="text-sm sm:text-base lg:text-xl text-[rgb(var(--primary))] italic font-serif opacity-90">
+                      {currentImageData.scientificName}
+                    </p>
+                  )}
+                </div>
+
+                {/* Description */}
+                {active.art.description && (
+                  <div className="mb-4 sm:mb-6 lg:mb-10 text-[rgb(var(--muted-fg))] leading-relaxed font-light text-sm sm:text-base lg:text-lg">
+                    {active.art.description}
                   </div>
-                </button>
-              </div>
-
-              {/* Title Section */}
-              <div className="mb-4 sm:mb-6 lg:mb-10">
-                <h2 className="text-xl sm:text-2xl lg:text-4xl font-bold leading-[1.1] mb-1 sm:mb-2 lg:mb-3 text-[rgb(var(--fg))]">
-                  {active.art.title}
-                </h2>
-                {currentImageData?.scientificName && (
-                  <p className="text-sm sm:text-base lg:text-xl text-[rgb(var(--primary))] italic font-serif opacity-90">
-                    {currentImageData.scientificName}
-                  </p>
                 )}
-              </div>
 
-              {/* Description */}
-              {active.art.description && (
-                <div className="mb-4 sm:mb-6 lg:mb-10 text-[rgb(var(--muted-fg))] leading-relaxed font-light text-sm sm:text-base lg:text-lg">
-                  {active.art.description}
-                </div>
-              )}
-
-              {/* Details Grid */}
-              <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6 py-4 sm:py-6 lg:py-8 border-y border-gray-200 dark:border-white/5">
-                <div>
-                  <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--fg))] dark:text-[rgb(var(--muted))] opacity-70 dark:opacity-100 mb-1 sm:mb-2 font-semibold">Location</h4>
-                  <p className="text-xs sm:text-sm lg:text-base text-[rgb(var(--fg))] font-medium">{currentImageData?.location || 'Unknown Location'}</p>
-                </div>
-                <div>
-                  <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--fg))] dark:text-[rgb(var(--muted))] opacity-70 dark:opacity-100 mb-1 sm:mb-2 font-semibold">Date Taken</h4>
-                  <p className="text-xs sm:text-sm lg:text-base text-[rgb(var(--fg))] font-medium">{currentImageData?.timeTaken || 'Unknown Date'}</p>
-                </div>
-                {currentImageData?.history && (
+                {/* Details Grid */}
+                <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:gap-6 py-4 sm:py-6 lg:py-8 border-y border-gray-200 dark:border-white/5">
                   <div>
-                    <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--fg))] dark:text-[rgb(var(--muted))] opacity-70 dark:opacity-100 mb-1 sm:mb-2 font-semibold">Story</h4>
-                    <p className="text-xs sm:text-sm text-[rgb(var(--fg))] leading-relaxed opacity-90 dark:opacity-80">{currentImageData.history}</p>
+                    <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--fg))] dark:text-[rgb(var(--muted))] opacity-70 dark:opacity-100 mb-1 sm:mb-2 font-semibold">Location</h4>
+                    <p className="text-xs sm:text-sm lg:text-base text-[rgb(var(--fg))] font-medium">{currentImageData?.location || 'Unknown Location'}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--fg))] dark:text-[rgb(var(--muted))] opacity-70 dark:opacity-100 mb-1 sm:mb-2 font-semibold">Date Taken</h4>
+                    <p className="text-xs sm:text-sm lg:text-base text-[rgb(var(--fg))] font-medium">{currentImageData?.timeTaken || 'Unknown Date'}</p>
+                  </div>
+                  {currentImageData?.history && (
+                    <div>
+                      <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--fg))] dark:text-[rgb(var(--muted))] opacity-70 dark:opacity-100 mb-1 sm:mb-2 font-semibold">Story</h4>
+                      <p className="text-xs sm:text-sm text-[rgb(var(--fg))] leading-relaxed opacity-90 dark:opacity-80">{currentImageData.history}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Series Navigation (if applicable) */}
+                {hasMultipleImages && (
+                  <div className="mt-4 sm:mt-6 lg:mt-10">
+                    <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--fg))] dark:text-[rgb(var(--muted))] opacity-70 dark:opacity-100 mb-2 sm:mb-3 lg:mb-4 font-semibold">In This Series</h4>
+                    <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-3 gap-1.5 sm:gap-2">
+                      {active.art.images.map((img, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => handleImageClick(active.art, idx)}
+                          className={`relative aspect-square rounded-md sm:rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5 flex items-center justify-center ${active.idx === idx ? 'ring-1 sm:ring-2 ring-[rgb(var(--primary))] opacity-100' : 'opacity-70 hover:opacity-100'}`}
+                        >
+                          <img src={img.src} alt="" className="w-full h-full object-contain" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
-
-              {/* Series Navigation (if applicable) */}
-              {hasMultipleImages && (
-                <div className="mt-4 sm:mt-6 lg:mt-10">
-                  <h4 className="text-[8px] sm:text-[10px] uppercase tracking-[0.2em] text-[rgb(var(--fg))] dark:text-[rgb(var(--muted))] opacity-70 dark:opacity-100 mb-2 sm:mb-3 lg:mb-4 font-semibold">In This Series</h4>
-                  <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-3 gap-1.5 sm:gap-2">
-                    {active.art.images.map((img, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleImageClick(active.art, idx)}
-                        className={`relative aspect-square rounded-md sm:rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5 flex items-center justify-center ${active.idx === idx ? 'ring-1 sm:ring-2 ring-[rgb(var(--primary))] opacity-100' : 'opacity-70 hover:opacity-100'}`}
-                      >
-                        <img src={img.src} alt="" className="w-full h-full object-contain" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Footer */}
