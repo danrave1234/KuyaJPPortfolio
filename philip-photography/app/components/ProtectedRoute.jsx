@@ -14,7 +14,7 @@ export default function ProtectedRoute({ children }) {
     // In development, allow access without auth to avoid redirect loops while testing admin UI
     if (isDev) return
     if (loading) return
-    if (!isAuthenticated || !isAdmin) {
+    if (isAuthenticated && !isAdmin) {
       router.replace('/')
     }
   }, [loading, isAuthenticated, isAdmin, router, isDev])
@@ -38,8 +38,9 @@ export default function ProtectedRoute({ children }) {
     )
   }
 
-  // If unauthorized, redirect effect will run; render nothing so admin UI never flashes.
-  if (!isAuthenticated || !isAdmin) {
+  // Unauthenticated users can stay on /admin and use the login UI.
+  // Only authenticated non-admin users should be redirected away.
+  if (isAuthenticated && !isAdmin) {
     return null
   }
 

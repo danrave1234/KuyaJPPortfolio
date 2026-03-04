@@ -16,7 +16,14 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const adminEmails = ['jpmoradanaturegram@gmail.com', 'danravekeh123@gmail.com', 'admin@gmail.com'];
+  const fallbackAdminEmails = ['jpmoradanaturegram@gmail.com', 'danravekeh123@gmail.com', 'admin@gmail.com'];
+  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+    .split(',')
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean);
+  const allowedAdminEmails = adminEmails.length > 0
+    ? adminEmails
+    : fallbackAdminEmails.map(email => email.toLowerCase());
 
   useEffect(() => {
     const unsubscribe = onAuthStateChange((user) => {
@@ -33,7 +40,11 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     currentUser: getCurrentUser,
     // Helper functions
-    isAdmin: !!(user && adminEmails.includes(user.email)),
+    isAdmin: !!(
+      user &&
+      user.email &&
+      allowedAdminEmails.includes(user.email.toLowerCase())
+    ),
     signOut: async () => {
       try {
         await signOutUser();
