@@ -1,10 +1,11 @@
-import { 
-  ref, 
-  uploadBytes, 
-  getDownloadURL, 
-  deleteObject, 
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
   listAll,
-  getMetadata
+  getMetadata,
+  updateMetadata
 } from 'firebase/storage';
 import { storage } from './config';
 
@@ -27,7 +28,7 @@ export const uploadImage = async (file, path = 'gallery', newFileName = null, cu
             if (['birdlife', 'astro', 'landscape'].includes(segments[0])) {
               return segments[0];
             }
-          } catch {}
+          } catch { }
           return '';
         })(),
         originalName: file.name, // Keep original name for reference
@@ -36,10 +37,10 @@ export const uploadImage = async (file, path = 'gallery', newFileName = null, cu
 
     const snapshot = await uploadBytes(imageRef, file, metadata);
     const downloadURL = await getDownloadURL(snapshot.ref);
-    
-    return { 
-      success: true, 
-      url: downloadURL, 
+
+    return {
+      success: true,
+      url: downloadURL,
       ref: imageRef,
       error: null,
       name: fileNameToUse,
@@ -47,9 +48,9 @@ export const uploadImage = async (file, path = 'gallery', newFileName = null, cu
       metadata: metadata.customMetadata
     };
   } catch (error) {
-    return { 
-      success: false, 
-      url: null, 
+    return {
+      success: false,
+      url: null,
       ref: null,
       error: error.message,
       name: newFileName || file.name,
@@ -86,7 +87,7 @@ export const uploadMultipleImages = async (files, path = 'gallery', seriesTitle 
             if (['birdlife', 'astro', 'landscape'].includes(segments[0])) {
               return segments[0];
             }
-          } catch {}
+          } catch { }
           return '';
         })(),
         likes: '0', // Initialize likes to 0
@@ -138,11 +139,11 @@ export const getImagesFromFolder = async (folderPath = 'gallery') => {
   try {
     const folderRef = ref(storage, folderPath);
     const result = await listAll(folderRef);
-    
+
     // Batch all requests together for better performance
     const imagePromises = result.items.map(async (item) => {
       const cacheKey = item.fullPath;
-      
+
       // Check if we already have cached data for this item
       if (urlCache.has(cacheKey) && metadataCache.has(cacheKey)) {
         const cachedUrl = urlCache.get(cacheKey);
@@ -161,17 +162,17 @@ export const getImagesFromFolder = async (folderPath = 'gallery') => {
           timeCreated: cachedMetadata.timeCreated
         };
       }
-      
+
       // Fetch URL and metadata in parallel
       const [url, metadata] = await Promise.all([
         getDownloadURL(item),
         getMetadata(item)
       ]);
-      
+
       // Cache the results
       urlCache.set(cacheKey, url);
       metadataCache.set(cacheKey, metadata);
-      
+
       return {
         id: item.name,
         name: item.name,
@@ -186,9 +187,9 @@ export const getImagesFromFolder = async (folderPath = 'gallery') => {
         timeCreated: metadata.timeCreated
       };
     });
-    
+
     const images = await Promise.all(imagePromises);
-    
+
     // Store in server-side cache (if using a backend)
     // This would typically be handled by your backend API
     if (typeof window !== 'undefined') {
@@ -199,14 +200,14 @@ export const getImagesFromFolder = async (folderPath = 'gallery') => {
         timestamp: Date.now(),
         etag: `gallery-${Date.now()}` // Simple ETag for cache validation
       }
-      
+
       // Store in memory cache for this session
       if (!window.firebaseCache) {
         window.firebaseCache = new Map()
       }
       window.firebaseCache.set(cacheKey, cacheData)
     }
-    
+
     return { success: true, images, error: null };
   } catch (error) {
     return { success: false, images: [], error: error.message };
@@ -225,39 +226,45 @@ export const getImageURL = async (imageName, folder = 'gallery') => {
 };
 
 // Update image metadata (title, description, etc.)
-export const updateImageMetadata = async (imagePath, metadata) => {
+export const updateImageMetadata = async (imagePath, metadataOverrides) => {
   try {
-    // Firebase Storage doesn't support updating metadata directly
-    // We'll store the metadata in localStorage as a workaround
-    // In a production app, you'd use Firestore or another database
-    
-    const metadataKey = `image_metadata_${imagePath.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    const existingMetadata = JSON.parse(localStorage.getItem(metadataKey) || '{}');
-    
-    const updatedMetadata = {
-      ...existingMetadata,
-      ...metadata,
-      updatedAt: new Date().toISOString()
+    const imageRef = ref(storage, imagePath);
+
+    // Fetch existing metadata to merge custom properties properly
+    const currentMetadata = await getMetadata(imageRef);
+    const existingCustom = currentMetadata.customMetadata || {};
+
+    // Filter out undefined/null overrides
+    const cleanOverrides = Object.fromEntries(
+      Object.entries(metadataOverrides).filter(([_, v]) => v != null)
+    );
+
+    const newMetadata = {
+      customMetadata: {
+        ...existingCustom,
+        ...cleanOverrides,
+        updatedAt: new Date().toISOString()
+      }
     };
-    
-    // Store in localStorage
-    localStorage.setItem(metadataKey, JSON.stringify(updatedMetadata));
-    
-    // Also store in a global metadata cache
+
+    // Actually update the metadata in Firebase Storage
+    const updated = await updateMetadata(imageRef, newMetadata);
+
+    // Keep local global cache updated so admin UI reflects changes immediately
     const globalMetadata = JSON.parse(localStorage.getItem('image_metadata_cache') || '{}');
-    globalMetadata[imagePath] = updatedMetadata;
+    globalMetadata[imagePath] = updated.customMetadata;
     localStorage.setItem('image_metadata_cache', JSON.stringify(globalMetadata));
-    
-    return { 
-      success: true, 
-      metadata: updatedMetadata, 
-      error: null 
+
+    return {
+      success: true,
+      metadata: updated.customMetadata,
+      error: null
     };
   } catch (error) {
-    return { 
-      success: false, 
-      metadata: null, 
-      error: error.message 
+    return {
+      success: false,
+      metadata: null,
+      error: error.message
     };
   }
 };
