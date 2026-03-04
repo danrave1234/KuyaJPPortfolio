@@ -38,3 +38,43 @@
     "NEW INSTRUCTION": "WHEN generating sitemap in this project THEN omit changefreq and priority tags."
 }
 
+[2026-03-04 13:44] - Updated by Junie
+{
+    "TYPE": "preference",
+    "CATEGORY": "Theme change scroll",
+    "EXPECTATION": "When switching between birdlife/astro/landscape themes, the page should reset to top.",
+    "NEW INSTRUCTION": "WHEN theme changes between birdlife/astro/landscape THEN scroll window to top immediately."
+}
+
+[2026-03-04 13:50] - Updated by Junie
+{
+    "TYPE": "correction",
+    "CATEGORY": "Unwanted scroll-to-top",
+    "EXPECTATION": "Navbar page switches should not trigger automatic scroll-to-top or its animation; only theme changes should reset to top.",
+    "NEW INSTRUCTION": "WHEN route changes via navbar or Link THEN do not call scroll-to-top or trigger its animation."
+}
+
+[2026-03-04 13:56] - Updated by Junie
+{
+    "TYPE": "correction",
+    "CATEGORY": "Route change scroll",
+    "EXPECTATION": "When switching pages via navbar, the new page should start at the top, not carry over the previous page's scroll.",
+    "NEW INSTRUCTION": "WHEN navigating via navbar or internal Link THEN ensure new page loads at top without animation."
+}
+
+[2026-03-04 13:59] - Updated by Junie
+{
+    "TYPE": "correction",
+    "CATEGORY": "Route change scroll animation",
+    "EXPECTATION": "On page switches, the site should not trigger a programmatic or animated scroll-to-top; pages should simply load at the top naturally.",
+    "NEW INSTRUCTION": "WHEN route changes via navbar or Link THEN do not trigger smooth scroll-to-top or BackToTop animation."
+}
+
+[2026-03-04 14:00] - Updated by Junie
+{
+    "TYPE": "correction",
+    "CATEGORY": "Route scroll carryover",
+    "EXPECTATION": "On page switches, scroll should not carry over; each new page should load at the top naturally using Next.js defaults (no programmatic scroll or animations).",
+    "NEW INSTRUCTION": "WHEN adding navigation Links THEN omit scroll={false} to allow default top reset."
+}
+

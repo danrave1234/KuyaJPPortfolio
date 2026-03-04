@@ -43,7 +43,7 @@ export const AuthProvider = ({ children }) => {
     isAdmin: !!(
       user &&
       user.email &&
-      allowedAdminEmails.includes(user.email.toLowerCase())
+      allowedAdminEmails.includes(user.email.trim().toLowerCase())
     ),
     signOut: async () => {
       try {
