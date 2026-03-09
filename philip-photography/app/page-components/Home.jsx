@@ -815,7 +815,7 @@ export default function Home() {
                 </div>
               ) : displayImages.length === 0 ? (
                 <div className="flex items-center justify-center py-16">
-                  <span className="text-[rgb(var(--muted-fg))]">No images found in Firebase Storage</span>
+                  <span className="text-[rgb(var(--muted-fg))]">No photos available at the moment. Check back soon!</span>
                 </div>
               ) : (
                 <div

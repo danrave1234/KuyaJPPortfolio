@@ -1069,7 +1069,7 @@ export default function Gallery({ slug: imageSlug, category }) {
           ) : shuffledArtworks.length === 0 ? (
             <div className="flex items-center justify-center py-16">
               <div className="text-center">
-                <p className="text-[rgb(var(--muted-fg))] transition-colors duration-300">No images found in Firebase Storage</p>
+                <p className="text-[rgb(var(--muted-fg))] transition-colors duration-300">No photos available at the moment. Check back soon!</p>
               </div>
             </div>
           ) : debouncedQuery && deduplicatedArtworks.length === 0 && !isSearching && !isDebouncing ? (
@@ -1248,7 +1248,7 @@ export default function Gallery({ slug: imageSlug, category }) {
               </div>
               <div className="bg-[rgb(var(--bg))] border border-[rgb(var(--muted))]/20 rounded-md sm:rounded-lg p-3 sm:p-4 md:p-6 transition-colors duration-300">
                 <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[rgb(var(--fg))] mb-1 sm:mb-2 transition-colors duration-300">
-                  Wildlife
+                  {currentTheme === 'astro' ? 'Astrophotography' : currentTheme === 'landscape' ? 'Landscape' : 'Wildlife'}
                 </div>
                 <div className="text-[rgb(var(--muted))] text-xs sm:text-sm uppercase tracking-wide transition-colors duration-300">
                   Primary Focus

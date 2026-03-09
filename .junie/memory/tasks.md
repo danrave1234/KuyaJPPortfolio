@@ -168,3 +168,23 @@
     "NEW INSTRUCTION": "WHEN backend call path or fallbacks are modified THEN run app and verify console and images"
 }
 
+[2026-03-08 19:58] - Updated by Junie - Trajectory analysis
+{
+    "PLAN QUALITY": "suboptimal",
+    "REDUNDANT STEPS": "get file structure, list files repeatedly",
+    "MISSING STEPS": "scan project for other hardcoded labels",
+    "BOTTLENECK": "Inefficient file discovery due to repeated shell listings and tool misuse.",
+    "PROJECT NOTE": "Components live under app/page-components; prefer text search over directory crawling.",
+    "NEW INSTRUCTION": "WHEN locating a component by visible label THEN use search_project before directory crawling"
+}
+
+[2026-03-08 19:59] - Updated by Junie - Trajectory analysis
+{
+    "PLAN QUALITY": "suboptimal",
+    "REDUNDANT STEPS": "recap previous fix",
+    "MISSING STEPS": "scan project, open header/navbar, inspect Link and onClick handlers, check layout/page transitions, check app router loading files, profile route change",
+    "BOTTLENECK": "Did not locate or inspect the header component where the delay likely originates.",
+    "PROJECT NOTE": "In Next.js App Router, loading.(js|tsx) or Suspense fallbacks in app/* and layout transitions can add fixed delays; also check any onClick wrappers adding setTimeout around router.push/Link.",
+    "NEW INSTRUCTION": "WHEN investigating header navigation delay THEN open header/navbar file and audit Link/onClick for timeouts"
+}
+

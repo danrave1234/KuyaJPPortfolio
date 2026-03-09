@@ -153,9 +153,9 @@
 
     /* Fluid timing and motion distances using clamp() */
     /* Transition/animation durations scale with viewport for smoother feel */
-    --t-fast: clamp(160ms, 1.2vw, 260ms);
-    --t-base: clamp(240ms, 1.8vw, 420ms);
-    --t-slow: clamp(500ms, 3.5vw, 900ms);
+    --t-fast: clamp(80ms, 0.6vw, 130ms);
+    --t-base: clamp(120ms, 0.9vw, 200ms);
+    --t-slow: clamp(250ms, 1.8vw, 450ms);
     /* Subtle motion distances that scale with viewport */
     --shift-xs: clamp(2px, 0.4vw, 6px);
     --shift-sm: clamp(6px, 0.8vw, 14px);

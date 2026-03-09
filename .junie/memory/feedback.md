@@ -78,3 +78,11 @@
     "NEW INSTRUCTION": "WHEN adding navigation Links THEN omit scroll={false} to allow default top reset."
 }
 
+[2026-03-08 19:56] - Updated by Junie
+{
+    "TYPE": "correction",
+    "CATEGORY": "Gallery theme binding",
+    "EXPECTATION": "In /gallery, the 'Primary Focus' for Wildlife should change when the theme changes.",
+    "NEW INSTRUCTION": "WHEN theme changes on /gallery THEN update Wildlife Primary Focus text to the active theme."
+}
+
